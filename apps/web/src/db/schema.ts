@@ -6,9 +6,18 @@ const ts = (name: string) => integer(name, { mode: "timestamp" }).notNull();
 const tsNullable = (name: string) => integer(name, { mode: "timestamp" });
 const cents = (name: string) => integer(name).notNull().default(0);
 
+// Better Auth user table. Required base columns: id, name, email,
+// emailVerified, image, createdAt, updatedAt. Custom fields (plan, phase,
+// daily_budget_cents) are configured via additionalFields in src/auth.ts.
 export const users = sqliteTable("users", {
   id: id(),
+  name: text("name").notNull().default(""),
   email: text("email").unique().notNull(),
+  emailVerified: integer("emailVerified", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  image: text("image"),
+  // Custom fields:
   plan: text("plan", { enum: ["free", "pro"] }).notNull().default("pro"),
   phase: text("phase", {
     enum: ["chassis", "architect", "writer", "publisher", "scout", "launch"],
@@ -19,12 +28,50 @@ export const users = sqliteTable("users", {
   elevenlabs_key_ciphertext: blob("elevenlabs_key_ciphertext"),
   elevenlabs_key_iv: blob("elevenlabs_key_iv"),
   stripe_customer_id: text("stripe_customer_id"),
-  created_at: ts("created_at").default(sql`(unixepoch())`),
+  createdAt: ts("createdAt").default(sql`(unixepoch())`),
+  updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
 });
 
-// Better Auth tables (account, session, verification) are managed by the
-// Better Auth Drizzle adapter; we let it generate them via its CLI on first
-// run. See Task 7 for the wiring.
+// Better Auth tables. The Drizzle adapter expects singular names: user,
+// session, account, verification. We point Better Auth's `user` model at
+// our `users` table via the schema mapping in src/auth.ts; the other three
+// are created here.
+
+export const session = sqliteTable("session", {
+  id: id(),
+  userId: text("userId").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: ts("expiresAt"),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  createdAt: ts("createdAt").default(sql`(unixepoch())`),
+  updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
+});
+
+export const account = sqliteTable("account", {
+  id: id(),
+  userId: text("userId").references(() => users.id).notNull(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: tsNullable("accessTokenExpiresAt"),
+  refreshTokenExpiresAt: tsNullable("refreshTokenExpiresAt"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: ts("createdAt").default(sql`(unixepoch())`),
+  updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
+});
+
+export const verification = sqliteTable("verification", {
+  id: id(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: ts("expiresAt"),
+  createdAt: ts("createdAt").default(sql`(unixepoch())`),
+  updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
+});
 
 export const voices = sqliteTable("voices", {
   id: id(),

@@ -1,3 +1,20 @@
+CREATE TABLE `account` (
+	`id` text PRIMARY KEY NOT NULL,
+	`userId` text NOT NULL,
+	`accountId` text NOT NULL,
+	`providerId` text NOT NULL,
+	`accessToken` text,
+	`refreshToken` text,
+	`idToken` text,
+	`accessTokenExpiresAt` integer,
+	`refreshTokenExpiresAt` integer,
+	`scope` text,
+	`password` text,
+	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `chapters` (
 	`id` text PRIMARY KEY NOT NULL,
 	`project_id` text NOT NULL,
@@ -154,6 +171,19 @@ CREATE TABLE `sections` (
 );
 --> statement-breakpoint
 CREATE INDEX `sections_by_chapter` ON `sections` (`chapter_id`,`ordinal`);--> statement-breakpoint
+CREATE TABLE `session` (
+	`id` text PRIMARY KEY NOT NULL,
+	`userId` text NOT NULL,
+	`token` text NOT NULL,
+	`expiresAt` integer NOT NULL,
+	`ipAddress` text,
+	`userAgent` text,
+	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `session_token_unique` ON `session` (`token`);--> statement-breakpoint
 CREATE TABLE `usage_daily` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -168,17 +198,30 @@ CREATE TABLE `usage_daily` (
 CREATE INDEX `usage_daily_by_user_day` ON `usage_daily` (`user_id`,`day_iso`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
+	`name` text DEFAULT '' NOT NULL,
 	`email` text NOT NULL,
+	`emailVerified` integer DEFAULT false NOT NULL,
+	`image` text,
 	`plan` text DEFAULT 'pro' NOT NULL,
 	`phase` text DEFAULT 'chassis' NOT NULL,
 	`daily_budget_cents` integer DEFAULT 5000 NOT NULL,
 	`elevenlabs_key_ciphertext` blob,
 	`elevenlabs_key_iv` blob,
 	`stripe_customer_id` text,
-	`created_at` integer DEFAULT (unixepoch()) NOT NULL
+	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
+CREATE TABLE `verification` (
+	`id` text PRIMARY KEY NOT NULL,
+	`identifier` text NOT NULL,
+	`value` text NOT NULL,
+	`expiresAt` integer NOT NULL,
+	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
+	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `voice_samples` (
 	`id` text PRIMARY KEY NOT NULL,
 	`voice_id` text NOT NULL,

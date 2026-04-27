@@ -1,10 +1,20 @@
-import { defineConfig } from "vitest/config";
+import { defineWorkersConfig, readD1Migrations } from "@cloudflare/vitest-pool-workers/config";
+import { resolve } from "node:path";
 
-// Placeholder. Task 7.4 replaces this with the @cloudflare/vitest-pool-workers
-// config once Better Auth + integration tests come online.
-export default defineConfig({
-  test: {
-    include: [],
-    passWithNoTests: true,
-  },
+export default defineWorkersConfig(async () => {
+  const migrations = await readD1Migrations(resolve(__dirname, "drizzle"));
+  return {
+    test: {
+      include: ["../../tests/integration/**/*.test.ts"],
+      setupFiles: ["../../tests/integration/setup.ts"],
+      poolOptions: {
+        workers: {
+          wrangler: { configPath: "./wrangler.jsonc" },
+          miniflare: {
+            bindings: { TEST_MIGRATIONS: migrations },
+          },
+        },
+      },
+    },
+  };
 });

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createAuth } from "./auth";
 import type { Env } from "./env";
 
 export { BookProjectAgent } from "./agents/aloysius";
@@ -9,6 +10,10 @@ app.get("/api/v1/health", (c) =>
   c.json({ ok: true, env: c.env.ENV, ts: Date.now() })
 );
 
-export default {
-  fetch: app.fetch,
-} satisfies ExportedHandler<Env>;
+// Better Auth catch-all
+app.on(["GET", "POST"], "/api/auth/*", (c) => {
+  const auth = createAuth(c.env);
+  return auth.handler(c.req.raw);
+});
+
+export default { fetch: app.fetch } satisfies ExportedHandler<Env>;

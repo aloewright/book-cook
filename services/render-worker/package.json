@@ -1,0 +1,13 @@
+{
+  "name": "render-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "hono": "^4.6.15", "@hono/node-server": "^1.13.0" },
+  "devDependencies": { "@types/node": "^22.10.5", "typescript": "^5.7.2" }
+}

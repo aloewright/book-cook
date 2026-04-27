@@ -17,4 +17,6 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
   Secrets & {
     // Widen literal "dev" to the real set of environments.
     ENV: "dev" | "staging" | "prod";
+    // Container binding — refreshed on next `wrangler types` run.
+    RENDER_WORKER?: Fetcher;
   };

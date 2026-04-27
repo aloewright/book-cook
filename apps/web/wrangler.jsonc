@@ -49,4 +49,9 @@
   },
 
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BookProjectAgent"] }]
+
+  // containers binding wired in Publisher phase (Plan 4) once render-worker
+  // is pushed to a registry and the Container DO class is defined.
+  // "containers": [{ "name": "RENDER_WORKER", "class_name": "RenderWorkerContainer",
+  //   "image": "ghcr.io/bookgenerators/render-worker:latest", "max_instances": 4 }]
 }

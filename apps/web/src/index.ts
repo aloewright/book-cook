@@ -4,6 +4,7 @@ import { createAuth } from "./auth";
 import { errorHandler } from "./middleware/error";
 import { projectsRoute } from "./routes/projects";
 import { accountRoute } from "./routes/account";
+import { healthRoute } from "./routes/health";
 import type { Env } from "./env";
 
 export { BookProjectAgent } from "./agents/aloysius";
@@ -11,9 +12,7 @@ export { BookProjectAgent } from "./agents/aloysius";
 const app = new Hono<{ Bindings: Env }>();
 app.use("*", errorHandler);
 
-app.get("/api/v1/health", (c) =>
-  c.json({ ok: true, env: c.env.ENV, ts: Date.now() })
-);
+app.route("/api/v1/health", healthRoute);
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => {
   const auth = createAuth(c.env);

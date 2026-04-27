@@ -1,3 +1,4 @@
+import { getAgentByName } from "agents";
 import { Hono } from "hono";
 import { createAuth } from "./auth";
 import { errorHandler } from "./middleware/error";
@@ -21,5 +22,16 @@ app.on(["GET", "POST"], "/api/auth/*", (c) => {
 
 app.route("/api/v1/projects", projectsRoute);
 app.route("/api/v1/account", accountRoute);
+
+app.get("/agents/aloysius/:projectId", async (c) => {
+  if (c.req.header("Upgrade") !== "websocket") {
+    return c.text("expected websocket", 426);
+  }
+  const stub = await getAgentByName(
+    c.env.ALOYSIUS,
+    c.req.param("projectId")
+  );
+  return stub.fetch(c.req.raw);
+});
 
 export default { fetch: app.fetch } satisfies ExportedHandler<Env>;

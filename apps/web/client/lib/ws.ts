@@ -18,7 +18,14 @@ export function connectAloysius(projectId: string): {
   });
   return {
     ws,
-    send: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),
+    send: (msg) => {
+      const json = JSON.stringify(msg);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(json);
+      } else {
+        ws.addEventListener("open", () => ws.send(json), { once: true });
+      }
+    },
     onEvent: (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
   };
 }

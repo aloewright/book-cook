@@ -20,7 +20,8 @@
     "RESEARCH_MODEL": "anthropic/claude-opus-4-7",
     "IMAGE_MODEL": "openai/gpt-image-2",
     "AI_GATEWAY_ID": "x",
-    "POSTPILOT_BASE_URL": "https://postpilot.cc"
+    "POSTPILOT_BASE_URL": "https://postpilot.cc",
+    "BETTER_AUTH_URL": "https://bookgenerators-web.lazee.workers.dev"
   },
 
   // Secrets (provision via scripts/bootstrap.sh):
@@ -36,11 +37,11 @@
     {
       "binding": "DB",
       "database_name": "bookgenerators",
-      "database_id": "PLACEHOLDER_D1_ID",
+      "database_id": "12308aa2-4101-4c20-8cce-fd0fd7a85a48",
       "migrations_dir": "drizzle"
     }
   ],
-  "kv_namespaces": [{ "binding": "KV", "id": "PLACEHOLDER_KV_ID" }],
+  "kv_namespaces": [{ "binding": "KV", "id": "550e0e2af0c9454c8e256d94fcac4d47" }],
   "r2_buckets": [{ "binding": "R2", "bucket_name": "bookgenerators" }],
   "ai": { "binding": "AI" },
 

@@ -33,4 +33,7 @@ app.get("/agents/aloysius/:projectId", async (c) => {
   return stub.fetch(c.req.raw);
 });
 
+// Delegate all unmatched routes to the ASSETS binding so the SPA handles them.
+app.get("*", (c) => c.env.ASSETS.fetch(c.req.raw));
+
 export default { fetch: app.fetch } satisfies ExportedHandler<Env>;

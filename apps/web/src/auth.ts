@@ -23,10 +23,9 @@ export function createAuth(env: Env) {
       delete: async (key) => env.KV.delete(key),
     },
     secret: env.BETTER_AUTH_SECRET,
-    baseURL:
-      env.ENV === "prod"
-        ? "https://bookgenerators.com"
-        : "http://localhost:5173",
+    baseURL: (env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL ?? (
+      env.ENV === "prod" ? "https://bookgenerators.com" : "http://localhost:5173"
+    ),
     emailAndPassword: { enabled: true, autoSignIn: true },
     user: {
       additionalFields: {

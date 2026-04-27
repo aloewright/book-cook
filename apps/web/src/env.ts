@@ -19,4 +19,6 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
     ENV: "dev" | "staging" | "prod";
     // Container binding — refreshed on next `wrangler types` run.
     RENDER_WORKER?: Fetcher;
+    // Auth base URL — set per environment in wrangler.jsonc vars or .dev.vars.
+    BETTER_AUTH_URL?: string;
   };

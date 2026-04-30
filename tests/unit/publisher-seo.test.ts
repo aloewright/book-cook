@@ -52,4 +52,29 @@ describe("publisher SEO synthesis", () => {
     expect(pack.bisac).toHaveLength(2);
     expect(validatePublisherSeoPack(pack)).toEqual([]);
   });
+
+  it("falls back from vague BISAC codes to full category paths", () => {
+    const pack = normalizePack(
+      {
+        title: "Quiet Operator",
+        subtitle: "A calmer system for focused work",
+        series_name: "",
+        description_html: "<p>Body</p>",
+        keywords: ["one", "two", "three", "four", "five", "six", "seven"],
+        bisac: ["BUS006000", "BUS006030"],
+      },
+      {
+        title: "Quiet Operator",
+        type: "nonfiction",
+        genre: "productivity",
+        chapters: [],
+      },
+    );
+
+    expect(pack.bisac).toEqual([
+      "BUSINESS & ECONOMICS / Personal Success",
+      "SELF-HELP / Personal Growth / Success",
+    ]);
+    expect(validatePublisherSeoPack(pack)).toEqual([]);
+  });
 });

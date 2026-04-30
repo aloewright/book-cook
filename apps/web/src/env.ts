@@ -3,6 +3,8 @@
 // (secrets are injected at runtime by Wrangler). We extend it here so the
 // rest of the codebase has a single Env type.
 
+import type { Container } from "@cloudflare/containers";
+
 type Secrets = {
   BETTER_AUTH_SECRET: string;
   AI_GATEWAY_BASE_URL: string;
@@ -17,8 +19,11 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
   Secrets & {
     // Widen literal "dev" to the real set of environments.
     ENV: "dev" | "staging" | "prod";
-    // Container binding — refreshed on next `wrangler types` run.
-    RENDER_WORKER?: Fetcher;
+    // Container-backed Durable Object binding — refreshed on next `wrangler types` run.
+    RENDER_WORKER?: DurableObjectNamespace<Container<Env>>;
+    // R2 S3-compatible settings forwarded to render containers when available.
+    S3_ENDPOINT?: string;
+    R2_BUCKET?: string;
     // Auth base URL — set per environment in wrangler.jsonc vars or .dev.vars.
     BETTER_AUTH_URL?: string;
     // Google OAuth — injected as Wrangler secrets.

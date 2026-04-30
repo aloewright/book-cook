@@ -8,6 +8,13 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": { "hono": "^4.6.15", "@hono/node-server": "^1.13.0" },
-  "devDependencies": { "@types/node": "^22.10.5", "typescript": "^5.7.2" }
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.950.0",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.6.15"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2"
+  }
 }

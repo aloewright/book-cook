@@ -26,6 +26,7 @@
     "RESEARCH_MODEL": "anthropic/claude-opus-4-7",
     "IMAGE_MODEL": "openai/gpt-image-2",
     "AI_GATEWAY_ID": "x",
+    "R2_BUCKET": "bookgenerators",
     "POSTPILOT_BASE_URL": "https://postpilot.cc",
     "BETTER_AUTH_URL": "https://book-cook.com",
     "GOOGLE_CLIENT_ID": "28692687396-450mrtd8csaa8rnef13hteq902sb3g8n.apps.googleusercontent.com"
@@ -37,6 +38,7 @@
   //   AI_GATEWAY_TOKEN
   //   S3_ACCESS_KEY_ID
   //   S3_SECRET_ACCESS_KEY
+  //   S3_ENDPOINT
   //   RENDER_WORKER_INTERNAL_TOKEN
   //   KEYRING_MASTER_KEY
   //   GOOGLE_CLIENT_SECRET
@@ -54,13 +56,27 @@
   "ai": { "binding": "AI" },
 
   "durable_objects": {
-    "bindings": [{ "name": "ALOYSIUS", "class_name": "BookProjectAgent" }]
+    "bindings": [
+      { "name": "ALOYSIUS", "class_name": "BookProjectAgent" },
+      { "name": "RENDER_WORKER", "class_name": "RenderWorkerContainer" }
+    ]
   },
 
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BookProjectAgent"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["BookProjectAgent"] },
+    { "tag": "v2", "new_sqlite_classes": ["RenderWorkerContainer"] }
+  ],
 
-  // containers binding wired in Publisher phase (Plan 4) once render-worker
-  // is pushed to a registry and the Container DO class is defined.
-  // "containers": [{ "name": "RENDER_WORKER", "class_name": "RenderWorkerContainer",
-  //   "image": "ghcr.io/bookgenerators/render-worker:latest", "max_instances": 4 }]
+  "containers": [
+    {
+      "name": "render-worker",
+      "class_name": "RenderWorkerContainer",
+      "image": "ghcr.io/aloewright/bookgenerators/render-worker:latest",
+      "max_instances": 4
+    }
+  ],
+
+  "dev": {
+    "enable_containers": false
+  }
 }

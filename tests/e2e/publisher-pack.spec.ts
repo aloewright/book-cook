@@ -49,4 +49,9 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await page.getByPlaceholder(/ElevenLabs voice IDs/i).fill("JBFqnCBsd6RMkjVDRZzb");
   await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();
   await expect(page.getByRole("button", { name: /master audiobook/i })).toBeDisabled();
+  await page.getByRole("link", { name: /open launch/i }).click();
+  await expect(page).toHaveURL(/\/projects\/.+\/launch$/);
+  await expect(page.getByRole("heading", { name: "Launch" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /generate brief/i })).toBeEnabled();
+  await expect(page.getByText(/Markdown, HTML, and handoff JSON/i)).toBeVisible();
 });

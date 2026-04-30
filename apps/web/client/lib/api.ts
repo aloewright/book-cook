@@ -198,6 +198,34 @@ export type ScoutResult = {
   };
 };
 
+export type GtmBriefContent = {
+  title: string;
+  subtitle: string;
+  positioning: string;
+  comp_titles: string[];
+  launch_checklist: string[];
+  preorder_copy: { headline: string; body: string };
+  email_sequence: { subject: string; body: string }[];
+  ad_headlines: string[];
+  arc_reader_brief: string;
+  milestones: {
+    week_1: string[];
+    month_1: string[];
+    month_3: string[];
+  };
+};
+
+export type GtmBrief = {
+  id: string;
+  project_id: string;
+  content_json: GtmBriefContent;
+  brief_md: string;
+  r2_key: string;
+  created_at: string | number;
+  updated_at: string | number;
+  download_url?: string | null;
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
@@ -279,6 +307,10 @@ export const api = {
     }),
   listProjectScoutFindings: (id: string) =>
     fetchJson<{ items: ScoutResult[] }>(`/api/v1/scout/projects/${id}/findings`),
+  getGtmBrief: (id: string) =>
+    fetchJson<{ brief: GtmBrief | null }>(`/api/v1/projects/${id}/launch/brief`),
+  startGtmBrief: (id: string) =>
+    fetchJson<{ id: string }>(`/api/v1/projects/${id}/launch/brief`, { method: "POST" }),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -360,6 +392,7 @@ export const queryKeys = {
   audiobookJobs: (id: string) => ["projects", id, "audiobook-jobs"] as const,
   scoutQueries: () => ["scout", "queries"] as const,
   projectScoutFindings: (id: string) => ["projects", id, "scout-findings"] as const,
+  gtmBrief: (id: string) => ["projects", id, "gtm-brief"] as const,
   elevenLabsKey: () => ["account", "elevenlabs-key"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,

@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   chapters,
   chat_messages,
+  gtm_briefs,
   outlines,
   projects,
   publisher_packs,
@@ -24,6 +25,7 @@ import {
   synthesizePublisherSeo,
   validatePublisherSeoPack,
 } from "../skills/publisher/seo";
+import { prepareGtmBriefInput } from "../workflows/gtm-brief";
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
@@ -684,6 +686,79 @@ projectsRoute.get("/:id/audiobook/:jobId/download", async (c) => {
   });
 });
 
+projectsRoute.get("/:id/launch/brief", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const [brief] = await db
+    .select()
+    .from(gtm_briefs)
+    .where(eq(gtm_briefs.project_id, id))
+    .orderBy(desc(gtm_briefs.updated_at))
+    .limit(1);
+  return c.json({ brief: brief ? serializeGtmBrief(id, brief) : null });
+});
+
+projectsRoute.post("/:id/launch/brief", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  if (!c.env.GTM_BRIEF_WORKFLOW) {
+    return c.json({ error: "launch handoff workflow is not configured" }, 503);
+  }
+
+  try {
+    await prepareGtmBriefInput(c.env, id, user.id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "launch handoff is not ready";
+    const status = message.includes("publisher pack")
+      ? 409
+      : message.includes("not found")
+        ? 404
+        : 400;
+    return c.json({ error: { message } }, status);
+  }
+
+  const instanceId = `gtm-brief-${id}-${Date.now()}`;
+  await c.env.GTM_BRIEF_WORKFLOW.create({
+    id: instanceId,
+    params: { projectId: id, userId: user.id },
+  });
+  return c.json({ id: instanceId }, 202);
+});
+
+projectsRoute.get("/:id/launch/brief/download", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [brief] = await db
+    .select({
+      id: gtm_briefs.id,
+      r2_key: gtm_briefs.r2_key,
+      projectId: projects.id,
+    })
+    .from(gtm_briefs)
+    .innerJoin(projects, eq(gtm_briefs.project_id, projects.id))
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .orderBy(desc(gtm_briefs.updated_at))
+    .limit(1);
+  if (!brief?.r2_key) return c.json({ error: "launch handoff not found" }, 404);
+  const object = await c.env.R2.get(brief.r2_key);
+  if (!object) return c.json({ error: "launch handoff not found" }, 404);
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${id}-launch-handoff.zip"`,
+    },
+  });
+});
+
 projectsRoute.post("/:id/outlines", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -810,6 +885,13 @@ function serializeAudiobookJob(id: string, row: typeof render_jobs.$inferSelect)
       row.kind === "master_mix" && row.status === "completed" && row.output_r2_key
         ? `/api/v1/projects/${id}/audiobook/${row.id}/download`
         : null,
+  };
+}
+
+function serializeGtmBrief(id: string, row: typeof gtm_briefs.$inferSelect) {
+  return {
+    ...row,
+    download_url: row.r2_key ? `/api/v1/projects/${id}/launch/brief/download` : null,
   };
 }
 

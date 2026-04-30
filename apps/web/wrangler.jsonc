@@ -78,6 +78,11 @@
       "name": "audiobook-mastering-workflow",
       "binding": "AUDIOBOOK_MASTERING_WORKFLOW",
       "class_name": "AudiobookMasteringWorkflow"
+    },
+    {
+      "name": "gtm-brief-workflow",
+      "binding": "GTM_BRIEF_WORKFLOW",
+      "class_name": "GtmBriefWorkflow"
     }
   ],
 

@@ -39,6 +39,13 @@ type MasterAudioRequest = {
   inline?: boolean;
 };
 
+type LaunchPackageRequest = {
+  projectId: string;
+  handoff: unknown;
+  briefMd: string;
+  inline?: boolean;
+};
+
 export const app = new Hono();
 
 app.use("*", async (c, next) => {
@@ -88,6 +95,27 @@ app.post("/master-audio", async (c) => {
     stored: upload.stored,
     storage: upload.message,
     bodyBase64: body.inline ? mastered.bytes.toString("base64") : undefined,
+    durationMs: Date.now() - startedAt,
+  });
+});
+
+app.post("/package-launch", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as LaunchPackageRequest;
+  if (!body.projectId?.trim()) return c.json({ error: "projectId is required" }, 400);
+  if (!body.briefMd?.trim()) return c.json({ error: "briefMd is required" }, 400);
+
+  const startedAt = Date.now();
+  const packaged = await packageLaunchHandoff(body);
+  const upload = await uploadToR2(packaged.r2Key, packaged.bytes, packaged.contentType);
+  return c.json({
+    projectId: body.projectId,
+    kind: "launch_handoff",
+    r2Key: packaged.r2Key,
+    contentType: packaged.contentType,
+    bytes: packaged.bytes.byteLength,
+    stored: upload.stored,
+    storage: upload.message,
+    bodyBase64: body.inline ? packaged.bytes.toString("base64") : undefined,
     durationMs: Date.now() - startedAt,
   });
 });
@@ -238,6 +266,31 @@ export async function masterAudiobook(input: MasterAudioRequest) {
   }
 }
 
+export async function packageLaunchHandoff(input: LaunchPackageRequest) {
+  const workDir = path.join(tmpdir(), `book-cook-launch-${crypto.randomUUID()}`);
+  await mkdir(workDir, { recursive: true });
+  try {
+    await writeFile(path.join(workDir, "brief.md"), input.briefMd, "utf8");
+    await writeFile(path.join(workDir, "handoff.json"), JSON.stringify(input.handoff, null, 2));
+    await writeFile(path.join(workDir, "index.html"), markdownToHtml(input.briefMd), "utf8");
+    await execFileAsync(
+      "zip",
+      ["-j", "launch-handoff.zip", "brief.md", "handoff.json", "index.html"],
+      {
+        cwd: workDir,
+      },
+    );
+    const bytes = await readFile(path.join(workDir, "launch-handoff.zip"));
+    return {
+      bytes,
+      r2Key: `projects/${input.projectId}/launch/launch-handoff-${Date.now()}.zip`,
+      contentType: "application/zip",
+    };
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
 async function renderKindle(epub: string, output: string, workDir: string) {
   try {
     await execFileAsync("kindlegen", [epub, "-o", "book.kpf"], { cwd: workDir });
@@ -333,6 +386,30 @@ function safeName(value: string) {
       .replace(/^-|-$/g, "")
       .slice(0, 60) || "chapter"
   );
+}
+
+function markdownToHtml(markdown: string) {
+  const body = markdown
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith("# ")) return `<h1>${escapeHtml(line.slice(2))}</h1>`;
+      if (line.startsWith("## ")) return `<h2>${escapeHtml(line.slice(3))}</h2>`;
+      if (line.startsWith("### ")) return `<h3>${escapeHtml(line.slice(4))}</h3>`;
+      if (line.startsWith("- [ ] ")) return `<li>${escapeHtml(line.slice(6))}</li>`;
+      if (line.startsWith("- ")) return `<li>${escapeHtml(line.slice(2))}</li>`;
+      if (!line.trim()) return "";
+      return `<p>${escapeHtml(line)}</p>`;
+    })
+    .join("\n");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Launch Handoff</title></head><body>${body}</body></html>`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 if (!process.env.VITEST) {

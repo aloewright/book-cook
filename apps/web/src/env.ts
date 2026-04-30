@@ -6,6 +6,7 @@
 import type { Container } from "@cloudflare/containers";
 import type { AudiobookMasteringWorkflowParams } from "./workflows/audiobook-mastering";
 import type { BookExportWorkflowParams } from "./workflows/book-export";
+import type { GtmBriefWorkflowParams } from "./workflows/gtm-brief";
 
 type Secrets = {
   BETTER_AUTH_SECRET: string;
@@ -25,6 +26,7 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
     RENDER_WORKER?: DurableObjectNamespace<Container<Env>>;
     BOOK_EXPORT_WORKFLOW?: Workflow<BookExportWorkflowParams>;
     AUDIOBOOK_MASTERING_WORKFLOW?: Workflow<AudiobookMasteringWorkflowParams>;
+    GTM_BRIEF_WORKFLOW?: Workflow<GtmBriefWorkflowParams>;
     // R2 S3-compatible settings forwarded to render containers when available.
     S3_ENDPOINT?: string;
     R2_BUCKET?: string;

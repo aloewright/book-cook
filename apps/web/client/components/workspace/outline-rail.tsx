@@ -11,7 +11,7 @@ const MODES = [
 
 export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[number]["key"] }) {
   return (
-    <aside className="w-full border-r bg-muted/30 p-3">
+    <aside className="h-full min-h-0 w-full overflow-y-auto border-r bg-muted/30 p-3">
       <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         Project
       </div>

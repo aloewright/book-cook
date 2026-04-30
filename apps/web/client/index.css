@@ -57,7 +57,17 @@
   * {
     @apply border-border;
   }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  html {
+    overflow: hidden;
+  }
   body {
     @apply bg-background text-foreground;
+    margin: 0;
+    overflow: hidden;
   }
 }

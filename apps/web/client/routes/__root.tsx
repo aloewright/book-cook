@@ -2,8 +2,8 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b bg-background">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
+      <header className="shrink-0 border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
           <Link to="/" className="font-semibold">
             📚 Book Cook
@@ -30,7 +30,7 @@ export const Route = createRootRoute({
           </nav>
         </div>
       </header>
-      <main>
+      <main className="min-h-0 flex-1 overflow-y-auto">
         <Outlet />
       </main>
     </div>

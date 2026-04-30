@@ -73,6 +73,7 @@
       "class_name": "RenderWorkerContainer",
       "image": "../../services/render-worker/Dockerfile",
       "image_build_context": "../../services/render-worker",
+      "instance_type": "basic",
       "max_instances": 4
     }
   ],

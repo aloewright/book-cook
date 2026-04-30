@@ -1,9 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { BookOpen, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { api, queryKeys, type Project } from "../lib/api";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { type Project, api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -27,40 +38,82 @@ function Dashboard() {
       <h1 className="mb-6 text-3xl font-semibold">Your books</h1>
 
       <form
-        className="mb-10 flex gap-2"
+        className="mb-6 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           if (title.trim()) create.mutate({ title: title.trim(), type });
           setTitle("");
         }}
       >
-        <Input placeholder="Working title…" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <select value={type} onChange={(e) => setType(e.target.value as "nonfiction" | "fiction")} className="rounded-md border px-2">
-          <option value="nonfiction">Nonfiction</option>
-          <option value="fiction">Fiction</option>
-        </select>
-        <Button type="submit" disabled={create.isPending}>{create.isPending ? "…" : "New book"}</Button>
+        <Input
+          className="flex-1"
+          placeholder="Working title…"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <Select value={type} onValueChange={(v) => setType(v as "nonfiction" | "fiction")}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nonfiction">Nonfiction</SelectItem>
+            <SelectItem value="fiction">Fiction</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button type="submit" disabled={create.isPending || !title.trim()}>
+          {create.isPending ? "Creating…" : "New book"}
+        </Button>
       </form>
 
-      <ul className="grid gap-3">
+      {create.isError ? (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{(create.error as Error).message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="grid gap-3">
         {(projects.data?.items ?? []).map((p: Project) => (
-          <li key={p.id} className="flex items-center justify-between rounded-md border bg-white p-4">
-            <Link to="/projects/$projectId" params={{ projectId: p.id }} className="font-medium">
-              {p.title}
-            </Link>
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span>{p.type}</span>
-              <span>{p.status}</span>
-              <button onClick={() => del.mutate(p.id)} className="text-red-600">Delete</button>
+          <Card
+            key={p.id}
+            className="relative flex items-center justify-between p-4 shadow-none transition-colors hover:bg-accent has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring"
+          >
+            <Link
+              to="/projects/$projectId"
+              params={{ projectId: p.id }}
+              aria-label={`Open ${p.title}`}
+              className="absolute inset-0 z-0 rounded-xl focus:outline-none"
+            />
+            <div className="pointer-events-none relative z-10 flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{p.title}</span>
             </div>
-          </li>
+            <div className="relative z-10 flex items-center gap-2">
+              <Badge variant="secondary" className="pointer-events-none">
+                {p.type}
+              </Badge>
+              <Badge className="pointer-events-none">{p.status}</Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  del.mutate(p.id);
+                }}
+                aria-label="Delete"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </Card>
         ))}
+
         {projects.data && projects.data.items.length === 0 ? (
-          <li className="rounded-md border border-dashed bg-white p-8 text-center text-slate-500">
+          <Card className="border-dashed p-8 text-center text-muted-foreground shadow-none">
             No books yet. Start one above.
-          </li>
+          </Card>
         ) : null}
-      </ul>
+      </div>
     </section>
   );
 }

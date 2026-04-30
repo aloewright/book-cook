@@ -1,56 +1,158 @@
+import { useAgentChat } from "@cloudflare/ai-chat/react";
+import { useAgent } from "agents/react";
+import { Send, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { connectAloysius, type AloysiusEvent } from "../../lib/ws";
-import { Message } from "./message";
-
-type ChatItem = { role: "user" | "assistant" | "tool"; text: string };
+import { Streamdown } from "streamdown";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
+import { Textarea } from "../ui/textarea";
 
 export function AloysiusSidecar({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<ChatItem[]>([]);
-  const [draft, setDraft] = useState("");
-  const sendRef = useRef<((m: object) => void) | null>(null);
+  const agent = useAgent({ agent: "aloysius", name: projectId });
+  const { messages, sendMessage, status, stop } = useAgentChat({ agent });
+  const [input, setInput] = useState("");
+  const [connected, setConnected] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const isStreaming = status === "streaming" || status === "submitted";
 
   useEffect(() => {
-    const conn = connectAloysius(projectId);
-    sendRef.current = conn.send;
-    const off = conn.onEvent((e: AloysiusEvent) => {
-      if (e.type === "assistant_message") {
-        setItems((x) => [...x, { role: "assistant", text: e.text }]);
-      }
-    });
-    return () => { off(); conn.ws.close(); };
-  }, [projectId]);
+    const sock = agent as unknown as WebSocket;
+    if (!sock || typeof sock.addEventListener !== "function") return;
+    const update = () => setConnected(sock.readyState === WebSocket.OPEN);
+    update();
+    sock.addEventListener("open", update);
+    sock.addEventListener("close", update);
+    return () => {
+      sock.removeEventListener("open", update);
+      sock.removeEventListener("close", update);
+    };
+  }, [agent]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  });
 
   function submit() {
-    if (!draft.trim() || !sendRef.current) return;
-    setItems((x) => [...x, { role: "user", text: draft }]);
-    sendRef.current({ type: "user_message", text: draft });
-    setDraft("");
+    const text = input.trim();
+    if (!text || isStreaming) return;
+    sendMessage({ role: "user", parts: [{ type: "text", text }] });
+    setInput("");
+    if (taRef.current) taRef.current.style.height = "auto";
   }
 
   return (
-    <aside className="flex w-[320px] flex-col border-l bg-slate-50">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-900 text-xs font-bold text-white">Al</span>
-        <div>
-          <div className="text-sm font-semibold">Aloysius</div>
-          <div className="text-[10px] text-slate-500">Editor · always-on</div>
+    <aside className="flex h-full w-full min-h-0 flex-col overflow-hidden border-l bg-muted/30">
+      <header className="flex items-center justify-between border-b bg-background px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            Al
+          </span>
+          <div className="leading-tight">
+            <div className="text-sm font-semibold">Aloysius</div>
+            <div className="text-xs text-muted-foreground">Editor · always-on</div>
+          </div>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`h-2 w-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`} />
+          <span className="text-xs text-muted-foreground">{connected ? "Live" : "Offline"}</span>
+        </div>
+      </header>
+
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+        {messages.length === 0 && (
+          <div className="px-2 py-8 text-center text-sm text-muted-foreground">
+            Say hi to Aloysius — he'll help you shape your book.
+          </div>
+        )}
+
+        {messages.map((m) => {
+          const isUser = m.role === "user";
+          const text = m.parts
+            .filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .map((p) => p.text)
+            .join("");
+          if (isUser) {
+            return (
+              <div
+                key={m.id}
+                className="ml-auto max-w-[85%] rounded-2xl bg-primary px-3 py-2 text-sm text-primary-foreground whitespace-pre-wrap"
+              >
+                {text}
+              </div>
+            );
+          }
+          return (
+            <Card
+              key={m.id}
+              className="max-w-[92%] border-border bg-background px-3 py-2 shadow-none"
+            >
+              <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
+              <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-headings:my-2">
+                <Streamdown>{text}</Streamdown>
+              </div>
+            </Card>
+          );
+        })}
+
+        {status === "submitted" && (
+          <Card className="max-w-[92%] border-border bg-background px-3 py-2 shadow-none">
+            <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
+            <div className="flex items-center gap-1 py-1">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+            </div>
+          </Card>
+        )}
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 py-3">
-        {items.map((it, i) => (
-          <Message key={i} role={it.role} text={it.text} />
-        ))}
-      </div>
-      <div className="border-t p-3">
-        <div className="flex gap-2 rounded-md border bg-white px-2 py-1.5">
-          <input
-            className="flex-1 bg-transparent text-sm focus:outline-none"
-            placeholder="Ask Aloysius…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+
+      <div className="border-t bg-background p-2">
+        <div className="relative">
+          <Textarea
+            ref={taRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={isStreaming ? "Aloysius is replying…" : "Ask Aloysius…"}
+            disabled={isStreaming}
+            rows={1}
+            className="resize-none pr-12"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            onInput={(e) => {
+              const ta = e.currentTarget;
+              ta.style.height = "auto";
+              ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+            }}
           />
-          <button onClick={submit} className="text-slate-400 hover:text-slate-900">⏎</button>
+          <div className="absolute bottom-2 right-2">
+            {isStreaming ? (
+              <Button
+                size="icon"
+                variant="secondary"
+                onClick={stop}
+                aria-label="Stop"
+                className="h-8 w-8"
+              >
+                <Square className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                onClick={submit}
+                disabled={!input.trim()}
+                aria-label="Send"
+                className="h-8 w-8"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </aside>

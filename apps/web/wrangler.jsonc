@@ -8,11 +8,17 @@
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/agents/*"]
   },
 
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   "upload_source_maps": true,
+
+  "routes": [
+    { "pattern": "book-cook.com", "custom_domain": true },
+    { "pattern": "www.book-cook.com", "custom_domain": true }
+  ],
 
   "vars": {
     "ENV": "dev",
@@ -21,7 +27,8 @@
     "IMAGE_MODEL": "openai/gpt-image-2",
     "AI_GATEWAY_ID": "x",
     "POSTPILOT_BASE_URL": "https://postpilot.cc",
-    "BETTER_AUTH_URL": "https://bookgenerators-web.lazee.workers.dev"
+    "BETTER_AUTH_URL": "https://book-cook.com",
+    "GOOGLE_CLIENT_ID": "28692687396-450mrtd8csaa8rnef13hteq902sb3g8n.apps.googleusercontent.com"
   },
 
   // Secrets (provision via scripts/bootstrap.sh):
@@ -32,6 +39,7 @@
   //   S3_SECRET_ACCESS_KEY
   //   RENDER_WORKER_INTERNAL_TOKEN
   //   KEYRING_MASTER_KEY
+  //   GOOGLE_CLIENT_SECRET
 
   "d1_databases": [
     {

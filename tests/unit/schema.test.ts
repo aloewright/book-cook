@@ -5,10 +5,22 @@ describe("D1 schema", () => {
   it("exports expected tables", () => {
     const tableNames = Object.keys(schema);
     for (const name of [
-      "users", "voices", "voice_samples", "projects", "outlines",
-      "chapters", "sections", "revisions", "chat_messages",
-      "market_queries", "market_findings", "dataset_snapshots",
-      "publisher_packs", "gtm_briefs", "render_jobs", "usage_daily",
+      "users",
+      "voices",
+      "voice_samples",
+      "projects",
+      "outlines",
+      "chapters",
+      "sections",
+      "revisions",
+      "chat_messages",
+      "market_queries",
+      "market_findings",
+      "dataset_snapshots",
+      "publisher_packs",
+      "gtm_briefs",
+      "render_jobs",
+      "usage_daily",
     ]) {
       expect(tableNames).toContain(name);
     }

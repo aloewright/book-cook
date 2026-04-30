@@ -1,11 +1,11 @@
 import type { MiddlewareHandler } from "hono";
-import { assertBudget } from "../lib/budget";
 import type { Env } from "../env";
+import { assertBudget } from "../lib/budget";
 import type { AuthVariables } from "./auth";
 
 export const enforceBudget =
   (
-    _route: string
+    _route: string,
   ): MiddlewareHandler<{
     Bindings: Env;
     Variables: AuthVariables;

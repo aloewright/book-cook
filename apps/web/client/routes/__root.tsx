@@ -1,18 +1,32 @@
-import { Outlet, createRootRoute, Link } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: () => (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
-          <Link to="/" className="font-semibold">📚 Book Generators</Link>
+          <Link to="/" className="font-semibold">
+            📚 Book Cook
+          </Link>
           <nav className="flex gap-4">
-            <Link to="/dashboard">Dashboard</Link>
-            <Link to="/account">Account</Link>
+            <Link
+              to="/dashboard"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/account"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Account
+            </Link>
           </nav>
         </div>
       </header>
-      <main><Outlet /></main>
+      <main>
+        <Outlet />
+      </main>
     </div>
   ),
 });

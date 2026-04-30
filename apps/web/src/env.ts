@@ -21,4 +21,9 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
     RENDER_WORKER?: Fetcher;
     // Auth base URL — set per environment in wrangler.jsonc vars or .dev.vars.
     BETTER_AUTH_URL?: string;
+    // Google OAuth — injected as Wrangler secrets.
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
+    // Sentry DSN for error reporting.
+    SENTRY_DSN?: string;
   };

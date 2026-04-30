@@ -15,10 +15,11 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(link).toBeVisible();
   await link.click();
 
-  await expect(page.getByText(/concept mode/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();
 
-  // Aloysius echo
+  // Aloysius accepts the message and starts a response turn.
   await page.getByPlaceholder("Ask Aloysius…").fill("hello");
   await page.getByPlaceholder("Ask Aloysius…").press("Enter");
-  await expect(page.getByText(/heard "hello"/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("hello")).toBeVisible();
+  await expect(page.getByPlaceholder("Aloysius is replying…")).toBeVisible();
 });

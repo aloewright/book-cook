@@ -23,10 +23,23 @@ export function createAuth(env: Env) {
       delete: async (key) => env.KV.delete(key),
     },
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: (env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL ?? (
-      env.ENV === "prod" ? "https://bookgenerators.com" : "http://localhost:5173"
-    ),
+    baseURL:
+      (env as { BETTER_AUTH_URL?: string }).BETTER_AUTH_URL ??
+      (env.ENV === "prod" ? "https://bookgenerators.com" : "http://localhost:5173"),
+    trustedOrigins: [
+      "https://book-cook.com",
+      "https://www.book-cook.com",
+      "https://bookgenerators.com",
+      "https://bookgenerators-web.lazee.workers.dev",
+      ...Array.from({ length: 20 }, (_, i) => `http://localhost:${5173 + i}`),
+    ],
     emailAndPassword: { enabled: true, autoSignIn: true },
+    socialProviders: {
+      google: {
+        clientId: (env as { GOOGLE_CLIENT_ID?: string }).GOOGLE_CLIENT_ID ?? "",
+        clientSecret: (env as { GOOGLE_CLIENT_SECRET?: string }).GOOGLE_CLIENT_SECRET ?? "",
+      },
+    },
     user: {
       additionalFields: {
         plan: { type: "string", required: false, defaultValue: "pro" },

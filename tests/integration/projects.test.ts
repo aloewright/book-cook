@@ -33,7 +33,7 @@ describe("projects", () => {
     const items = (await list.json()) as any;
     expect(
       // biome-ignore lint/suspicious/noExplicitAny: row shape from our own API
-      items.items.find((p: any) => p.id === id)
+      items.items.find((p: any) => p.id === id),
     ).toBeTruthy();
 
     const got = await SELF.fetch(`http://x/api/v1/projects/${id}`, { headers });
@@ -50,7 +50,7 @@ describe("projects", () => {
     const items2 = (await list2.json()) as any;
     expect(
       // biome-ignore lint/suspicious/noExplicitAny: row shape from our own API
-      items2.items.find((p: any) => p.id === id)
+      items2.items.find((p: any) => p.id === id),
     ).toBeFalsy();
   });
 });

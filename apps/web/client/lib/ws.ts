@@ -1,6 +1,8 @@
 export type AloysiusEvent =
   | { type: "hello"; from: string }
   | { type: "assistant_message"; text: string }
+  | { type: "assistant_chunk"; text: string }
+  | { type: "assistant_done" }
   | { type: "pong" }
   | { type: "job_status"; job_id: string; kind: string; status: string };
 
@@ -14,7 +16,7 @@ export function connectAloysius(projectId: string): {
   const listeners = new Set<(e: AloysiusEvent) => void>();
   ws.addEventListener("message", (ev) => {
     const data = JSON.parse(String(ev.data)) as AloysiusEvent;
-    listeners.forEach((l) => l(data));
+    for (const listener of listeners) listener(data);
   });
   return {
     ws,
@@ -26,6 +28,9 @@ export function connectAloysius(projectId: string): {
         ws.addEventListener("open", () => ws.send(json), { once: true });
       }
     },
-    onEvent: (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
+    onEvent: (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
   };
 }

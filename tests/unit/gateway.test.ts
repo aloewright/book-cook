@@ -3,9 +3,11 @@ import { gateway } from "../../apps/web/src/lib/gateway";
 
 describe("gateway helper", () => {
   it("chatCompletion routes through dynamic/text_gen", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }))
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] })),
+      );
     // biome-ignore lint/suspicious/noExplicitAny: minimal env stub for unit test
     const env: any = {
       AI_GATEWAY_BASE_URL: "https://gateway.example/compat",
@@ -36,7 +38,7 @@ describe("gateway helper", () => {
         messages: [{ role: "user", content: "hi" }],
         // @ts-expect-error — testing runtime guard
         route: "openai/gpt-5.5",
-      })
+      }),
     ).rejects.toThrow(/dynamic\//);
   });
 });

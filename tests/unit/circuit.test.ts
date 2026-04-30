@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  checkCircuit,
-  resetCircuit,
-  tripCircuit,
-} from "../../apps/web/src/lib/circuit";
+import { checkCircuit, resetCircuit, tripCircuit } from "../../apps/web/src/lib/circuit";
 
 function fakeKv() {
   const store = new Map<string, { value: string; expiration?: number }>();
@@ -18,9 +14,7 @@ function fakeKv() {
       return e.value;
     },
     async put(k: string, v: string, opts?: { expirationTtl?: number }) {
-      const expiration = opts?.expirationTtl
-        ? Date.now() / 1000 + opts.expirationTtl
-        : undefined;
+      const expiration = opts?.expirationTtl ? Date.now() / 1000 + opts.expirationTtl : undefined;
       store.set(k, { value: v, expiration });
     },
     async delete(k: string) {

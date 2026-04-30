@@ -37,15 +37,14 @@ type ChatResult = {
 function assertDynamic(route: string): asserts route is DynamicRoute {
   if (!route.startsWith("dynamic/")) {
     throw new Error(
-      `gateway: route must be a dynamic/* slug; got "${route}". ` +
-        `Direct provider routes are forbidden — see CLAUDE.md.`
+      `gateway: route must be a dynamic/* slug; got "${route}". Direct provider routes are forbidden - see CLAUDE.md.`,
     );
   }
 }
 
 async function chatCompletion(
   env: Pick<Env, "AI_GATEWAY_BASE_URL" | "AI_GATEWAY_TOKEN">,
-  opts: ChatOpts
+  opts: ChatOpts,
 ): Promise<ChatResult> {
   assertDynamic(opts.route);
 
@@ -88,7 +87,7 @@ async function audioGen(
     voice: string;
     format?: "mp3" | "wav";
     fetch?: typeof fetch;
-  }
+  },
 ): Promise<ArrayBuffer> {
   const f = opts.fetch ?? fetch;
   const url = `${env.AI_GATEWAY_BASE_URL.replace(/\/$/, "")}/audio/speech`;

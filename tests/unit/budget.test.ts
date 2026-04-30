@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertBudget,
-  recordUsage,
-  todayIso,
-} from "../../apps/web/src/lib/budget";
+import { assertBudget, recordUsage, todayIso } from "../../apps/web/src/lib/budget";
 
 function fakeKv() {
   const store = new Map<string, string>();
@@ -28,9 +24,7 @@ describe("budget", () => {
   it("throws BudgetExceeded when over cap", async () => {
     const kv = fakeKv();
     await kv.put(`budget:user1:${todayIso()}`, "5500");
-    await expect(assertBudget(kv, "user1", 5000)).rejects.toThrow(
-      /BudgetExceeded/
-    );
+    await expect(assertBudget(kv, "user1", 5000)).rejects.toThrow(/BudgetExceeded/);
   });
 
   it("recordUsage increments counter", async () => {

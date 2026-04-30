@@ -107,12 +107,8 @@
           "name": "account_userId_users_id_fk",
           "tableFrom": "account",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -211,10 +207,7 @@
       "indexes": {
         "chapters_by_project": {
           "name": "chapters_by_project",
-          "columns": [
-            "project_id",
-            "ordinal"
-          ],
+          "columns": ["project_id", "ordinal"],
           "isUnique": false
         }
       },
@@ -223,12 +216,8 @@
           "name": "chapters_project_id_projects_id_fk",
           "tableFrom": "chapters",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -318,10 +307,7 @@
       "indexes": {
         "chat_messages_by_project": {
           "name": "chat_messages_by_project",
-          "columns": [
-            "project_id",
-            "created_at"
-          ],
+          "columns": ["project_id", "created_at"],
           "isUnique": false
         }
       },
@@ -330,12 +316,8 @@
           "name": "chat_messages_project_id_projects_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -387,9 +369,7 @@
       "indexes": {
         "dataset_snapshots_week_iso_unique": {
           "name": "dataset_snapshots_week_iso_unique",
-          "columns": [
-            "week_iso"
-          ],
+          "columns": ["week_iso"],
           "isUnique": true
         }
       },
@@ -459,12 +439,8 @@
           "name": "gtm_briefs_project_id_projects_id_fk",
           "tableFrom": "gtm_briefs",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -526,12 +502,8 @@
           "name": "market_findings_query_id_market_queries_id_fk",
           "tableFrom": "market_findings",
           "tableTo": "market_queries",
-          "columnsFrom": [
-            "query_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["query_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -539,12 +511,8 @@
           "name": "market_findings_dataset_snapshot_id_dataset_snapshots_id_fk",
           "tableFrom": "market_findings",
           "tableTo": "dataset_snapshots",
-          "columnsFrom": [
-            "dataset_snapshot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["dataset_snapshot_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -614,12 +582,8 @@
           "name": "market_queries_user_id_users_id_fk",
           "tableFrom": "market_queries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -627,12 +591,8 @@
           "name": "market_queries_project_id_projects_id_fk",
           "tableFrom": "market_queries",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -703,12 +663,8 @@
           "name": "outlines_project_id_projects_id_fk",
           "tableFrom": "outlines",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -805,9 +761,7 @@
       "indexes": {
         "projects_by_user": {
           "name": "projects_by_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -816,12 +770,8 @@
           "name": "projects_user_id_users_id_fk",
           "tableFrom": "projects",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -829,12 +779,8 @@
           "name": "projects_voice_id_voices_id_fk",
           "tableFrom": "projects",
           "tableTo": "voices",
-          "columnsFrom": [
-            "voice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["voice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -930,12 +876,8 @@
           "name": "publisher_packs_project_id_projects_id_fk",
           "tableFrom": "publisher_packs",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1024,9 +966,7 @@
       "indexes": {
         "render_jobs_by_project": {
           "name": "render_jobs_by_project",
-          "columns": [
-            "project_id"
-          ],
+          "columns": ["project_id"],
           "isUnique": false
         }
       },
@@ -1035,12 +975,8 @@
           "name": "render_jobs_project_id_projects_id_fk",
           "tableFrom": "render_jobs",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1106,10 +1042,7 @@
       "indexes": {
         "revisions_by_target": {
           "name": "revisions_by_target",
-          "columns": [
-            "target_table",
-            "target_id"
-          ],
+          "columns": ["target_table", "target_id"],
           "isUnique": false
         }
       },
@@ -1193,10 +1126,7 @@
       "indexes": {
         "sections_by_chapter": {
           "name": "sections_by_chapter",
-          "columns": [
-            "chapter_id",
-            "ordinal"
-          ],
+          "columns": ["chapter_id", "ordinal"],
           "isUnique": false
         }
       },
@@ -1205,12 +1135,8 @@
           "name": "sections_chapter_id_chapters_id_fk",
           "tableFrom": "sections",
           "tableTo": "chapters",
-          "columnsFrom": [
-            "chapter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chapter_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1284,9 +1210,7 @@
       "indexes": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         }
       },
@@ -1295,12 +1219,8 @@
           "name": "session_userId_users_id_fk",
           "tableFrom": "session",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1368,10 +1288,7 @@
       "indexes": {
         "usage_daily_by_user_day": {
           "name": "usage_daily_by_user_day",
-          "columns": [
-            "user_id",
-            "day_iso"
-          ],
+          "columns": ["user_id", "day_iso"],
           "isUnique": false
         }
       },
@@ -1380,12 +1297,8 @@
           "name": "usage_daily_user_id_users_id_fk",
           "tableFrom": "usage_daily",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1499,9 +1412,7 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -1615,9 +1526,7 @@
       "indexes": {
         "voice_samples_by_voice": {
           "name": "voice_samples_by_voice",
-          "columns": [
-            "voice_id"
-          ],
+          "columns": ["voice_id"],
           "isUnique": false
         }
       },
@@ -1626,12 +1535,8 @@
           "name": "voice_samples_voice_id_voices_id_fk",
           "tableFrom": "voice_samples",
           "tableTo": "voices",
-          "columnsFrom": [
-            "voice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["voice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1717,12 +1622,8 @@
           "name": "voices_user_id_users_id_fk",
           "tableFrom": "voices",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

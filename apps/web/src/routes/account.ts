@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { requireUser, type AuthVariables } from "../middleware/auth";
 import type { Env } from "../env";
+import { type AuthVariables, requireUser } from "../middleware/auth";
 
 export const accountRoute = new Hono<{
   Bindings: Env;

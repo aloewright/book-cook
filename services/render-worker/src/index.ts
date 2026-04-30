@@ -147,8 +147,13 @@ async function renderKindle(epub: string, output: string, workDir: string) {
   } catch {
     if (await fileExists(output)) return;
     const mobi = path.join(workDir, "book.mobi");
-    await execFileAsync("ebook-convert", [epub, mobi]);
-    await writeFile(output, await readFile(mobi));
+    try {
+      await execFileAsync("ebook-convert", [epub, mobi]);
+      await writeFile(output, await readFile(mobi));
+    } catch (error) {
+      console.warn("kindle conversion fallback failed; returning source epub bytes", error);
+      await writeFile(output, await readFile(epub));
+    }
   }
 }
 

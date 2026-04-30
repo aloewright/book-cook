@@ -10,11 +10,14 @@ import {
   publisher_packs,
   render_jobs,
   sections,
+  users,
   voices,
 } from "../db/schema";
 import type { Env } from "../env";
+import { decryptSecret } from "../lib/keyring";
 import { type AuthVariables, requireUser } from "../middleware/auth";
 import { generateOutline } from "../skills/architect";
+import { buildNarrationScript } from "../skills/publisher/narration";
 import {
   type PublisherSeoPack,
   normalizePack,
@@ -45,6 +48,10 @@ const publisherPackSchema = z.object({
   description_html: z.string().max(4000),
   keywords: z.array(z.string().min(1).max(50)).length(7),
   bisac: z.array(z.string().min(1).max(120)).length(2),
+});
+
+const auditionSchema = z.object({
+  elevenlabs_voice_ids: z.array(z.string().trim().min(1).max(120)).min(1).max(3),
 });
 
 export const projectsRoute = new Hono<{
@@ -415,6 +422,188 @@ projectsRoute.get("/:id/export/:jobId/download", async (c) => {
   });
 });
 
+projectsRoute.get("/:id/narration/auditions", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const jobs = await db
+    .select()
+    .from(render_jobs)
+    .where(and(eq(render_jobs.project_id, id), eq(render_jobs.kind, "narration")))
+    .orderBy(desc(render_jobs.started_at));
+  const approved = await c.env.KV.get(`narration:approved:${id}`, "json");
+  return c.json({
+    items: jobs.map((job) => serializeAudition(id, job)),
+    approved,
+  });
+});
+
+projectsRoute.post("/:id/narration/audition", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const body = auditionSchema.parse(await c.req.json());
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const [keyRow] = await db
+    .select({
+      ciphertext: users.elevenlabs_key_ciphertext,
+      iv: users.elevenlabs_key_iv,
+    })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+  if (!keyRow?.ciphertext || !keyRow.iv) {
+    return c.json({ error: { message: "save an ElevenLabs API key before auditioning" } }, 409);
+  }
+
+  const chapterRows = await db
+    .select({
+      title: chapters.title,
+      summary: chapters.summary,
+      draft_md: chapters.draft_md,
+    })
+    .from(chapters)
+    .where(eq(chapters.project_id, id))
+    .orderBy(asc(chapters.ordinal));
+  if (!chapterRows.length) return c.json({ error: "generate an outline before auditioning" }, 409);
+
+  const script = buildNarrationScript(chapterRows);
+  if (!script.sampleText)
+    return c.json({ error: "no manuscript text available for audition" }, 409);
+
+  const apiKey = await decryptSecret(
+    keyRow.ciphertext as ArrayBuffer | Uint8Array,
+    keyRow.iv as ArrayBuffer | Uint8Array,
+    c.env.KEYRING_MASTER_KEY,
+  );
+  const now = new Date();
+  const jobs = [];
+  for (const voiceId of body.elevenlabs_voice_ids) {
+    const jobId = crypto.randomUUID();
+    await db.insert(render_jobs).values({
+      id: jobId,
+      project_id: id,
+      kind: "narration",
+      status: "running",
+      workflow_id: `audition:${voiceId}`,
+      started_at: now,
+    });
+    try {
+      const audio = await renderElevenLabsAudition(apiKey, voiceId, script.sampleText);
+      const r2Key = `auditions/${id}/${voiceId}.mp3`;
+      await c.env.R2.put(r2Key, audio, {
+        httpMetadata: { contentType: "audio/mpeg" },
+        customMetadata: {
+          voice_id: voiceId,
+          script_chunks: String(script.chunks.length),
+        },
+      });
+      await db
+        .update(render_jobs)
+        .set({ status: "completed", output_r2_key: r2Key, completed_at: new Date() })
+        .where(eq(render_jobs.id, jobId));
+    } catch (error) {
+      await db
+        .update(render_jobs)
+        .set({
+          status: "failed",
+          error: error instanceof Error ? error.message : "audition failed",
+          completed_at: new Date(),
+        })
+        .where(eq(render_jobs.id, jobId));
+    }
+    const [job] = await db.select().from(render_jobs).where(eq(render_jobs.id, jobId)).limit(1);
+    jobs.push(serializeAudition(id, job));
+  }
+
+  return c.json({ items: jobs, script: { chunks: script.chunks.length } }, 201);
+});
+
+projectsRoute.get("/:id/narration/auditions/:jobId/audio", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const jobId = c.req.param("jobId");
+  const db = drizzle(c.env.DB);
+  const [job] = await db
+    .select({
+      id: render_jobs.id,
+      output_r2_key: render_jobs.output_r2_key,
+      projectId: projects.id,
+    })
+    .from(render_jobs)
+    .innerJoin(projects, eq(render_jobs.project_id, projects.id))
+    .where(
+      and(
+        eq(render_jobs.id, jobId),
+        eq(render_jobs.kind, "narration"),
+        eq(projects.id, id),
+        eq(projects.user_id, user.id),
+        isNull(projects.deleted_at),
+      ),
+    )
+    .limit(1);
+  if (!job?.output_r2_key) return c.json({ error: "audition not found" }, 404);
+  const object = await c.env.R2.get(job.output_r2_key);
+  if (!object) return c.json({ error: "audition not found" }, 404);
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Content-Disposition": `inline; filename="${id}-audition.mp3"`,
+    },
+  });
+});
+
+projectsRoute.post("/:id/narration/auditions/:jobId/approve", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const jobId = c.req.param("jobId");
+  const db = drizzle(c.env.DB);
+  const [job] = await db
+    .select({
+      id: render_jobs.id,
+      status: render_jobs.status,
+      workflow_id: render_jobs.workflow_id,
+      output_r2_key: render_jobs.output_r2_key,
+      projectId: projects.id,
+    })
+    .from(render_jobs)
+    .innerJoin(projects, eq(render_jobs.project_id, projects.id))
+    .where(
+      and(
+        eq(render_jobs.id, jobId),
+        eq(render_jobs.kind, "narration"),
+        eq(projects.id, id),
+        eq(projects.user_id, user.id),
+        isNull(projects.deleted_at),
+      ),
+    )
+    .limit(1);
+  if (!job || job.status !== "completed" || !job.output_r2_key) {
+    return c.json({ error: "completed audition not found" }, 404);
+  }
+  const approval = {
+    job_id: job.id,
+    voice_id: voiceIdFromWorkflow(job.workflow_id),
+    output_r2_key: job.output_r2_key,
+    approved_at: new Date().toISOString(),
+  };
+  await c.env.KV.put(`narration:approved:${id}`, JSON.stringify(approval));
+  return c.json({ approved: approval });
+});
+
 projectsRoute.post("/:id/outlines", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -521,6 +710,46 @@ function serializeRenderJob(id: string, row: typeof render_jobs.$inferSelect) {
         ? `/api/v1/projects/${id}/export/${row.id}/download`
         : null,
   };
+}
+
+function serializeAudition(id: string, row: typeof render_jobs.$inferSelect) {
+  return {
+    ...serializeRenderJob(id, row),
+    voice_id: voiceIdFromWorkflow(row.workflow_id),
+    audio_url:
+      row.status === "completed" && row.output_r2_key
+        ? `/api/v1/projects/${id}/narration/auditions/${row.id}/audio`
+        : null,
+  };
+}
+
+function voiceIdFromWorkflow(workflowId?: string | null) {
+  return workflowId?.startsWith("audition:") ? workflowId.slice("audition:".length) : "";
+}
+
+async function renderElevenLabsAudition(apiKey: string, voiceId: string, text: string) {
+  const res = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(
+      voiceId,
+    )}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "xi-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+    },
+  );
+  if (!res.ok) {
+    const message = await res.text().catch(() => res.statusText);
+    throw new Error(`ElevenLabs ${res.status}: ${message.slice(0, 240)}`);
+  }
+  return await res.arrayBuffer();
 }
 
 function contentTypeForJob(kind: string) {

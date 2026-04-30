@@ -44,4 +44,8 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await page.getByRole("button", { name: /^approve$/i }).click();
   await expect(page.getByText("Approved")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: /save edits/i })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: /narration audition/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();
+  await page.getByPlaceholder(/ElevenLabs voice IDs/i).fill("JBFqnCBsd6RMkjVDRZzb");
+  await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();
 });

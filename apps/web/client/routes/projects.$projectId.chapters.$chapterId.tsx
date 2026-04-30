@@ -182,6 +182,18 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
     });
   }, [editor]);
 
+  useEffect(() => {
+    const syncSelection = () => setSelectedText(getSelectedText(editorRoot.current));
+    document.addEventListener("selectionchange", syncSelection);
+    document.addEventListener("keyup", syncSelection);
+    document.addEventListener("mouseup", syncSelection);
+    return () => {
+      document.removeEventListener("selectionchange", syncSelection);
+      document.removeEventListener("keyup", syncSelection);
+      document.removeEventListener("mouseup", syncSelection);
+    };
+  }, []);
+
   const statusText = useMemo(() => {
     if (saveState === "saving") return "Saving...";
     if (saveState === "saved") return "Saved";

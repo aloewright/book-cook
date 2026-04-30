@@ -261,6 +261,7 @@ export const publisher_packs = sqliteTable("publisher_packs", {
     .notNull(),
   title: text("title").notNull(),
   subtitle: text("subtitle").notNull().default(""),
+  series_name: text("series_name").notNull().default(""),
   description_html: text("description_html").notNull().default(""),
   keywords_json: text("keywords_json", { mode: "json" }).notNull().default(sql`'[]'`),
   bisac_json: text("bisac_json", { mode: "json" }).notNull().default(sql`'[]'`),

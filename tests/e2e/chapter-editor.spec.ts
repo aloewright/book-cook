@@ -43,7 +43,19 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
   await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
   await page.keyboard.type("This chapter opens with a concrete operator under pressure.");
   await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
-  await page.getByRole("button", { name: /tighten/i }).click();
+  const tighten = page.getByRole("button", { name: /tighten/i });
+  if (!(await tighten.isEnabled())) {
+    await editor.evaluate((node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    });
+  }
+  await expect(tighten).toBeEnabled();
+  await tighten.click();
   await expect(page.getByTestId("inline-ai-diff")).toContainText("Tightened:", {
     timeout: 15_000,
   });

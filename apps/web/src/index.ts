@@ -10,6 +10,7 @@ import { chaptersRoute } from "./routes/chapters";
 import { healthRoute } from "./routes/health";
 import { projectsRoute } from "./routes/projects";
 import { voicesRoute } from "./routes/voices";
+import { refreshMarketDataset } from "./skills/scout/dataset";
 import { AudiobookMasteringWorkflow } from "./workflows/audiobook-mastering";
 import { BookExportWorkflow } from "./workflows/book-export";
 
@@ -95,7 +96,12 @@ app.all("/agents/*", async (c) => {
 // Delegate all unmatched routes to the ASSETS binding so the SPA handles them.
 app.get("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
-const handler: ExportedHandler<Env> = { fetch: app.fetch };
+const handler: ExportedHandler<Env> = {
+  fetch: app.fetch,
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(refreshMarketDataset(env));
+  },
+};
 
 export default Sentry.withSentry(
   (env: Env) => ({

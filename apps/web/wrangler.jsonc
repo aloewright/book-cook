@@ -14,6 +14,7 @@
 
   "observability": { "enabled": true, "head_sampling_rate": 1 },
   "upload_source_maps": true,
+  "triggers": { "crons": ["0 4 * * 1"] },
 
   "routes": [
     { "pattern": "book-cook.com", "custom_domain": true },

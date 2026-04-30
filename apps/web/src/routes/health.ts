@@ -4,13 +4,14 @@ import { Hono } from "hono";
 import type { Env } from "../env";
 
 export const healthRoute = new Hono<{ Bindings: Env }>();
+const renderHealthContainerName = "render-worker-v2";
 
 healthRoute.get("/", (c) => c.json({ ok: true, env: c.env.ENV, ts: Date.now() }));
 
 healthRoute.get("/render", async (c) => {
   if (!c.env.RENDER_WORKER) return c.json({ ok: false, reason: "no binding (local dev)" }, 503);
   const binding = c.env.RENDER_WORKER as unknown as DurableObjectNamespace<Container>;
-  const container = getContainer(binding);
+  const container = getContainer(binding, renderHealthContainerName);
   const res = await container.fetch("http://render/health", {
     headers: { "X-Internal-Token": c.env.RENDER_WORKER_INTERNAL_TOKEN ?? "" },
   });

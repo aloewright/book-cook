@@ -7,19 +7,15 @@ export class RenderWorkerContainer extends Container<Env> {
   enableInternet = true;
 
   constructor(ctx: DurableObjectState<Record<string, never>>, env: Env) {
-    super(ctx, env, {
-      defaultPort: 8787,
-      sleepAfter: "2m",
-      enableInternet: true,
-      envVars: {
-        PORT: "8787",
-        RENDER_WORKER_INTERNAL_TOKEN: env.RENDER_WORKER_INTERNAL_TOKEN ?? "",
-        S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID ?? "",
-        S3_SECRET_ACCESS_KEY: env.S3_SECRET_ACCESS_KEY ?? "",
-        S3_ENDPOINT: env.S3_ENDPOINT ?? "",
-        R2_BUCKET: env.R2_BUCKET ?? "bookgenerators",
-      },
-    });
+    super(ctx, env);
+    this.envVars = {
+      PORT: "8787",
+      RENDER_WORKER_INTERNAL_TOKEN: env.RENDER_WORKER_INTERNAL_TOKEN ?? "",
+      S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID ?? "",
+      S3_SECRET_ACCESS_KEY: env.S3_SECRET_ACCESS_KEY ?? "",
+      S3_ENDPOINT: env.S3_ENDPOINT ?? "",
+      R2_BUCKET: env.R2_BUCKET ?? "bookgenerators",
+    };
   }
 
   override onStart() {

@@ -105,6 +105,17 @@ export type ProjectOutline = {
   updated_at: number;
 };
 
+export type PublisherPack = {
+  id: string;
+  title: string;
+  subtitle: string;
+  series_name: string;
+  description_html: string;
+  keywords: string[];
+  bisac: string[];
+  status: "draft" | "approved";
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
@@ -125,6 +136,22 @@ export const api = {
         body: JSON.stringify(input),
       },
     ),
+  getPublisherPack: (id: string) =>
+    fetchJson<{ pack: PublisherPack | null }>(`/api/v1/projects/${id}/publisher-pack`),
+  generatePublisherSeo: (id: string) =>
+    fetchJson<{ pack: PublisherPack; llm_response: unknown }>(
+      `/api/v1/projects/${id}/publisher-pack/seo`,
+      { method: "POST" },
+    ),
+  updatePublisherPack: (id: string, input: Omit<PublisherPack, "id" | "status">) =>
+    fetchJson<{ pack: PublisherPack }>(`/api/v1/projects/${id}/publisher-pack`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  approvePublisherPack: (id: string) =>
+    fetchJson<{ pack: PublisherPack }>(`/api/v1/projects/${id}/publisher-pack/approve`, {
+      method: "POST",
+    }),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -200,6 +227,7 @@ export const queryKeys = {
   projects: () => ["projects"] as const,
   project: (id: string) => ["projects", id] as const,
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
+  publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,
   chapterRevisions: (id: string) => ["chapters", id, "revisions"] as const,

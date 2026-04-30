@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -15,7 +15,7 @@ import {
 import { Textarea } from "../components/ui/textarea";
 import { OutlineRail } from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
-import { type Project, type Voice, api, queryKeys } from "../lib/api";
+import { type Project, type PublisherPack, type Voice, api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/projects/$projectId")({ component: ProjectWorkspace });
 
@@ -25,6 +25,8 @@ const POSTPILOT_SUGGESTIONS = [
   { slug: "twain", label: "Twain" },
   { slug: "hemingway", label: "Hemingway" },
 ] as const;
+
+const FIELD_SLOT_IDS = ["one", "two", "three", "four", "five", "six", "seven"] as const;
 
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
@@ -51,6 +53,7 @@ function ProjectWorkspace() {
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
             <VoicePanel project={project.data} />
             <OutlineBuilder project={project.data} />
+            <PublishPanel project={project.data} />
           </div>
         </main>
         <AloysiusSidecar projectId={projectId} />
@@ -396,6 +399,288 @@ function OutlineBuilder({ project }: { project: Project }) {
       </div>
     </section>
   );
+}
+
+function PublishPanel({ project }: { project: Project }) {
+  const queryClient = useQueryClient();
+  const pack = useQuery({
+    queryKey: queryKeys.publisherPack(project.id),
+    queryFn: () => api.getPublisherPack(project.id),
+  });
+  const outline = useQuery({
+    queryKey: queryKeys.projectOutline(project.id),
+    queryFn: () => api.getProjectOutline(project.id),
+  });
+  const [draft, setDraft] = useState<PublisherPack | null>(null);
+
+  useEffect(() => {
+    if (pack.data?.pack) setDraft(pack.data.pack);
+  }, [pack.data?.pack]);
+
+  const generate = useMutation({
+    mutationFn: () => api.generatePublisherSeo(project.id),
+    onSuccess: async ({ pack }) => {
+      setDraft(pack);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
+      ]);
+    },
+  });
+  const save = useMutation({
+    mutationFn: (input: PublisherPack) =>
+      api.updatePublisherPack(project.id, {
+        title: input.title,
+        subtitle: input.subtitle,
+        series_name: input.series_name,
+        description_html: input.description_html,
+        keywords: input.keywords,
+        bisac: input.bisac,
+      }),
+    onSuccess: async ({ pack }) => {
+      setDraft(pack);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) });
+    },
+  });
+  const approve = useMutation({
+    mutationFn: () => api.approvePublisherPack(project.id),
+    onSuccess: async ({ pack }) => {
+      setDraft(pack);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) });
+    },
+  });
+
+  const validation = draft ? validateDraftPack(draft) : [];
+  const locked = draft?.status === "approved";
+  const canGenerate = (outline.data?.chapters.length ?? 0) > 0;
+
+  return (
+    <section className="border-t pt-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Publish</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Generate KDP-ready metadata from the manuscript, tune each field, and approve the
+            publisher pack when it is final.
+          </p>
+        </div>
+        {draft ? (
+          <Badge variant={draft.status === "approved" ? "default" : "secondary"}>
+            {draft.status === "approved" ? "Approved" : "Draft pack"}
+          </Badge>
+        ) : (
+          <Badge variant="secondary">No publisher pack</Badge>
+        )}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,440px)_1fr]">
+        <div className="space-y-4">
+          <div className="rounded-lg border bg-background p-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">SEO synthesis</h2>
+              <p className="text-sm text-muted-foreground">
+                Uses chapter titles, summaries, and available draft text.
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                type="button"
+                disabled={!canGenerate || generate.isPending}
+                onClick={() => generate.mutate()}
+              >
+                {generate.isPending ? "Generating..." : "Generate SEO pack"}
+              </Button>
+              {draft ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={locked || save.isPending || validation.length > 0}
+                  onClick={() => save.mutate(draft)}
+                >
+                  {save.isPending ? "Saving..." : "Save edits"}
+                </Button>
+              ) : null}
+              {draft ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={locked || approve.isPending || validation.length > 0}
+                  onClick={() => approve.mutate()}
+                >
+                  {approve.isPending ? "Approving..." : "Approve"}
+                </Button>
+              ) : null}
+            </div>
+            {!canGenerate ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Generate an outline before creating publisher metadata.
+              </p>
+            ) : null}
+            {[generate.error, save.error, approve.error].filter(Boolean).map((error) => (
+              <p key={String(error)} className="mt-3 text-sm text-destructive">
+                {(error as Error).message}
+              </p>
+            ))}
+            {validation.length ? (
+              <ul className="mt-3 space-y-1 text-sm text-destructive">
+                {validation.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+
+          {draft ? (
+            <div className="rounded-lg border bg-background p-4">
+              <div className="grid gap-3">
+                <label htmlFor="publisher-title" className="space-y-1 text-sm font-medium">
+                  Title
+                  <Input
+                    id="publisher-title"
+                    value={draft.title}
+                    disabled={locked}
+                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                  />
+                </label>
+                <label htmlFor="publisher-subtitle" className="space-y-1 text-sm font-medium">
+                  Subtitle
+                  <Input
+                    id="publisher-subtitle"
+                    value={draft.subtitle}
+                    disabled={locked}
+                    onChange={(event) => setDraft({ ...draft, subtitle: event.target.value })}
+                  />
+                </label>
+                <label htmlFor="publisher-series" className="space-y-1 text-sm font-medium">
+                  Series
+                  <Input
+                    id="publisher-series"
+                    value={draft.series_name}
+                    disabled={locked}
+                    placeholder="Optional"
+                    onChange={(event) => setDraft({ ...draft, series_name: event.target.value })}
+                  />
+                </label>
+                <label htmlFor="publisher-description" className="space-y-1 text-sm font-medium">
+                  Description HTML
+                  <Textarea
+                    id="publisher-description"
+                    value={draft.description_html}
+                    disabled={locked}
+                    className="min-h-48 resize-y font-mono text-xs"
+                    onChange={(event) =>
+                      setDraft({ ...draft, description_html: event.target.value })
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {draft ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-background p-4">
+              <h2 className="text-base font-semibold">KDP preview</h2>
+              <div className="mt-4 rounded-md border bg-muted/20 p-4">
+                <h3 className="text-xl font-semibold">{draft.title}</h3>
+                {draft.subtitle ? (
+                  <p className="mt-1 text-muted-foreground">{draft.subtitle}</p>
+                ) : null}
+                {draft.series_name ? (
+                  <p className="mt-1 text-sm text-muted-foreground">{draft.series_name}</p>
+                ) : null}
+                <div
+                  className="prose prose-sm mt-4 max-w-none dark:prose-invert"
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: server sanitizes description tags.
+                  dangerouslySetInnerHTML={{ __html: draft.description_html }}
+                />
+              </div>
+            </div>
+
+            <KeywordEditor
+              title="Keywords"
+              values={draft.keywords}
+              locked={locked}
+              limit={7}
+              maxLength={50}
+              onChange={(keywords) => setDraft({ ...draft, keywords })}
+            />
+            <KeywordEditor
+              title="BISAC categories"
+              values={draft.bisac}
+              locked={locked}
+              limit={2}
+              maxLength={120}
+              onChange={(bisac) => setDraft({ ...draft, bisac })}
+            />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed bg-muted/20 p-6 text-sm text-muted-foreground">
+            Publisher metadata will appear here after SEO synthesis.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function KeywordEditor({
+  title,
+  values,
+  locked,
+  limit,
+  maxLength,
+  onChange,
+}: {
+  title: string;
+  values: string[];
+  locked: boolean;
+  limit: number;
+  maxLength: number;
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div className="rounded-lg border bg-background p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold">{title}</h2>
+        <span className="text-sm text-muted-foreground">
+          {values.length}/{limit}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-2">
+        {FIELD_SLOT_IDS.slice(0, limit).map((slot, index) => (
+          <Input
+            key={`${title}-${slot}`}
+            value={values[index] ?? ""}
+            disabled={locked}
+            maxLength={maxLength}
+            onChange={(event) => {
+              const next = [...values];
+              next[index] = event.target.value;
+              onChange(next);
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function validateDraftPack(pack: PublisherPack) {
+  const errors: string[] = [];
+  if (!pack.title.trim()) errors.push("Title is required.");
+  if (pack.description_html.length > 4000) errors.push("Description is over 4000 characters.");
+  if (pack.keywords.length !== 7 || pack.keywords.some((item) => !item.trim())) {
+    errors.push("Fill all 7 keywords.");
+  }
+  if (pack.keywords.some((item) => item.length > 50)) {
+    errors.push("Each keyword must be 50 characters or fewer.");
+  }
+  if (pack.bisac.length !== 2 || pack.bisac.some((item) => !item.trim())) {
+    errors.push("Fill both BISAC categories.");
+  }
+  return errors;
 }
 
 function VoiceProfile({ voice, totalWords }: { voice?: Voice; totalWords: number }) {

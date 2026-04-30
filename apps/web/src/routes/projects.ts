@@ -2,10 +2,24 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
-import { chapters, chat_messages, outlines, projects, sections, voices } from "../db/schema";
+import {
+  chapters,
+  chat_messages,
+  outlines,
+  projects,
+  publisher_packs,
+  sections,
+  voices,
+} from "../db/schema";
 import type { Env } from "../env";
 import { type AuthVariables, requireUser } from "../middleware/auth";
 import { generateOutline } from "../skills/architect";
+import {
+  type PublisherSeoPack,
+  normalizePack,
+  synthesizePublisherSeo,
+  validatePublisherSeoPack,
+} from "../skills/publisher/seo";
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
@@ -21,6 +35,15 @@ const patchSchema = z.object({
 const outlineSchema = z.object({
   framework: z.string().max(80).optional(),
   questionnaire: z.string().min(1).max(20_000),
+});
+
+const publisherPackSchema = z.object({
+  title: z.string().min(1).max(200),
+  subtitle: z.string().max(200).default(""),
+  series_name: z.string().max(200).default(""),
+  description_html: z.string().max(4000),
+  keywords: z.array(z.string().min(1).max(50)).length(7),
+  bisac: z.array(z.string().min(1).max(120)).length(2),
 });
 
 export const projectsRoute = new Hono<{
@@ -159,6 +182,162 @@ projectsRoute.get("/:id/outline", async (c) => {
   return c.json({ outline: outline ?? null, chapters: chapterRows });
 });
 
+projectsRoute.get("/:id/publisher-pack", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const [pack] = await db
+    .select()
+    .from(publisher_packs)
+    .where(eq(publisher_packs.project_id, id))
+    .orderBy(desc(publisher_packs.updated_at))
+    .limit(1);
+
+  return c.json({ pack: pack ? serializePublisherPack(pack) : null });
+});
+
+projectsRoute.post("/:id/publisher-pack/seo", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const chapterRows = await db
+    .select({
+      title: chapters.title,
+      summary: chapters.summary,
+      draft_md: chapters.draft_md,
+    })
+    .from(chapters)
+    .where(eq(chapters.project_id, id))
+    .orderBy(asc(chapters.ordinal));
+
+  if (chapterRows.length === 0) {
+    return c.json({ error: "generate an outline before creating publisher metadata" }, 409);
+  }
+
+  const result = await synthesizePublisherSeo(c.env, {
+    title: p.title,
+    type: p.type,
+    genre: p.genre,
+    chapters: chapterRows,
+  });
+  const validationErrors = validatePublisherSeoPack(result.pack);
+  if (validationErrors.length)
+    return c.json({ error: { message: validationErrors.join(" ") } }, 422);
+
+  const now = new Date();
+  const packId = crypto.randomUUID();
+  await db.insert(publisher_packs).values({
+    id: packId,
+    project_id: id,
+    title: result.pack.title,
+    subtitle: result.pack.subtitle,
+    series_name: result.pack.series_name,
+    description_html: result.pack.description_html,
+    keywords_json: result.pack.keywords,
+    bisac_json: result.pack.bisac,
+    status: "draft",
+    created_at: now,
+    updated_at: now,
+  });
+  await db
+    .update(projects)
+    .set({ status: "publishing", updated_at: now })
+    .where(eq(projects.id, id));
+
+  return c.json(
+    { pack: { id: packId, status: "draft", ...result.pack }, llm_response: result.llm_response },
+    201,
+  );
+});
+
+projectsRoute.patch("/:id/publisher-pack", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id, title: projects.title, type: projects.type, genre: projects.genre })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const body = publisherPackSchema.parse(await c.req.json());
+  const pack = normalizePack(body, { title: p.title, type: p.type, genre: p.genre, chapters: [] });
+  const validationErrors = validatePublisherSeoPack(pack);
+  if (validationErrors.length)
+    return c.json({ error: { message: validationErrors.join(" ") } }, 422);
+
+  const [existing] = await db
+    .select({ id: publisher_packs.id, status: publisher_packs.status })
+    .from(publisher_packs)
+    .where(eq(publisher_packs.project_id, id))
+    .orderBy(desc(publisher_packs.updated_at))
+    .limit(1);
+  if (!existing) return c.json({ error: "publisher pack not found" }, 404);
+  if (existing.status === "approved") return c.json({ error: "approved pack is locked" }, 409);
+
+  await db
+    .update(publisher_packs)
+    .set({
+      title: pack.title,
+      subtitle: pack.subtitle,
+      series_name: pack.series_name,
+      description_html: pack.description_html,
+      keywords_json: pack.keywords,
+      bisac_json: pack.bisac,
+      updated_at: new Date(),
+    })
+    .where(eq(publisher_packs.id, existing.id));
+
+  return c.json({ pack: { id: existing.id, status: "draft", ...pack } });
+});
+
+projectsRoute.post("/:id/publisher-pack/approve", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const [pack] = await db
+    .select()
+    .from(publisher_packs)
+    .where(eq(publisher_packs.project_id, id))
+    .orderBy(desc(publisher_packs.updated_at))
+    .limit(1);
+  if (!pack) return c.json({ error: "publisher pack not found" }, 404);
+
+  const serialized = serializePublisherPack(pack);
+  const validationErrors = validatePublisherSeoPack(serialized);
+  if (validationErrors.length)
+    return c.json({ error: { message: validationErrors.join(" ") } }, 422);
+
+  await db
+    .update(publisher_packs)
+    .set({ status: "approved", updated_at: new Date() })
+    .where(eq(publisher_packs.id, pack.id));
+
+  return c.json({ pack: { ...serialized, status: "approved" } });
+});
+
 projectsRoute.post("/:id/outlines", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -240,3 +419,19 @@ projectsRoute.delete("/:id", async (c) => {
     .where(and(eq(projects.id, id), eq(projects.user_id, user.id)));
   return new Response(null, { status: 204 });
 });
+
+function serializePublisherPack(row: typeof publisher_packs.$inferSelect): PublisherSeoPack & {
+  id: string;
+  status: "draft" | "approved";
+} {
+  return {
+    id: row.id,
+    title: row.title,
+    subtitle: row.subtitle,
+    series_name: row.series_name,
+    description_html: row.description_html,
+    keywords: Array.isArray(row.keywords_json) ? row.keywords_json.map(String) : [],
+    bisac: Array.isArray(row.bisac_json) ? row.bisac_json.map(String) : [],
+    status: row.status,
+  };
+}

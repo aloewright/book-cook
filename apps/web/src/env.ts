@@ -4,6 +4,7 @@
 // rest of the codebase has a single Env type.
 
 import type { Container } from "@cloudflare/containers";
+import type { BookExportWorkflowParams } from "./workflows/book-export";
 
 type Secrets = {
   BETTER_AUTH_SECRET: string;
@@ -21,6 +22,7 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
     ENV: "dev" | "staging" | "prod";
     // Container-backed Durable Object binding — refreshed on next `wrangler types` run.
     RENDER_WORKER?: DurableObjectNamespace<Container<Env>>;
+    BOOK_EXPORT_WORKFLOW?: Workflow<BookExportWorkflowParams>;
     // R2 S3-compatible settings forwarded to render containers when available.
     S3_ENDPOINT?: string;
     R2_BUCKET?: string;

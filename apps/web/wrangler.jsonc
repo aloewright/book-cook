@@ -67,6 +67,14 @@
     { "tag": "v2", "new_sqlite_classes": ["RenderWorkerContainer"] }
   ],
 
+  "workflows": [
+    {
+      "name": "book-export-workflow",
+      "binding": "BOOK_EXPORT_WORKFLOW",
+      "class_name": "BookExportWorkflow"
+    }
+  ],
+
   "containers": [
     {
       "name": "render-worker",

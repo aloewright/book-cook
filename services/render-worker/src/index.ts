@@ -17,6 +17,7 @@ type RenderRequest = {
   title?: string;
   manuscriptMd?: string;
   inputR2Key?: string;
+  inline?: boolean;
 };
 
 type ToolVersions = {
@@ -84,6 +85,7 @@ async function renderResponse(
     bytes: rendered.bytes.byteLength,
     stored: upload.stored,
     storage: upload.message,
+    bodyBase64: input.inline ? rendered.bytes.toString("base64") : undefined,
     durationMs: Date.now() - startedAt,
   });
 }

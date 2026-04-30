@@ -79,5 +79,20 @@ describe("chapters", () => {
     const chapter = (await get.json()) as any;
     expect(chapter.draft_md).toContain("saved chapter");
     expect(chapter.status).toBe("drafting");
+
+    const revise = await SELF.fetch(`http://x/api/v1/chapters/${chapterId}/revise`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        action: "tighten",
+        text: "This selected sentence should become sharper.",
+        context_md: "A saved chapter draft.",
+      }),
+    });
+    expect(revise.status).toBe(200);
+    // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
+    const inline = (await revise.json()) as any;
+    expect(inline.revision.before_md).toContain("selected sentence");
+    expect(inline.revision.after_md).toContain("Tightened:");
   });
 });

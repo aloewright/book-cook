@@ -432,6 +432,14 @@ function PublishPanel({ project }: { project: Project }) {
     queryKey: queryKeys.narrationAuditions(project.id),
     queryFn: () => api.listNarrationAuditions(project.id),
   });
+  const audiobookJobs = useQuery({
+    queryKey: queryKeys.audiobookJobs(project.id),
+    queryFn: () => api.listAudiobookJobs(project.id),
+    refetchInterval: (query) =>
+      query.state.data?.items.some((job) => job.status === "queued" || job.status === "running")
+        ? 5_000
+        : false,
+  });
   const keyStatus = useQuery({
     queryKey: queryKeys.elevenLabsKey(),
     queryFn: api.getElevenLabsKeyStatus,
@@ -499,6 +507,12 @@ function PublishPanel({ project }: { project: Project }) {
     mutationFn: (jobId: string) => api.approveNarrationAudition(project.id, jobId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.narrationAuditions(project.id) });
+    },
+  });
+  const startAudiobook = useMutation({
+    mutationFn: () => api.startAudiobookMastering(project.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.audiobookJobs(project.id) });
     },
   });
 
@@ -723,6 +737,28 @@ function PublishPanel({ project }: { project: Project }) {
               approvingId={approveAudition.variables}
               onApprove={(jobId) => approveAudition.mutate(jobId)}
             />
+            <div className="mt-5 border-t pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold">Audiobook master</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Render chapter narration and package ACX-ready masters.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!auditionStatus.data?.approved || startAudiobook.isPending}
+                  onClick={() => startAudiobook.mutate()}
+                >
+                  {startAudiobook.isPending ? "Starting..." : "Master audiobook"}
+                </Button>
+              </div>
+              {startAudiobook.error ? (
+                <p className="mt-3 text-sm text-destructive">{startAudiobook.error.message}</p>
+              ) : null}
+              <RenderJobsList jobs={audiobookJobs.data?.items ?? []} />
+            </div>
           </div>
         </div>
 

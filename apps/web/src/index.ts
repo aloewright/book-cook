@@ -10,11 +10,13 @@ import { chaptersRoute } from "./routes/chapters";
 import { healthRoute } from "./routes/health";
 import { projectsRoute } from "./routes/projects";
 import { voicesRoute } from "./routes/voices";
+import { AudiobookMasteringWorkflow } from "./workflows/audiobook-mastering";
 import { BookExportWorkflow } from "./workflows/book-export";
 
 export { BookProjectAgent } from "./agents/aloysius";
 export { RenderWorkerContainer };
 export { BookExportWorkflow };
+export { AudiobookMasteringWorkflow };
 
 const app = new Hono<{ Bindings: Env }>();
 

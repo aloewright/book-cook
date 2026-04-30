@@ -49,6 +49,12 @@ describe("narration auditions", () => {
     );
     expect(missingKey.status).toBe(409);
 
+    const blockedMaster = await SELF.fetch(`http://x/api/v1/projects/${project.id}/audiobook`, {
+      method: "POST",
+      headers,
+    });
+    expect(blockedMaster.status).toBe(409);
+
     const saveKey = await SELF.fetch("http://x/api/v1/account/elevenlabs-key", {
       method: "PUT",
       headers,

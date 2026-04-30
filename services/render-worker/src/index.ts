@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -25,6 +25,18 @@ type ToolVersions = {
   calibre?: string;
   kindlegen?: string;
   weasyprint?: string;
+  ffmpeg?: string;
+  zip?: string;
+};
+
+type MasterAudioRequest = {
+  projectId: string;
+  chapters: {
+    chapterId: string;
+    title: string;
+    clipsBase64: string[];
+  }[];
+  inline?: boolean;
 };
 
 export const app = new Hono();
@@ -57,6 +69,27 @@ app.post("/render", async (c) => {
 app.post("/render/:kind", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as RenderRequest;
   return renderResponse(c, c.req.param("kind"), body);
+});
+
+app.post("/master-audio", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as MasterAudioRequest;
+  if (!body.projectId?.trim()) return c.json({ error: "projectId is required" }, 400);
+  if (!body.chapters?.length) return c.json({ error: "chapters are required" }, 400);
+
+  const startedAt = Date.now();
+  const mastered = await masterAudiobook(body);
+  const upload = await uploadToR2(mastered.r2Key, mastered.bytes, mastered.contentType);
+  return c.json({
+    projectId: body.projectId,
+    kind: "master_mix",
+    r2Key: mastered.r2Key,
+    contentType: mastered.contentType,
+    bytes: mastered.bytes.byteLength,
+    stored: upload.stored,
+    storage: upload.message,
+    bodyBase64: body.inline ? mastered.bytes.toString("base64") : undefined,
+    durationMs: Date.now() - startedAt,
+  });
 });
 
 async function renderResponse(
@@ -141,6 +174,70 @@ export function normalizeKind(value: string | undefined): RenderKind | undefined
   return value === "epub" || value === "pdf" || value === "kpf" ? value : undefined;
 }
 
+export async function masterAudiobook(input: MasterAudioRequest) {
+  const workDir = path.join(tmpdir(), `book-cook-audio-${crypto.randomUUID()}`);
+  await mkdir(workDir, { recursive: true });
+  try {
+    const masteredFiles: string[] = [];
+    const manifest = [];
+    for (const [chapterIndex, chapter] of input.chapters.entries()) {
+      const chapterDir = path.join(workDir, `chapter-${chapterIndex + 1}`);
+      await mkdir(chapterDir, { recursive: true });
+      const clipPaths = [];
+      for (const [clipIndex, base64] of chapter.clipsBase64.entries()) {
+        const clipPath = path.join(chapterDir, `clip-${clipIndex + 1}.mp3`);
+        await writeFile(clipPath, Buffer.from(base64, "base64"));
+        clipPaths.push(clipPath);
+      }
+      const concatFile = path.join(chapterDir, "concat.txt");
+      await writeFile(
+        concatFile,
+        clipPaths.map((clipPath) => `file '${clipPath.replaceAll("'", "'\\''")}'`).join("\n"),
+      );
+      const outputName = `${String(chapterIndex + 1).padStart(2, "0")}-${safeName(
+        chapter.title,
+      )}.mp3`;
+      const output = path.join(workDir, outputName);
+      await execFileAsync("ffmpeg", [
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        concatFile,
+        "-af",
+        "loudnorm=I=-20:TP=-3:LRA=11",
+        "-ar",
+        "44100",
+        "-b:a",
+        "192k",
+        output,
+      ]);
+      masteredFiles.push(output);
+      manifest.push({
+        chapterId: chapter.chapterId,
+        title: chapter.title,
+        file: outputName,
+        acx: { integratedLufs: -20, truePeakDb: -3, bitrateKbps: 192 },
+      });
+    }
+    await writeFile(path.join(workDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    await execFileAsync("zip", ["-j", "audiobook.zip", "manifest.json", ...masteredFiles], {
+      cwd: workDir,
+    });
+    const bytes = await readFile(path.join(workDir, "audiobook.zip"));
+    return {
+      bytes,
+      r2Key: `projects/${input.projectId}/audio/master-${Date.now()}.zip`,
+      contentType: "application/zip",
+      files: await readdir(workDir),
+    };
+  } finally {
+    await rm(workDir, { recursive: true, force: true });
+  }
+}
+
 async function renderKindle(epub: string, output: string, workDir: string) {
   try {
     await execFileAsync("kindlegen", [epub, "-o", "book.kpf"], { cwd: workDir });
@@ -200,12 +297,16 @@ async function toolVersions(): Promise<ToolVersions> {
     firstLine("ebook-convert", ["--version"]),
     firstLine("kindlegen", []),
     firstLine("weasyprint", ["--version"]),
+    firstLine("ffmpeg", ["-version"]),
+    firstLine("zip", ["-v"]),
   ]);
   return {
     pandoc: settledValue(versions[0]),
     calibre: settledValue(versions[1]),
     kindlegen: settledValue(versions[2]),
     weasyprint: settledValue(versions[3]),
+    ffmpeg: settledValue(versions[4]),
+    zip: settledValue(versions[5]),
   };
 }
 
@@ -222,6 +323,16 @@ function defaultManuscript(projectId: string) {
   return `# Book Cook Render ${projectId}
 
 This placeholder manuscript verifies the render-worker toolchain. Production workflows pass a full manuscript R2 key or markdown payload.`;
+}
+
+function safeName(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 60) || "chapter"
+  );
 }
 
 if (!process.env.VITEST) {

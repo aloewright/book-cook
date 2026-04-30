@@ -48,4 +48,5 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();
   await page.getByPlaceholder(/ElevenLabs voice IDs/i).fill("JBFqnCBsd6RMkjVDRZzb");
   await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /master audiobook/i })).toBeDisabled();
 });

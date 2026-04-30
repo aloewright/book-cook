@@ -9,6 +9,7 @@ import { accountRoute } from "./routes/account";
 import { chaptersRoute } from "./routes/chapters";
 import { healthRoute } from "./routes/health";
 import { projectsRoute } from "./routes/projects";
+import { scoutRoute } from "./routes/scout";
 import { voicesRoute } from "./routes/voices";
 import { refreshMarketDataset } from "./skills/scout/dataset";
 import { AudiobookMasteringWorkflow } from "./workflows/audiobook-mastering";
@@ -87,6 +88,7 @@ app.route("/api/v1/projects", projectsRoute);
 app.route("/api/v1/chapters", chaptersRoute);
 app.route("/api/v1/voices", voicesRoute);
 app.route("/api/v1/account", accountRoute);
+app.route("/api/v1/scout", scoutRoute);
 
 app.all("/agents/*", async (c) => {
   const res = await routeAgentRequest(c.req.raw, c.env);

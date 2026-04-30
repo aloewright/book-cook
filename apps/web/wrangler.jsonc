@@ -71,7 +71,8 @@
     {
       "name": "render-worker",
       "class_name": "RenderWorkerContainer",
-      "image": "ghcr.io/aloewright/bookgenerators/render-worker:latest",
+      "image": "../../services/render-worker/Dockerfile",
+      "image_build_context": "../../services/render-worker",
       "max_instances": 4
     }
   ],

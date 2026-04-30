@@ -39,6 +39,93 @@ const POSTPILOT_SUGGESTIONS = [
 
 const FIELD_SLOT_IDS = ["one", "two", "three", "four", "five", "six", "seven"] as const;
 
+const OUTLINE_FRAMEWORKS = [
+  {
+    id: "paas",
+    type: "nonfiction",
+    label: "Problem -> Agitate -> Solve",
+    description: "Direct nonfiction argument for promise-led practical books.",
+    questions: [
+      "What painful problem does the reader want solved?",
+      "What has the reader already tried?",
+      "What promise can this book credibly make?",
+      "What proof, stories, or examples can support the method?",
+    ],
+  },
+  {
+    id: "reader-transformation",
+    type: "nonfiction",
+    label: "Reader Transformation",
+    description: "Nonfiction arc from current state to changed behavior.",
+    questions: [
+      "What is the reader's current state?",
+      "What transformation should the book deliver?",
+      "What method, proof, or case studies support the promise?",
+      "What should the reader do differently after each chapter?",
+    ],
+  },
+  {
+    id: "hero-journey",
+    type: "fiction",
+    label: "Hero's Journey",
+    description: "Classic quest structure for adventure-forward fiction.",
+    questions: [
+      "Who is the protagonist and what do they want?",
+      "What wound or false belief keeps them stuck?",
+      "What forces them out of the ordinary world?",
+      "What choice proves they have changed?",
+    ],
+  },
+  {
+    id: "truby-22",
+    type: "fiction",
+    label: "Truby-style 22 Beats",
+    description: "Dense cause-and-effect story architecture with moral pressure.",
+    questions: [
+      "What does the protagonist want on the surface?",
+      "What deeper need or weakness must the plot expose?",
+      "Who is the opponent and why are they morally persuasive?",
+      "What final choice proves the protagonist has changed?",
+    ],
+  },
+  {
+    id: "character-arc",
+    type: "fiction",
+    label: "Character Arc",
+    description: "K.M. Weiland-style want, need, lie, truth, and climactic choice.",
+    questions: [
+      "What lie or false belief drives the protagonist?",
+      "What external want keeps them moving?",
+      "What truth would make them whole?",
+      "What pressure forces them to choose between the lie and the truth?",
+    ],
+  },
+  {
+    id: "thriller",
+    type: "fiction",
+    label: "Thriller Escalation",
+    description: "Suspense-first outline with reversals, traps, and cliffhangers.",
+    questions: [
+      "What danger opens the book before anyone fully understands it?",
+      "What personal stakes make retreat impossible?",
+      "What does the antagonist know that the protagonist does not?",
+      "What reversal changes the meaning of the investigation?",
+    ],
+  },
+  {
+    id: "sci-fi",
+    type: "fiction",
+    label: "Sci-Fi World + Idea",
+    description: "Speculative premise, world rules, human cost, and ethical choice.",
+    questions: [
+      "What speculative premise changes ordinary life?",
+      "What rule makes the world feel consistent?",
+      "What human conflict keeps the idea emotional?",
+      "What ethical choice should the ending force?",
+    ],
+  },
+] as const;
+
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
   const location = useLocation();
@@ -59,7 +146,7 @@ function ProjectWorkspace() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden" data-project-workspace>
       <TopBar project={project.data} />
       <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_360px] overflow-hidden">
-        <OutlineRail active="voice" />
+        <OutlineRail active="concept" />
         <main className="overflow-y-auto px-6 py-12">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
             <ConceptScoutPanel project={project.data} />
@@ -99,7 +186,7 @@ function ConceptScoutPanel({ project }: { project: Project }) {
   const latest = findings.data?.items[0] ?? null;
 
   return (
-    <section className="border-b pb-8">
+    <section id="concept" className="scroll-mt-6 border-b pb-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Concept</h1>
@@ -273,7 +360,7 @@ function VoicePanel({ project }: { project: Project }) {
   });
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div id="voice" className="flex w-full scroll-mt-6 flex-col gap-8">
       <section className="border-b pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -438,6 +525,9 @@ function OutlineBuilder({ project }: { project: Project }) {
   const queryClient = useQueryClient();
   const [framework, setFramework] = useState(project.type === "fiction" ? "hero-journey" : "paas");
   const [questionnaire, setQuestionnaire] = useState("");
+  const availableFrameworks = OUTLINE_FRAMEWORKS.filter((item) => item.type === project.type);
+  const selectedFramework =
+    availableFrameworks.find((item) => item.id === framework) ?? availableFrameworks[0];
   const outline = useQuery({
     queryKey: queryKeys.projectOutline(project.id),
     queryFn: () => api.getProjectOutline(project.id),
@@ -452,7 +542,7 @@ function OutlineBuilder({ project }: { project: Project }) {
   });
 
   return (
-    <section className="border-t pt-8">
+    <section id="outline" className="scroll-mt-6 border-t pt-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Outline builder</h1>
@@ -478,21 +568,43 @@ function OutlineBuilder({ project }: { project: Project }) {
         >
           <div className="space-y-3">
             <Select value={framework} onValueChange={setFramework}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Outline framework">
                 <SelectValue placeholder="Framework" />
               </SelectTrigger>
               <SelectContent>
-                {project.type === "fiction" ? (
-                  <SelectItem value="hero-journey">Hero's Journey</SelectItem>
-                ) : (
-                  <SelectItem value="paas">Problem to Agitate to Solve</SelectItem>
-                )}
+                {availableFrameworks.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {selectedFramework ? (
+              <div className="rounded-md border bg-muted/20 p-3">
+                <div className="text-sm font-medium">{selectedFramework.label}</div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {selectedFramework.description}
+                </p>
+                <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                  {selectedFramework.questions.map((question) => (
+                    <li key={question} className="flex gap-2">
+                      <span aria-hidden className="text-muted-foreground/60">
+                        •
+                      </span>
+                      <span>{question}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <Textarea
               value={questionnaire}
               onChange={(event) => setQuestionnaire(event.target.value)}
-              placeholder="Reader, promise, proof, constraints, must-include stories..."
+              placeholder={
+                project.type === "fiction"
+                  ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
+                  : "Reader, promise, proof, constraints, must-include stories..."
+              }
               className="min-h-52 resize-y"
               required
             />
@@ -505,7 +617,7 @@ function OutlineBuilder({ project }: { project: Project }) {
           </div>
         </form>
 
-        <div className="rounded-lg border bg-background p-4">
+        <div id="chapters" className="scroll-mt-6 rounded-lg border bg-background p-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold">Chapter skeletons</h2>
             <span className="text-sm text-muted-foreground">
@@ -659,7 +771,7 @@ function PublishPanel({ project }: { project: Project }) {
     (outline.data?.chapters.length ?? 0) > 0;
 
   return (
-    <section className="border-t pt-8">
+    <section id="publish" className="scroll-mt-6 border-t pt-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Publish</h1>
@@ -781,7 +893,7 @@ function PublishPanel({ project }: { project: Project }) {
             </div>
           ) : null}
 
-          <div className="rounded-lg border bg-background p-4">
+          <div id="launch" className="scroll-mt-6 rounded-lg border bg-background p-4">
             <div className="space-y-1">
               <h2 className="text-base font-semibold">Downloads</h2>
               <p className="text-sm text-muted-foreground">

@@ -1,4 +1,4 @@
-import { type Framework, chapterTarget } from "./shared";
+import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
 
 export const heroJourneyFramework: Framework = {
   id: "hero-journey",
@@ -13,7 +13,7 @@ export const heroJourneyFramework: Framework = {
   build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
     const perChapter = chapterTarget(targetWordCount, 12);
     const context = questionnaire || `A ${genre || "fiction"} story titled ${title}.`;
-    const voice = voiceSummary ? ` Voice direction: ${voiceSummary}` : "";
+    const voice = voiceDirection(voiceSummary);
     const beats = [
       "Ordinary World",
       "Call to Adventure",
@@ -33,39 +33,34 @@ export const heroJourneyFramework: Framework = {
       acts: [
         {
           title: "Departure",
-          chapters: beats.slice(0, 4).map((beat) => chapter(beat, context, perChapter, voice)),
+          chapters: beats.slice(0, 4).map((beat) => heroChapter(beat, context, perChapter, voice)),
         },
         {
           title: "Initiation",
-          chapters: beats.slice(4, 9).map((beat) => chapter(beat, context, perChapter, voice)),
+          chapters: beats.slice(4, 9).map((beat) => heroChapter(beat, context, perChapter, voice)),
         },
         {
           title: "Return",
-          chapters: beats.slice(9).map((beat) => chapter(beat, context, perChapter, voice)),
+          chapters: beats.slice(9).map((beat) => heroChapter(beat, context, perChapter, voice)),
         },
       ],
     };
   },
 };
 
-function chapter(beat: string, context: string, targetWords: number, voice: string) {
-  return {
-    title: beat,
-    summary: `${beat}: ${context}`,
-    target_words: targetWords,
-    sections: [
-      {
-        kind: "scene",
-        prompt: `Draft a scene that expresses the ${beat} beat.${voice}`,
-        target_words: Math.round(targetWords * 0.7),
-        beat,
-      },
-      {
-        kind: "turn",
-        prompt: `End with a consequential turn that changes the protagonist's options.${voice}`,
-        target_words: Math.round(targetWords * 0.3),
-        beat: "Chapter turn",
-      },
-    ],
-  };
+function heroChapter(beat: string, context: string, targetWords: number, voice: string) {
+  return chapter(beat, `${beat}: ${context}`, targetWords, [
+    {
+      kind: "scene",
+      prompt: `Draft a scene that expresses the ${beat} beat.${voice}`,
+      share: 0.7,
+      beat,
+    },
+    {
+      kind: "turn",
+      prompt: `End with a consequential turn that changes the protagonist's options.${voice}`,
+      share: 0.3,
+      beat: "Chapter turn",
+    },
+  ]);
 }

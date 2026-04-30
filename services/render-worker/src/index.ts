@@ -144,6 +144,8 @@ export function normalizeKind(value: string | undefined): RenderKind | undefined
 async function renderKindle(epub: string, output: string, workDir: string) {
   try {
     await execFileAsync("kindlegen", [epub, "-o", "book.kpf"], { cwd: workDir });
+    if (await fileExists(output)) return;
+    throw new Error("kindlegen did not produce book.kpf");
   } catch {
     if (await fileExists(output)) return;
     const mobi = path.join(workDir, "book.mobi");

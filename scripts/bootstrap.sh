@@ -63,7 +63,7 @@ if ! "${W[@]}" secret list 2>/dev/null | grep -q BETTER_AUTH_SECRET; then
 fi
 
 echo "==> Mirroring Doppler secrets to Wrangler..."
-for KEY in AI_GATEWAY_BASE_URL AI_GATEWAY_TOKEN S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY RENDER_WORKER_INTERNAL_TOKEN KEYRING_MASTER_KEY; do
+for KEY in AI_GATEWAY_BASE_URL AI_GATEWAY_TOKEN S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_ENDPOINT RENDER_WORKER_INTERNAL_TOKEN KEYRING_MASTER_KEY; do
   VAL=$(doppler secrets get "$KEY" --project "$DOPPLER_PROJECT" --config "$DOPPLER_CONFIG" --plain 2>/dev/null || echo "")
   if [[ -n "$VAL" ]]; then
     if ! "${W[@]}" secret list 2>/dev/null | grep -q "$KEY"; then

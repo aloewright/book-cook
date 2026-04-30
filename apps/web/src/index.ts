@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/cloudflare";
 import { routeAgentRequest } from "agents";
 import { Hono } from "hono";
 import { createAuth } from "./auth";
+import { RenderWorkerContainer } from "./containers/render-worker";
 import type { Env } from "./env";
 import { errorHandler } from "./middleware/error";
 import { accountRoute } from "./routes/account";
@@ -11,6 +12,7 @@ import { projectsRoute } from "./routes/projects";
 import { voicesRoute } from "./routes/voices";
 
 export { BookProjectAgent } from "./agents/aloysius";
+export { RenderWorkerContainer };
 
 const app = new Hono<{ Bindings: Env }>();
 

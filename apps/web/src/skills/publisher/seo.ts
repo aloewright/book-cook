@@ -173,7 +173,9 @@ export function normalizePack(
     if (!keywords.includes(candidate)) keywords.push(candidate);
   }
 
-  const bisac = [...new Set(input.bisac.map(cleanPlainText).filter(Boolean))]
+  const bisac = [
+    ...new Set(input.bisac.map(cleanPlainText).filter((category) => category.includes(" / "))),
+  ]
     .map((category) => truncate(category, 120))
     .slice(0, 2);
   for (const candidate of fallback) {

@@ -130,6 +130,18 @@ export type RenderJob = {
   download_url?: string | null;
 };
 
+export type NarrationAudition = RenderJob & {
+  voice_id: string;
+  audio_url?: string | null;
+};
+
+export type NarrationApproval = {
+  job_id: string;
+  voice_id: string;
+  output_r2_key: string;
+  approved_at: string;
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
@@ -170,6 +182,30 @@ export const api = {
     fetchJson<{ items: RenderJob[] }>(`/api/v1/projects/${id}/export/jobs`),
   startBookExport: (id: string) =>
     fetchJson<{ id: string }>(`/api/v1/projects/${id}/export`, { method: "POST" }),
+  getElevenLabsKeyStatus: () =>
+    fetchJson<{ configured: boolean }>("/api/v1/account/elevenlabs-key"),
+  saveElevenLabsKey: (apiKey: string) =>
+    fetchJson<{ configured: boolean }>("/api/v1/account/elevenlabs-key", {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey }),
+    }),
+  listNarrationAuditions: (id: string) =>
+    fetchJson<{ items: NarrationAudition[]; approved: NarrationApproval | null }>(
+      `/api/v1/projects/${id}/narration/auditions`,
+    ),
+  startNarrationAudition: (id: string, voiceIds: string[]) =>
+    fetchJson<{ items: NarrationAudition[]; script: { chunks: number } }>(
+      `/api/v1/projects/${id}/narration/audition`,
+      {
+        method: "POST",
+        body: JSON.stringify({ elevenlabs_voice_ids: voiceIds }),
+      },
+    ),
+  approveNarrationAudition: (id: string, jobId: string) =>
+    fetchJson<{ approved: NarrationApproval }>(
+      `/api/v1/projects/${id}/narration/auditions/${jobId}/approve`,
+      { method: "POST" },
+    ),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -247,6 +283,8 @@ export const queryKeys = {
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
   publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
   renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,
+  narrationAuditions: (id: string) => ["projects", id, "narration-auditions"] as const,
+  elevenLabsKey: () => ["account", "elevenlabs-key"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,
   chapterRevisions: (id: string) => ["chapters", id, "revisions"] as const,

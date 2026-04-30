@@ -16,6 +16,8 @@ import { Textarea } from "../components/ui/textarea";
 import { OutlineRail } from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
 import {
+  type NarrationApproval,
+  type NarrationAudition,
   type Project,
   type PublisherPack,
   type RenderJob,
@@ -426,7 +428,17 @@ function PublishPanel({ project }: { project: Project }) {
         ? 3_000
         : false,
   });
+  const auditionStatus = useQuery({
+    queryKey: queryKeys.narrationAuditions(project.id),
+    queryFn: () => api.listNarrationAuditions(project.id),
+  });
+  const keyStatus = useQuery({
+    queryKey: queryKeys.elevenLabsKey(),
+    queryFn: api.getElevenLabsKeyStatus,
+  });
   const [draft, setDraft] = useState<PublisherPack | null>(null);
+  const [elevenLabsKey, setElevenLabsKey] = useState("");
+  const [voiceIds, setVoiceIds] = useState("");
 
   useEffect(() => {
     if (pack.data?.pack) setDraft(pack.data.pack);
@@ -470,11 +482,35 @@ function PublishPanel({ project }: { project: Project }) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.renderJobs(project.id) });
     },
   });
+  const saveElevenLabsKey = useMutation({
+    mutationFn: () => api.saveElevenLabsKey(elevenLabsKey),
+    onSuccess: async () => {
+      setElevenLabsKey("");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.elevenLabsKey() });
+    },
+  });
+  const startAudition = useMutation({
+    mutationFn: () => api.startNarrationAudition(project.id, parseVoiceIds(voiceIds)),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.narrationAuditions(project.id) });
+    },
+  });
+  const approveAudition = useMutation({
+    mutationFn: (jobId: string) => api.approveNarrationAudition(project.id, jobId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.narrationAuditions(project.id) });
+    },
+  });
 
   const validation = draft ? validateDraftPack(draft) : [];
   const locked = draft?.status === "approved";
   const canGenerate = (outline.data?.chapters.length ?? 0) > 0;
   const canExport = locked && (outline.data?.chapters.length ?? 0) > 0;
+  const canAudition =
+    locked &&
+    keyStatus.data?.configured &&
+    parseVoiceIds(voiceIds).length > 0 &&
+    (outline.data?.chapters.length ?? 0) > 0;
 
   return (
     <section className="border-t pt-8">
@@ -626,6 +662,68 @@ function PublishPanel({ project }: { project: Project }) {
             ) : null}
             <RenderJobsList jobs={renderJobs.data?.items ?? []} />
           </div>
+
+          <div className="rounded-lg border bg-background p-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">Narration audition</h2>
+              <p className="text-sm text-muted-foreground">
+                Generate a short MP3 audition from the manuscript and approve the voice for
+                audiobook mastering.
+              </p>
+            </div>
+            <div className="mt-4 grid gap-3">
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  type="password"
+                  value={elevenLabsKey}
+                  onChange={(event) => setElevenLabsKey(event.target.value)}
+                  placeholder={
+                    keyStatus.data?.configured ? "ElevenLabs key saved" : "Paste ElevenLabs API key"
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!elevenLabsKey.trim() || saveElevenLabsKey.isPending}
+                  onClick={() => saveElevenLabsKey.mutate()}
+                >
+                  {saveElevenLabsKey.isPending ? "Saving..." : "Save key"}
+                </Button>
+              </div>
+              <Textarea
+                value={voiceIds}
+                onChange={(event) => setVoiceIds(event.target.value)}
+                placeholder="ElevenLabs voice IDs, one per line or comma-separated"
+                className="min-h-20 resize-y"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canAudition || startAudition.isPending}
+                onClick={() => startAudition.mutate()}
+              >
+                {startAudition.isPending ? "Rendering..." : "Audition voices"}
+              </Button>
+            </div>
+            {!locked ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Approve the publisher pack before auditioning narration.
+              </p>
+            ) : null}
+            {[saveElevenLabsKey.error, startAudition.error, approveAudition.error]
+              .filter(Boolean)
+              .map((error) => (
+                <p key={String(error)} className="mt-3 text-sm text-destructive">
+                  {(error as Error).message}
+                </p>
+              ))}
+            <NarrationAuditionsList
+              items={auditionStatus.data?.items ?? []}
+              approved={auditionStatus.data?.approved ?? null}
+              approvingId={approveAudition.variables}
+              onApprove={(jobId) => approveAudition.mutate(jobId)}
+            />
+          </div>
         </div>
 
         {draft ? (
@@ -675,6 +773,14 @@ function PublishPanel({ project }: { project: Project }) {
   );
 }
 
+function parseVoiceIds(value: string) {
+  return value
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 function RenderJobsList({ jobs }: { jobs: RenderJob[] }) {
   if (!jobs.length) {
     return <p className="mt-4 text-sm text-muted-foreground">No exports yet.</p>;
@@ -698,6 +804,62 @@ function RenderJobsList({ jobs }: { jobs: RenderJob[] }) {
           ) : null}
         </div>
       ))}
+    </div>
+  );
+}
+
+function NarrationAuditionsList({
+  items,
+  approved,
+  approvingId,
+  onApprove,
+}: {
+  items: NarrationAudition[];
+  approved: NarrationApproval | null;
+  approvingId?: string;
+  onApprove: (jobId: string) => void;
+}) {
+  if (!items.length) {
+    return <p className="mt-4 text-sm text-muted-foreground">No auditions yet.</p>;
+  }
+  return (
+    <div className="mt-4 divide-y rounded-md border">
+      {items.slice(0, 6).map((item) => {
+        const isApproved = approved?.job_id === item.id;
+        return (
+          <div key={item.id} className="grid gap-3 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">{item.voice_id || "Voice"}</p>
+                <p
+                  className={
+                    item.status === "failed" ? "text-destructive" : "text-muted-foreground"
+                  }
+                >
+                  {item.status}
+                  {item.error ? `: ${item.error}` : ""}
+                </p>
+              </div>
+              {isApproved ? <Badge>Approved</Badge> : null}
+            </div>
+            {item.audio_url ? (
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                {/* biome-ignore lint/a11y/useMediaCaption: auditions are short user-generated samples without separate transcript files yet. */}
+                <audio controls src={item.audio_url} className="h-9 w-full" />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isApproved ? "secondary" : "outline"}
+                  disabled={isApproved || approvingId === item.id}
+                  onClick={() => onApprove(item.id)}
+                >
+                  {approvingId === item.id ? "Approving..." : "Approve"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

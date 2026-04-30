@@ -10,7 +10,10 @@ export default defineConfig(async () => {
         remoteBindings: false,
         wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations },
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            KEYRING_MASTER_KEY: "test-keyring-master-key",
+          },
         },
       }),
     ],

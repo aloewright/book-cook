@@ -206,6 +206,10 @@ export const api = {
       `/api/v1/projects/${id}/narration/auditions/${jobId}/approve`,
       { method: "POST" },
     ),
+  listAudiobookJobs: (id: string) =>
+    fetchJson<{ items: RenderJob[] }>(`/api/v1/projects/${id}/audiobook/jobs`),
+  startAudiobookMastering: (id: string) =>
+    fetchJson<{ id: string }>(`/api/v1/projects/${id}/audiobook`, { method: "POST" }),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -284,6 +288,7 @@ export const queryKeys = {
   publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
   renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,
   narrationAuditions: (id: string) => ["projects", id, "narration-auditions"] as const,
+  audiobookJobs: (id: string) => ["projects", id, "audiobook-jobs"] as const,
   elevenLabsKey: () => ["account", "elevenlabs-key"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,

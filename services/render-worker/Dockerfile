@@ -12,12 +12,14 @@ RUN dpkg --add-architecture i386 \
       fonts-dejavu \
       fonts-liberation \
       fonts-noto-core \
+      ffmpeg \
       libc6:i386 \
       libstdc++6:i386 \
       pandoc \
       python3-pip \
       tar \
       weasyprint \
+      zip \
  && curl -fsSL "$KINDLEGEN_URL" -o /tmp/kindlegen.tar.gz \
  && tar -xzf /tmp/kindlegen.tar.gz -C /tmp \
  && install -m 0755 /tmp/kindlegen /usr/local/bin/kindlegen \

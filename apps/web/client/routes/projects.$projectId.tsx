@@ -56,9 +56,9 @@ function ProjectWorkspace() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-49px)] flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden" data-project-workspace>
       <TopBar project={project.data} />
-      <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_360px]">
+      <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_360px] overflow-hidden">
         <OutlineRail active="voice" />
         <main className="overflow-y-auto px-6 py-12">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">

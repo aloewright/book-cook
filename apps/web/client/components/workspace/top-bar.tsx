@@ -5,7 +5,7 @@ import { BudgetMeter } from "./budget-meter";
 
 export function TopBar({ project }: { project: Project }) {
   return (
-    <header className="border-b bg-background">
+    <header className="shrink-0 border-b bg-background">
       <div className="flex items-center justify-between px-5 py-2 text-sm">
         <div className="flex items-center gap-3">
           <Link to="/dashboard" className="text-muted-foreground hover:text-foreground">

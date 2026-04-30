@@ -16,6 +16,14 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await link.click();
 
   await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();
+  await expect
+    .poll(async () => {
+      return page.evaluate(() => {
+        const root = document.scrollingElement ?? document.documentElement;
+        return root.scrollHeight - window.innerHeight;
+      });
+    })
+    .toBeLessThanOrEqual(2);
 
   // Aloysius accepts the message and starts a response turn.
   await page.getByPlaceholder("Ask Aloysius…").fill("hello");

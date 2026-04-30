@@ -1,0 +1,87 @@
+import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
+
+const BEATS = [
+  "Cold open threat",
+  "Everyday vulnerability",
+  "Inciting crime",
+  "Investigation begins",
+  "First false lead",
+  "Personal stakes surface",
+  "Antagonist escalation",
+  "Midpoint reversal",
+  "Conspiracy widens",
+  "Trap closes",
+  "Allies fracture",
+  "Darkest discovery",
+  "Countermove",
+  "Final confrontation",
+  "Aftershock",
+] as const;
+
+export const thrillerFramework: Framework = {
+  id: "thriller",
+  label: "Thriller Escalation",
+  type: "fiction",
+  questions: [
+    "What danger opens the book before anyone fully understands it?",
+    "What personal stakes make retreat impossible?",
+    "What does the antagonist know that the protagonist does not?",
+    "What reversal changes the meaning of the investigation?",
+  ],
+  build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
+    const perChapter = chapterTarget(targetWordCount, BEATS.length);
+    const context = questionnaire || `A ${genre || "thriller"} titled ${title}.`;
+    const voice = voiceDirection(voiceSummary);
+    return {
+      framework: "thriller",
+      acts: [
+        {
+          title: "Threat",
+          chapters: BEATS.slice(0, 5).map((beat) =>
+            thrillerChapter(beat, context, perChapter, voice),
+          ),
+        },
+        {
+          title: "Reversal",
+          chapters: BEATS.slice(5, 11).map((beat) =>
+            thrillerChapter(beat, context, perChapter, voice),
+          ),
+        },
+        {
+          title: "Confrontation",
+          chapters: BEATS.slice(11).map((beat) =>
+            thrillerChapter(beat, context, perChapter, voice),
+          ),
+        },
+      ],
+    };
+  },
+};
+
+function thrillerChapter(beat: string, context: string, targetWords: number, voice: string) {
+  return chapter(
+    beat,
+    `${beat}: escalate suspense while staying grounded in ${context}`,
+    targetWords,
+    [
+      {
+        kind: "threat",
+        prompt: `Open with a concrete threat, clue, or pressure point for ${beat}.${voice}`,
+        share: 0.35,
+        beat,
+      },
+      {
+        kind: "investigation",
+        prompt: `Advance the investigation while adding one complication or false certainty.${voice}`,
+        share: 0.45,
+        beat: "Investigation pressure",
+      },
+      {
+        kind: "cliffhanger",
+        prompt: `End with a reveal, deadline, betrayal, or danger that forces the next chapter.${voice}`,
+        share: 0.2,
+        beat: "Suspense turn",
+      },
+    ],
+  );
+}

@@ -44,3 +44,31 @@ export function splitWords(value: string) {
 export function chapterTarget(total: number, chapters: number) {
   return Math.max(1200, Math.round(total / chapters));
 }
+
+export function chapter(
+  title: string,
+  summary: string,
+  targetWords: number,
+  sections: {
+    kind: string;
+    prompt: string;
+    share: number;
+    beat: string;
+  }[],
+): FrameworkChapter {
+  return {
+    title,
+    summary,
+    target_words: targetWords,
+    sections: sections.map((section) => ({
+      kind: section.kind,
+      prompt: section.prompt,
+      target_words: Math.round(targetWords * section.share),
+      beat: section.beat,
+    })),
+  };
+}
+
+export function voiceDirection(voiceSummary?: string) {
+  return voiceSummary ? ` Voice direction: ${voiceSummary}` : "";
+}

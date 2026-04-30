@@ -24,6 +24,12 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
       });
     })
     .toBeLessThanOrEqual(2);
+  await page.getByLabel("Go to Publish workflow").click();
+  await expect(page).toHaveURL(/#publish$/);
+  await expect(page.getByRole("heading", { name: "Publish" })).toBeVisible();
+  await page.getByLabel("Go to Outline workflow").click();
+  await expect(page).toHaveURL(/#outline$/);
+  await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
 
   // Aloysius accepts the message and starts a response turn.
   await page.getByPlaceholder("Ask Aloysius…").fill("hello");

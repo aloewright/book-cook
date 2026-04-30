@@ -14,11 +14,13 @@ import { voicesRoute } from "./routes/voices";
 import { refreshMarketDataset } from "./skills/scout/dataset";
 import { AudiobookMasteringWorkflow } from "./workflows/audiobook-mastering";
 import { BookExportWorkflow } from "./workflows/book-export";
+import { GtmBriefWorkflow } from "./workflows/gtm-brief";
 
 export { BookProjectAgent } from "./agents/aloysius";
 export { RenderWorkerContainer };
 export { BookExportWorkflow };
 export { AudiobookMasteringWorkflow };
+export { GtmBriefWorkflow };
 
 const app = new Hono<{ Bindings: Env }>();
 

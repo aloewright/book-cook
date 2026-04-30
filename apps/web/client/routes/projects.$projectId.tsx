@@ -15,7 +15,14 @@ import {
 import { Textarea } from "../components/ui/textarea";
 import { OutlineRail } from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
-import { type Project, type PublisherPack, type Voice, api, queryKeys } from "../lib/api";
+import {
+  type Project,
+  type PublisherPack,
+  type RenderJob,
+  type Voice,
+  api,
+  queryKeys,
+} from "../lib/api";
 
 export const Route = createFileRoute("/projects/$projectId")({ component: ProjectWorkspace });
 
@@ -411,6 +418,14 @@ function PublishPanel({ project }: { project: Project }) {
     queryKey: queryKeys.projectOutline(project.id),
     queryFn: () => api.getProjectOutline(project.id),
   });
+  const renderJobs = useQuery({
+    queryKey: queryKeys.renderJobs(project.id),
+    queryFn: () => api.listRenderJobs(project.id),
+    refetchInterval: (query) =>
+      query.state.data?.items.some((job) => job.status === "queued" || job.status === "running")
+        ? 3_000
+        : false,
+  });
   const [draft, setDraft] = useState<PublisherPack | null>(null);
 
   useEffect(() => {
@@ -449,10 +464,17 @@ function PublishPanel({ project }: { project: Project }) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) });
     },
   });
+  const startExport = useMutation({
+    mutationFn: () => api.startBookExport(project.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.renderJobs(project.id) });
+    },
+  });
 
   const validation = draft ? validateDraftPack(draft) : [];
   const locked = draft?.status === "approved";
   const canGenerate = (outline.data?.chapters.length ?? 0) > 0;
+  const canExport = locked && (outline.data?.chapters.length ?? 0) > 0;
 
   return (
     <section className="border-t pt-8">
@@ -576,6 +598,34 @@ function PublishPanel({ project }: { project: Project }) {
               </div>
             </div>
           ) : null}
+
+          <div className="rounded-lg border bg-background p-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold">Downloads</h2>
+              <p className="text-sm text-muted-foreground">
+                Export approved manuscripts to EPUB, PDF, and Kindle formats.
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canExport || startExport.isPending}
+                onClick={() => startExport.mutate()}
+              >
+                {startExport.isPending ? "Starting..." : "Export book"}
+              </Button>
+            </div>
+            {!canExport ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Approve the publisher pack before exporting files.
+              </p>
+            ) : null}
+            {startExport.error ? (
+              <p className="mt-3 text-sm text-destructive">{startExport.error.message}</p>
+            ) : null}
+            <RenderJobsList jobs={renderJobs.data?.items ?? []} />
+          </div>
         </div>
 
         {draft ? (
@@ -622,6 +672,33 @@ function PublishPanel({ project }: { project: Project }) {
         )}
       </div>
     </section>
+  );
+}
+
+function RenderJobsList({ jobs }: { jobs: RenderJob[] }) {
+  if (!jobs.length) {
+    return <p className="mt-4 text-sm text-muted-foreground">No exports yet.</p>;
+  }
+  return (
+    <div className="mt-4 divide-y rounded-md border">
+      {jobs.slice(0, 9).map((job) => (
+        <div
+          key={job.id}
+          className="grid gap-2 p-3 text-sm sm:grid-cols-[80px_1fr_auto] sm:items-center"
+        >
+          <span className="font-medium uppercase">{job.kind}</span>
+          <span className={job.status === "failed" ? "text-destructive" : "text-muted-foreground"}>
+            {job.status}
+            {job.error ? `: ${job.error}` : ""}
+          </span>
+          {job.download_url ? (
+            <Button asChild size="sm" variant="outline">
+              <a href={job.download_url}>Download</a>
+            </Button>
+          ) : null}
+        </div>
+      ))}
+    </div>
   );
 }
 

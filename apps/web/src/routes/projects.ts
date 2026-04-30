@@ -8,6 +8,7 @@ import {
   outlines,
   projects,
   publisher_packs,
+  render_jobs,
   sections,
   voices,
 } from "../db/schema";
@@ -338,6 +339,82 @@ projectsRoute.post("/:id/publisher-pack/approve", async (c) => {
   return c.json({ pack: { ...serialized, status: "approved" } });
 });
 
+projectsRoute.get("/:id/export/jobs", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const jobs = await db
+    .select()
+    .from(render_jobs)
+    .where(eq(render_jobs.project_id, id))
+    .orderBy(desc(render_jobs.started_at));
+  return c.json({ items: jobs.map((job) => serializeRenderJob(id, job)) });
+});
+
+projectsRoute.post("/:id/export", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  if (!c.env.BOOK_EXPORT_WORKFLOW) {
+    return c.json({ error: "book export workflow is not configured" }, 503);
+  }
+
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const instanceId = `book-export-${id}-${Date.now()}`;
+  await c.env.BOOK_EXPORT_WORKFLOW.create({
+    id: instanceId,
+    params: { projectId: id, userId: user.id },
+  });
+  return c.json({ id: instanceId }, 202);
+});
+
+projectsRoute.get("/:id/export/:jobId/download", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const jobId = c.req.param("jobId");
+  const db = drizzle(c.env.DB);
+  const [job] = await db
+    .select({
+      id: render_jobs.id,
+      kind: render_jobs.kind,
+      output_r2_key: render_jobs.output_r2_key,
+      projectId: projects.id,
+    })
+    .from(render_jobs)
+    .innerJoin(projects, eq(render_jobs.project_id, projects.id))
+    .where(
+      and(
+        eq(render_jobs.id, jobId),
+        eq(projects.id, id),
+        eq(projects.user_id, user.id),
+        isNull(projects.deleted_at),
+      ),
+    )
+    .limit(1);
+  if (!job?.output_r2_key) return c.json({ error: "download not found" }, 404);
+  const object = await c.env.R2.get(job.output_r2_key);
+  if (!object) return c.json({ error: "download not found" }, 404);
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": contentTypeForJob(job.kind),
+      "Content-Disposition": `attachment; filename="${id}.${job.kind}"`,
+    },
+  });
+});
+
 projectsRoute.post("/:id/outlines", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -434,4 +511,21 @@ function serializePublisherPack(row: typeof publisher_packs.$inferSelect): Publi
     bisac: Array.isArray(row.bisac_json) ? row.bisac_json.map(String) : [],
     status: row.status,
   };
+}
+
+function serializeRenderJob(id: string, row: typeof render_jobs.$inferSelect) {
+  return {
+    ...row,
+    download_url:
+      row.status === "completed" && row.output_r2_key
+        ? `/api/v1/projects/${id}/export/${row.id}/download`
+        : null,
+  };
+}
+
+function contentTypeForJob(kind: string) {
+  if (kind === "epub") return "application/epub+zip";
+  if (kind === "pdf") return "application/pdf";
+  if (kind === "kpf") return "application/vnd.amazon.mobi8-ebook";
+  return "application/octet-stream";
 }

@@ -116,6 +116,20 @@ export type PublisherPack = {
   status: "draft" | "approved";
 };
 
+export type RenderJob = {
+  id: string;
+  project_id: string;
+  kind: "epub" | "docx" | "pdf" | "kpf" | "narration" | "master_mix";
+  status: "queued" | "running" | "completed" | "failed";
+  workflow_id?: string | null;
+  output_r2_key?: string | null;
+  error?: string | null;
+  started_at: number;
+  completed_at?: number | null;
+  cost_cents: number;
+  download_url?: string | null;
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
@@ -152,6 +166,10 @@ export const api = {
     fetchJson<{ pack: PublisherPack }>(`/api/v1/projects/${id}/publisher-pack/approve`, {
       method: "POST",
     }),
+  listRenderJobs: (id: string) =>
+    fetchJson<{ items: RenderJob[] }>(`/api/v1/projects/${id}/export/jobs`),
+  startBookExport: (id: string) =>
+    fetchJson<{ id: string }>(`/api/v1/projects/${id}/export`, { method: "POST" }),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -228,6 +246,7 @@ export const queryKeys = {
   project: (id: string) => ["projects", id] as const,
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
   publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
+  renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,
   chapterRevisions: (id: string) => ["chapters", id, "revisions"] as const,

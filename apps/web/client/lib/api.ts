@@ -92,6 +92,9 @@ export type Revision = {
   created_at?: number;
 };
 
+export type InlineEditAction = "rewrite" | "tighten" | "expand" | "change-tone" | "fix-grammar";
+export type InlineEditTone = "formal" | "casual" | "punchy";
+
 export type ProjectOutline = {
   id: string;
   project_id: string;
@@ -141,6 +144,19 @@ export const api = {
     }),
   getChapterRevisions: (id: string) =>
     fetchJson<{ items: Revision[] }>(`/api/v1/chapters/${id}/revisions`),
+  reviseChapterSelection: (
+    id: string,
+    input: {
+      action: InlineEditAction;
+      tone?: InlineEditTone;
+      text: string;
+      context_md?: string;
+    },
+  ) =>
+    fetchJson<{ revision: Revision }>(`/api/v1/chapters/${id}/revise`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   updateChapter: (
     id: string,
     input: { draft_json?: unknown; draft_md?: string; status?: Chapter["status"] },

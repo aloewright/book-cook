@@ -42,6 +42,13 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
   await editor.click();
   await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
   await page.keyboard.type("This chapter opens with a concrete operator under pressure.");
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+  await page.getByRole("button", { name: /tighten/i }).click();
+  await expect(page.getByTestId("inline-ai-diff")).toContainText("Tightened:", {
+    timeout: 15_000,
+  });
+  await page.getByRole("button", { name: /apply replacement/i }).click();
+  await expect(editor).toContainText("Tightened:", { timeout: 10_000 });
 
   await expect(page.getByText(/Saving|Saved/)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/saved words/i)).toBeVisible();

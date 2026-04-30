@@ -5,7 +5,7 @@ import { z } from "zod";
 import { chapters, projects, revisions, sections, voices } from "../db/schema";
 import type { Env } from "../env";
 import { type AuthVariables, requireUser } from "../middleware/auth";
-import { draftSection } from "../skills/writer";
+import { draftSection, reviseInlineText } from "../skills/writer";
 
 const patchChapterSchema = z.object({
   draft_json: z.unknown().optional(),
@@ -16,6 +16,13 @@ const patchChapterSchema = z.object({
 const patchSectionSchema = z.object({
   status: z.enum(["pending", "generating", "drafted", "approved"]).optional(),
   draft_md: z.string().max(500_000).optional(),
+});
+
+const reviseInlineSchema = z.object({
+  action: z.enum(["rewrite", "tighten", "expand", "change-tone", "fix-grammar"]),
+  tone: z.enum(["formal", "casual", "punchy"]).optional(),
+  text: z.string().min(1).max(20_000),
+  context_md: z.string().max(100_000).optional(),
 });
 
 export const chaptersRoute = new Hono<{
@@ -58,6 +65,51 @@ chaptersRoute.get("/:id/sections", async (c) => {
     .orderBy(asc(sections.ordinal));
 
   return c.json({ items });
+});
+
+chaptersRoute.post("/:id/revise", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const body = reviseInlineSchema.parse(await c.req.json());
+  const db = drizzle(c.env.DB);
+  const [row] = await db
+    .select({ chapter: chapters, project: projects, voice: voices })
+    .from(chapters)
+    .innerJoin(projects, eq(chapters.project_id, projects.id))
+    .leftJoin(voices, eq(projects.voice_id, voices.id))
+    .where(and(eq(chapters.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!row) return c.json({ error: "not found" }, 404);
+
+  const result = await reviseInlineText(c.env, {
+    action: body.action,
+    tone: body.tone,
+    text: body.text,
+    contextMd: body.context_md,
+    chapterTitle: row.chapter.title,
+    chapterSummary: row.chapter.summary,
+    voiceProfile: row.voice?.profile_json,
+  });
+  const revisionId = crypto.randomUUID();
+  await db.insert(revisions).values({
+    id: revisionId,
+    target_table: "chapters",
+    target_id: id,
+    before_md: body.text,
+    after_md: result.markdown,
+    llm_response: result.llm_response,
+  });
+
+  return c.json({
+    revision: {
+      id: revisionId,
+      target_table: "chapters",
+      target_id: id,
+      before_md: body.text,
+      after_md: result.markdown,
+      llm_response: result.llm_response,
+    },
+  });
 });
 
 chaptersRoute.post("/:id/sections/:sectionId/draft", async (c) => {

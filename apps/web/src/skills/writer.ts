@@ -22,6 +22,28 @@ export type SectionDraftResult = {
   };
 };
 
+export type InlineEditAction = "rewrite" | "tighten" | "expand" | "change-tone" | "fix-grammar";
+export type InlineEditTone = "formal" | "casual" | "punchy";
+
+export type InlineEditInput = {
+  action: InlineEditAction;
+  tone?: InlineEditTone;
+  text: string;
+  chapterTitle: string;
+  chapterSummary: string;
+  contextMd?: string;
+  voiceProfile?: unknown;
+};
+
+export type InlineEditResult = {
+  markdown: string;
+  llm_response: {
+    route: "dynamic/text_gen" | "deterministic/local";
+    tokens_in: number;
+    tokens_out: number;
+  };
+};
+
 export async function draftSection(
   env: Pick<Env, "AI_GATEWAY_BASE_URL" | "AI_GATEWAY_TOKEN">,
   input: SectionDraftInput,
@@ -71,6 +93,53 @@ export async function draftSection(
   };
 }
 
+export async function reviseInlineText(
+  env: Pick<Env, "AI_GATEWAY_BASE_URL" | "AI_GATEWAY_TOKEN">,
+  input: InlineEditInput,
+): Promise<InlineEditResult> {
+  if (!env.AI_GATEWAY_BASE_URL || !env.AI_GATEWAY_TOKEN) {
+    return deterministicInlineEdit(input);
+  }
+
+  const result = await gateway.chatCompletion(env, {
+    route: "dynamic/text_gen",
+    temperature: input.action === "fix-grammar" ? 0.2 : 0.45,
+    maxTokens: 900,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You revise selected prose inside a book editor. Return only the replacement text, preserving markdown when useful. Do not add commentary or code fences.",
+      },
+      {
+        role: "user",
+        content: [
+          `Chapter: ${input.chapterTitle}`,
+          `Chapter summary: ${input.chapterSummary || "No summary supplied."}`,
+          `Action: ${describeInlineAction(input)}`,
+          input.voiceProfile
+            ? `Voice profile JSON: ${JSON.stringify(input.voiceProfile).slice(0, 6000)}`
+            : "",
+          input.contextMd ? `Nearby chapter context:\n${input.contextMd.slice(0, 8000)}` : "",
+          `Selected text:\n${input.text}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+    ],
+  });
+
+  const markdown = normalizeDraft(result.text);
+  return {
+    markdown: markdown || deterministicInlineEdit(input).markdown,
+    llm_response: {
+      route: "dynamic/text_gen",
+      tokens_in: result.tokens_in,
+      tokens_out: result.tokens_out,
+    },
+  };
+}
+
 function deterministicDraft(input: SectionDraftInput): SectionDraftResult {
   const prompt = input.prompt || input.chapterSummary || "Build the next useful section.";
   const markdown = normalizeDraft(`## ${titleCase(input.kind)}
@@ -91,6 +160,35 @@ Start with a concrete moment: the reader is facing the cost of the old pattern a
       tokens_out: countWords(markdown),
     },
   };
+}
+
+function deterministicInlineEdit(input: InlineEditInput): InlineEditResult {
+  const selected = input.text.trim();
+  const markdown = (() => {
+    if (input.action === "tighten") return `Tightened: ${selected}`;
+    if (input.action === "expand") {
+      return `Expanded: ${selected} This version adds a clearer consequence, a concrete example, and a stronger connection back to ${input.chapterTitle}.`;
+    }
+    if (input.action === "change-tone")
+      return `${titleCase(input.tone ?? "formal")} tone: ${selected}`;
+    if (input.action === "fix-grammar") return `Grammar fixed: ${selected}`;
+    return `Rewritten: ${selected}`;
+  })();
+
+  return {
+    markdown,
+    llm_response: {
+      route: "deterministic/local",
+      tokens_in: countWords(selected),
+      tokens_out: countWords(markdown),
+    },
+  };
+}
+
+function describeInlineAction(input: InlineEditInput) {
+  if (input.action === "change-tone") return `change tone to ${input.tone ?? "formal"}`;
+  if (input.action === "fix-grammar") return "fix grammar without changing meaning";
+  return input.action;
 }
 
 function normalizeDraft(text: string) {

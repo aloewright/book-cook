@@ -4,12 +4,19 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Check, Wand2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Scissors, Sparkles, Wand2, X } from "lucide-react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { type Chapter, type Section, api, queryKeys } from "../lib/api";
+import {
+  type Chapter,
+  type InlineEditAction,
+  type InlineEditTone,
+  type Section,
+  api,
+  queryKeys,
+} from "../lib/api";
 
 export const Route = createFileRoute("/projects/$projectId/chapters/$chapterId")({
   component: ChapterEditorRoute,
@@ -82,7 +89,14 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
   const [review, setReview] = useState<{ sectionId: string; before: string; after: string } | null>(
     null,
   );
+  const [selectedText, setSelectedText] = useState("");
+  const [inlineReview, setInlineReview] = useState<{
+    before: string;
+    after: string;
+    action: InlineEditAction;
+  } | null>(null);
   const pendingSave = useRef<number | undefined>(undefined);
+  const editorRoot = useRef<HTMLDivElement | null>(null);
   const editor = useCreateBlockNote({
     initialContent: initialContent(chapter),
   });
@@ -132,11 +146,41 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
     },
   });
 
+  const inlineEditMutation = useMutation({
+    mutationFn: async (input: {
+      action: InlineEditAction;
+      tone?: InlineEditTone;
+      text: string;
+    }) => {
+      const contextMd = await editor.blocksToMarkdownLossy(editor.document);
+      return api.reviseChapterSelection(chapter.id, {
+        action: input.action,
+        tone: input.tone,
+        text: input.text,
+        context_md: contextMd,
+      });
+    },
+    onSuccess: async (data, variables) => {
+      setInlineReview({
+        before: data.revision.before_md,
+        after: data.revision.after_md,
+        action: variables.action,
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterRevisions(chapter.id) });
+    },
+  });
+
   useEffect(() => {
     return () => {
       if (pendingSave.current) window.clearTimeout(pendingSave.current);
     };
   }, []);
+
+  useEffect(() => {
+    return editor.onSelectionChange(() => {
+      setSelectedText(getSelectedText(editorRoot.current));
+    });
+  }, [editor]);
 
   const statusText = useMemo(() => {
     if (saveState === "saving") return "Saving...";
@@ -170,6 +214,21 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
     if (review?.sectionId === section.id) setReview(null);
   }
 
+  async function runInlineEdit(action: InlineEditAction, tone?: InlineEditTone) {
+    const text = getSelectedText(editorRoot.current) || selectedText;
+    if (!text.trim()) return;
+    setSelectedText(text);
+    await inlineEditMutation.mutateAsync({ action, tone, text });
+  }
+
+  async function acceptInlineEdit() {
+    if (!inlineReview?.after.trim()) return;
+    editor.insertInlineContent(inlineReview.after, { updateSelection: true });
+    setSelectedText(inlineReview.after);
+    setInlineReview(null);
+    await saveMutation.mutateAsync();
+  }
+
   return (
     <div className="space-y-4">
       <SectionDraftPanel
@@ -194,17 +253,140 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
             Save now
           </Button>
         </div>
+        <InlineAiPanel
+          selectedText={selectedText}
+          review={inlineReview}
+          isLoading={inlineEditMutation.isPending || saveMutation.isPending}
+          onRun={runInlineEdit}
+          onAccept={acceptInlineEdit}
+          onReject={() => setInlineReview(null)}
+        />
         <div className="min-h-[560px] px-4 py-5" data-testid="chapter-editor">
-          <BlockNoteView
-            editor={editor}
-            theme="light"
-            onChange={() => {
-              if (pendingSave.current) window.clearTimeout(pendingSave.current);
-              pendingSave.current = window.setTimeout(() => saveMutation.mutate(), 1000);
-            }}
-          />
+          <div ref={editorRoot}>
+            <BlockNoteView
+              editor={editor}
+              theme="light"
+              onChange={() => {
+                if (pendingSave.current) window.clearTimeout(pendingSave.current);
+                pendingSave.current = window.setTimeout(() => saveMutation.mutate(), 1000);
+              }}
+            />
+          </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function InlineAiPanel({
+  selectedText,
+  review,
+  isLoading,
+  onRun,
+  onAccept,
+  onReject,
+}: {
+  selectedText: string;
+  review: { before: string; after: string; action: InlineEditAction } | null;
+  isLoading: boolean;
+  onRun: (action: InlineEditAction, tone?: InlineEditTone) => void;
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const hasSelection = selectedText.trim().length > 0;
+  const preventSelectionLoss = (event: MouseEvent) => event.preventDefault();
+
+  return (
+    <div className="border-b bg-muted/20 px-4 py-3" aria-label="Inline AI edits">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-xs font-medium uppercase text-muted-foreground">Inline AI</span>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!hasSelection || isLoading}
+          onMouseDown={preventSelectionLoss}
+          onClick={() => onRun("rewrite")}
+        >
+          <Sparkles className="h-4 w-4" />
+          Rewrite
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!hasSelection || isLoading}
+          onMouseDown={preventSelectionLoss}
+          onClick={() => onRun("tighten")}
+        >
+          <Scissors className="h-4 w-4" />
+          Tighten
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!hasSelection || isLoading}
+          onMouseDown={preventSelectionLoss}
+          onClick={() => onRun("expand")}
+        >
+          Expand
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!hasSelection || isLoading}
+          onMouseDown={preventSelectionLoss}
+          onClick={() => onRun("change-tone", "punchy")}
+        >
+          Punchy
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!hasSelection || isLoading}
+          onMouseDown={preventSelectionLoss}
+          onClick={() => onRun("fix-grammar")}
+        >
+          Fix grammar
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          {hasSelection
+            ? `${wordCount(selectedText).toLocaleString()} selected words`
+            : "Select text in the editor"}
+        </span>
+      </div>
+
+      {review && (
+        <div className="mt-3 rounded-md border bg-background p-3" data-testid="inline-ai-diff">
+          <DiffPreview before={review.before} after={review.after} />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={isLoading}
+              onMouseDown={preventSelectionLoss}
+              onClick={onAccept}
+            >
+              <Check className="h-4 w-4" />
+              Apply replacement
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isLoading}
+              onMouseDown={preventSelectionLoss}
+              onClick={onReject}
+            >
+              <X className="h-4 w-4" />
+              Reject
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -349,4 +531,13 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
+}
+
+function getSelectedText(root: HTMLElement | null) {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !root) return "";
+  const anchor = selection.anchorNode;
+  const focus = selection.focusNode;
+  if (!anchor || !focus || !root.contains(anchor) || !root.contains(focus)) return "";
+  return selection.toString().trim();
 }

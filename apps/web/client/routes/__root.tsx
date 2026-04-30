@@ -16,6 +16,12 @@ export const Route = createRootRoute({
               Dashboard
             </Link>
             <Link
+              to="/scout"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Scout
+            </Link>
+            <Link
               to="/account"
               className="text-muted-foreground transition-colors hover:text-foreground"
             >

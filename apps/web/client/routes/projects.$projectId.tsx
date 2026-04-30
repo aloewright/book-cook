@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
@@ -21,6 +22,7 @@ import {
   type Project,
   type PublisherPack,
   type RenderJob,
+  type ScoutResult,
   type Voice,
   api,
   queryKeys,
@@ -60,12 +62,142 @@ function ProjectWorkspace() {
         <OutlineRail active="voice" />
         <main className="overflow-y-auto px-6 py-12">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
+            <ConceptScoutPanel project={project.data} />
             <VoicePanel project={project.data} />
             <OutlineBuilder project={project.data} />
             <PublishPanel project={project.data} />
           </div>
         </main>
         <AloysiusSidecar projectId={projectId} />
+      </div>
+    </div>
+  );
+}
+
+function ConceptScoutPanel({ project }: { project: Project }) {
+  const queryClient = useQueryClient();
+  const [niche, setNiche] = useState(project.title);
+  const findings = useQuery({
+    queryKey: queryKeys.projectScoutFindings(project.id),
+    queryFn: () => api.listProjectScoutFindings(project.id),
+  });
+  const pull = useMutation({
+    mutationFn: () =>
+      api.createScoutQuery({
+        niche,
+        type: project.type,
+        project_id: project.id,
+        params: { source: "project-concept" },
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectScoutFindings(project.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.scoutQueries() }),
+      ]);
+    },
+  });
+  const latest = findings.data?.items[0] ?? null;
+
+  return (
+    <section className="border-b pb-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Concept</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Attach market evidence to this book before voice, outline, and publishing work.
+          </p>
+        </div>
+        {latest ? <Badge>Scout pulled</Badge> : <Badge variant="secondary">No Scout read</Badge>}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
+        <form
+          className="rounded-lg border bg-background p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (niche.trim()) pull.mutate();
+          }}
+        >
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">Pull from Scout</h2>
+            <p className="text-sm text-muted-foreground">
+              Run the current concept against the market dataset and save the finding to this
+              project.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3">
+            <Input
+              value={niche}
+              onChange={(event) => setNiche(event.target.value)}
+              placeholder="Niche or reader demand"
+            />
+            <Button type="submit" disabled={!niche.trim() || pull.isPending}>
+              <Search className="h-4 w-4" />
+              {pull.isPending ? "Pulling..." : "Pull from Scout"}
+            </Button>
+            {pull.error ? <p className="text-sm text-destructive">{pull.error.message}</p> : null}
+          </div>
+        </form>
+
+        <ProjectScoutFinding result={latest} loading={findings.isLoading} />
+      </div>
+    </section>
+  );
+}
+
+function ProjectScoutFinding({
+  result,
+  loading,
+}: {
+  result: ScoutResult | null;
+  loading: boolean;
+}) {
+  if (!result) {
+    return (
+      <div className="rounded-lg border border-dashed bg-background p-4 text-sm text-muted-foreground">
+        {loading ? "Loading Scout findings..." : "Pull a Scout read to show evidence here."}
+      </div>
+    );
+  }
+
+  const evidence = result.finding.evidence_json;
+  return (
+    <div className="rounded-lg border bg-background p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">{result.query.niche}</h2>
+          <p className="text-sm text-muted-foreground">
+            {evidence.dataset.week_iso} · {evidence.records.length} evidence rows
+          </p>
+        </div>
+        <Badge variant="secondary">{result.query.type}</Badge>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {evidence.gaps.slice(0, 3).map((gap) => (
+          <div key={gap} className="rounded-md bg-muted/40 p-3 text-sm">
+            {gap}
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 overflow-hidden rounded-md border">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-muted/30 text-muted-foreground">
+            <tr>
+              <th className="px-2 py-2">Rank</th>
+              <th className="px-2 py-2">Title</th>
+              <th className="px-2 py-2">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {evidence.records.slice(0, 4).map((record) => (
+              <tr key={`${record.source}-${record.rank}-${record.title}`} className="border-t">
+                <td className="px-2 py-2 font-medium">{record.rank}</td>
+                <td className="px-2 py-2">{record.title}</td>
+                <td className="px-2 py-2 text-muted-foreground">{record.source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

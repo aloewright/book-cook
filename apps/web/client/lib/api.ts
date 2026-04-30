@@ -142,6 +142,62 @@ export type NarrationApproval = {
   approved_at: string;
 };
 
+export type MarketRecord = {
+  source: "kdp" | "trends" | "library";
+  niche: string;
+  title: string;
+  author: string;
+  rank: number;
+  signal: string;
+  keywords: string[];
+  observed_at: string;
+};
+
+export type ScoutEvidence = {
+  dataset: {
+    snapshot_id: string;
+    week_iso: string;
+    r2_key: string;
+    source: string;
+  };
+  niche: string;
+  type: "nonfiction" | "fiction";
+  records: MarketRecord[];
+  gaps: string[];
+  recommendations: string[];
+};
+
+export type ScoutQuery = {
+  id: string;
+  user_id: string;
+  project_id?: string | null;
+  niche: string;
+  type: "nonfiction" | "fiction";
+  params_json: Record<string, unknown>;
+  created_at: string | number;
+};
+
+export type ScoutFinding = {
+  id: string;
+  query_id: string;
+  dataset_snapshot_id: string;
+  summary_md: string;
+  evidence_json: ScoutEvidence;
+  created_at: string | number;
+};
+
+export type ScoutResult = {
+  query: ScoutQuery;
+  finding: ScoutFinding;
+  snapshot?: {
+    id: string;
+    week_iso: string;
+    r2_key: string;
+    source: string;
+    created_at: string | number;
+  };
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
@@ -210,6 +266,19 @@ export const api = {
     fetchJson<{ items: RenderJob[] }>(`/api/v1/projects/${id}/audiobook/jobs`),
   startAudiobookMastering: (id: string) =>
     fetchJson<{ id: string }>(`/api/v1/projects/${id}/audiobook`, { method: "POST" }),
+  listScoutQueries: () => fetchJson<{ items: ScoutResult[] }>("/api/v1/scout/queries"),
+  createScoutQuery: (input: {
+    niche: string;
+    type: "nonfiction" | "fiction";
+    project_id?: string;
+    params?: Record<string, unknown>;
+  }) =>
+    fetchJson<ScoutResult>("/api/v1/scout/queries", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  listProjectScoutFindings: (id: string) =>
+    fetchJson<{ items: ScoutResult[] }>(`/api/v1/scout/projects/${id}/findings`),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -289,6 +358,8 @@ export const queryKeys = {
   renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,
   narrationAuditions: (id: string) => ["projects", id, "narration-auditions"] as const,
   audiobookJobs: (id: string) => ["projects", id, "audiobook-jobs"] as const,
+  scoutQueries: () => ["scout", "queries"] as const,
+  projectScoutFindings: (id: string) => ["projects", id, "scout-findings"] as const,
   elevenLabsKey: () => ["account", "elevenlabs-key"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,

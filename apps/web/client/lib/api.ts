@@ -344,10 +344,13 @@ export const api = {
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
-  draftSection: (chapterId: string, sectionId: string) =>
+  draftSection: (chapterId: string, sectionId: string, input?: { instruction?: string }) =>
     fetchJson<{ section: Section; revision: Revision }>(
       `/api/v1/chapters/${chapterId}/sections/${sectionId}/draft`,
-      { method: "POST" },
+      {
+        method: "POST",
+        body: JSON.stringify(input ?? {}),
+      },
     ),
   updateSection: (
     chapterId: string,

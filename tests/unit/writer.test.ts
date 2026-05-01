@@ -78,6 +78,37 @@ describe("writer section drafting", () => {
     vi.unstubAllGlobals();
   });
 
+  it("includes user redraft direction in gateway section drafting", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "## Redraft\n\nA sharper continuation." } }],
+          usage: { prompt_tokens: 20, completion_tokens: 8 },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await draftSection(
+      {
+        AI_GATEWAY_BASE_URL: "https://gateway.example/compat",
+        AI_GATEWAY_TOKEN: "tok",
+      },
+      {
+        ...input,
+        previousDraft: "Existing draft text.",
+        redraftInstruction: "Make this tenser and keep Zeta in the scene.",
+      },
+    );
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.messages[1].content).toContain("User redraft direction");
+    expect(body.messages[1].content).toContain("Make this tenser");
+    expect(body.messages[1].content).toContain("Existing section draft to improve");
+
+    vi.unstubAllGlobals();
+  });
+
   it("returns deterministic inline edits without gateway credentials", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: minimal env stub for unit test
     const result = await reviseInlineText({} as any, {

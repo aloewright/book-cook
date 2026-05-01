@@ -9,6 +9,7 @@ import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
 import {
   type Chapter,
   type InlineEditAction,
@@ -96,6 +97,7 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
     after: string;
     action: InlineEditAction;
   } | null>(null);
+  const [redraftInstructions, setRedraftInstructions] = useState<Record<string, string>>({});
   const pendingSave = useRef<number | undefined>(undefined);
   const editorRoot = useRef<HTMLDivElement | null>(null);
   const editor = useCreateBlockNote({
@@ -124,7 +126,8 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
   });
 
   const draftMutation = useMutation({
-    mutationFn: (sectionId: string) => api.draftSection(chapter.id, sectionId),
+    mutationFn: (input: { sectionId: string; instruction?: string }) =>
+      api.draftSection(chapter.id, input.sectionId, { instruction: input.instruction }),
     onSuccess: async (data) => {
       setReview({
         sectionId: data.section.id,
@@ -247,11 +250,20 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
     <div className="space-y-4">
       <SectionDraftPanel
         sections={sections}
-        activeSectionId={draftMutation.variables}
+        activeSectionId={draftMutation.variables?.sectionId}
+        redraftInstructions={redraftInstructions}
         review={review}
         isDrafting={draftMutation.isPending}
         isUpdating={updateSectionMutation.isPending || saveMutation.isPending}
-        onDraft={(section) => draftMutation.mutate(section.id)}
+        onInstructionChange={(sectionId, value) =>
+          setRedraftInstructions((current) => ({ ...current, [sectionId]: value }))
+        }
+        onDraft={(section) =>
+          draftMutation.mutate({
+            sectionId: section.id,
+            instruction: redraftInstructions[section.id]?.trim(),
+          })
+        }
         onAccept={acceptSection}
         onReject={rejectSection}
       />
@@ -408,18 +420,22 @@ function InlineAiPanel({
 function SectionDraftPanel({
   sections,
   activeSectionId,
+  redraftInstructions,
   review,
   isDrafting,
   isUpdating,
+  onInstructionChange,
   onDraft,
   onAccept,
   onReject,
 }: {
   sections: Section[];
   activeSectionId?: string;
+  redraftInstructions: Record<string, string>;
   review: { sectionId: string; before: string; after: string } | null;
   isDrafting: boolean;
   isUpdating: boolean;
+  onInstructionChange: (sectionId: string, value: string) => void;
   onDraft: (section: Section) => void;
   onAccept: (section: Section) => void;
   onReject: (section: Section) => void;
@@ -447,16 +463,31 @@ function SectionDraftPanel({
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{section.prompt}</p>
                 </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => onDraft(section)}
-                >
-                  <Wand2 className="h-4 w-4" />
-                  {busy ? "Drafting..." : generated ? "Redraft" : "Draft section"}
-                </Button>
+                <div className="flex min-w-[280px] flex-1 flex-wrap items-start justify-end gap-2 sm:flex-nowrap">
+                  <Textarea
+                    aria-label={`Redraft instructions for section ${section.ordinal}`}
+                    value={redraftInstructions[section.id] ?? ""}
+                    onChange={(event) => onInstructionChange(section.id, event.target.value)}
+                    placeholder={
+                      generated
+                        ? "Redraft direction, e.g. make it tenser, preserve NovaTech, add Zeta..."
+                        : "Draft direction, e.g. start after orientation, focus on Amaya's memory loss..."
+                    }
+                    className="min-h-10 flex-1 resize-y text-sm sm:max-w-xl"
+                    disabled={busy}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => onDraft(section)}
+                    className="shrink-0"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    {busy ? "Drafting..." : generated ? "Redraft" : "Draft section"}
+                  </Button>
+                </div>
               </div>
 
               {generated && (

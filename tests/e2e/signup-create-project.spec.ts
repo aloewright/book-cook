@@ -27,9 +27,25 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByLabel("Go to Publish workflow").click();
   await expect(page).toHaveURL(/#publish$/);
   await expect(page.getByRole("heading", { name: "Publish" })).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const root = document.scrollingElement ?? document.documentElement;
+        return { overflow: root.scrollHeight - window.innerHeight, scrollY: window.scrollY };
+      }),
+    )
+    .toEqual({ overflow: 0, scrollY: 0 });
   await page.getByLabel("Go to Outline workflow").click();
   await expect(page).toHaveURL(/#outline$/);
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const root = document.scrollingElement ?? document.documentElement;
+        return { overflow: root.scrollHeight - window.innerHeight, scrollY: window.scrollY };
+      }),
+    )
+    .toEqual({ overflow: 0, scrollY: 0 });
 
   // Aloysius accepts the message and starts a response turn.
   await page.getByPlaceholder("Ask Aloysius…").fill("hello");

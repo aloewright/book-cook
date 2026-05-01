@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Trash2 } from "lucide-react";
+import { BookOpen, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
@@ -21,13 +21,29 @@ export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 function Dashboard() {
   const qc = useQueryClient();
   const projects = useQuery({ queryKey: queryKeys.projects(), queryFn: api.listProjects });
+  const deletedProjects = useQuery({
+    queryKey: queryKeys.deletedProjects(),
+    queryFn: api.listDeletedProjects,
+  });
   const create = useMutation({
     mutationFn: api.createProject,
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.projects() }),
   });
   const del = useMutation({
     mutationFn: api.deleteProject,
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.projects() }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.projects() }),
+        qc.invalidateQueries({ queryKey: queryKeys.deletedProjects() }),
+      ]),
+  });
+  const restore = useMutation({
+    mutationFn: api.restoreProject,
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.projects() }),
+        qc.invalidateQueries({ queryKey: queryKeys.deletedProjects() }),
+      ]),
   });
 
   const [title, setTitle] = useState("");
@@ -114,6 +130,51 @@ function Dashboard() {
           </Card>
         ) : null}
       </div>
+
+      {(deletedProjects.data?.items.length ?? 0) > 0 ? (
+        <section className="mt-10 border-t pt-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Recently deleted</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Deleted books can be restored for {deletedProjects.data?.retention_days ?? 30} days.
+              </p>
+            </div>
+            <Badge variant="secondary">{deletedProjects.data?.items.length} recoverable</Badge>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {deletedProjects.data?.items.map((p) => (
+              <Card key={p.id} className="flex items-center justify-between p-4 shadow-none">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{p.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {daysRemaining(p.deleted_at).toLocaleString()} days left to restore
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={restore.isPending && restore.variables === p.id}
+                  onClick={() => restore.mutate(p.id)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {restore.isPending && restore.variables === p.id ? "Restoring..." : "Restore"}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
+}
+
+function daysRemaining(value: Project["deleted_at"]) {
+  const deletedAt = value ? new Date(value).getTime() : Date.now();
+  if (Number.isNaN(deletedAt)) return 30;
+  const expiresAt = deletedAt + 30 * 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
 }

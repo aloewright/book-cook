@@ -82,5 +82,29 @@ describe("projects", () => {
       // biome-ignore lint/suspicious/noExplicitAny: row shape from our own API
       items2.items.find((p: any) => p.id === id),
     ).toBeFalsy();
+
+    const deleted = await SELF.fetch("http://x/api/v1/projects/deleted/recent", { headers });
+    expect(deleted.status).toBe(200);
+    // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
+    const deletedBody = (await deleted.json()) as any;
+    expect(deletedBody.retention_days).toBe(30);
+    expect(
+      // biome-ignore lint/suspicious/noExplicitAny: row shape from our own API
+      deletedBody.items.find((p: any) => p.id === id),
+    ).toBeTruthy();
+
+    const restore = await SELF.fetch(`http://x/api/v1/projects/${id}/restore`, {
+      method: "POST",
+      headers,
+    });
+    expect(restore.status).toBe(200);
+
+    const list3 = await SELF.fetch("http://x/api/v1/projects", { headers });
+    // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
+    const items3 = (await list3.json()) as any;
+    expect(
+      // biome-ignore lint/suspicious/noExplicitAny: row shape from our own API
+      items3.items.find((p: any) => p.id === id),
+    ).toBeTruthy();
   });
 });

@@ -114,7 +114,7 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
   const evidence = result.finding.evidence_json;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="min-w-0 rounded-lg border bg-background p-4">
+      <Card className="min-w-0 p-5 shadow-none">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">{result.query.niche}</h2>
@@ -124,23 +124,25 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
           </div>
           <Badge>{result.query.type}</Badge>
         </div>
-        <div className="prose prose-sm mt-4 max-w-none">
+        <div className="prose prose-neutral prose-sm mt-4 max-w-none dark:prose-invert">
           <ReactMarkdown>{result.finding.summary_md}</ReactMarkdown>
         </div>
-      </section>
+      </Card>
 
-      <aside className="rounded-lg border bg-background p-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-base font-semibold">Gap analysis</h2>
-        </div>
-        <ul className="mt-4 space-y-3 text-sm">
-          {evidence.gaps.map((gap) => (
-            <li key={gap} className="rounded-md bg-muted/40 p-3">
-              {gap}
-            </li>
-          ))}
-        </ul>
+      <aside>
+        <Card className="p-4 shadow-none">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-base font-semibold">Gap analysis</h2>
+          </div>
+          <ul className="mt-4 space-y-3 text-sm">
+            {evidence.gaps.map((gap) => (
+              <li key={gap} className="rounded-md bg-muted/40 p-3">
+                {gap}
+              </li>
+            ))}
+          </ul>
+        </Card>
       </aside>
 
       <section className="lg:col-span-2">

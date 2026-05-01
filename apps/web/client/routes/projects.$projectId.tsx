@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import {
   Select,
@@ -279,15 +281,15 @@ function ProjectScoutFinding({
 }) {
   if (!result) {
     return (
-      <div className="rounded-lg border border-dashed bg-background p-4 text-sm text-muted-foreground">
+      <Card className="border-dashed p-4 text-sm text-muted-foreground shadow-none">
         {loading ? "Loading Scout findings..." : "Pull a Scout read to show evidence here."}
-      </div>
+      </Card>
     );
   }
 
   const evidence = result.finding.evidence_json;
   return (
-    <div className="rounded-lg border bg-background p-4">
+    <Card className="p-4 shadow-none">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">{result.query.niche}</h2>
@@ -296,6 +298,9 @@ function ProjectScoutFinding({
           </p>
         </div>
         <Badge variant="secondary">{result.query.type}</Badge>
+      </div>
+      <div className="prose prose-neutral prose-sm mt-4 max-w-none dark:prose-invert">
+        <ReactMarkdown>{result.finding.summary_md}</ReactMarkdown>
       </div>
       <div className="mt-4 grid gap-3">
         {evidence.gaps.slice(0, 3).map((gap) => (
@@ -324,7 +329,7 @@ function ProjectScoutFinding({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 

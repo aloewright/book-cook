@@ -27,6 +27,12 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
 
   const link = page.getByRole("link", { name: /quiet operator/i });
   await expect(link).toBeVisible();
+  await page.getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("heading", { name: "Recently deleted" })).toBeVisible();
+  await expect(page.getByText(/days left to restore/i)).toBeVisible();
+  await expect(link).toBeHidden();
+  await page.getByRole("button", { name: /restore/i }).click();
+  await expect(link).toBeVisible();
   await link.click();
 
   await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();

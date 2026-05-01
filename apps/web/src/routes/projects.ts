@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -116,6 +116,18 @@ projectsRoute.get("/", async (c) => {
   return c.json({ items });
 });
 
+projectsRoute.get("/deleted/recent", async (c) => {
+  const user = c.get("user");
+  const db = drizzle(c.env.DB);
+  const cutoff = recentDeleteCutoff();
+  const items = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.user_id, user.id), gte(projects.deleted_at, cutoff)))
+    .orderBy(desc(projects.deleted_at));
+  return c.json({ items, retention_days: 30 });
+});
+
 projectsRoute.post("/", async (c) => {
   const user = c.get("user");
   const body = createSchema.parse(await c.req.json());
@@ -130,6 +142,30 @@ projectsRoute.post("/", async (c) => {
     target_word_count: body.target_word_count ?? (body.type === "nonfiction" ? 50000 : 75000),
   });
   return c.json({ id }, 201);
+});
+
+projectsRoute.post("/:id/restore", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, id),
+        eq(projects.user_id, user.id),
+        gte(projects.deleted_at, recentDeleteCutoff()),
+      ),
+    )
+    .limit(1);
+  if (!p) return c.json({ error: "deleted book not found" }, 404);
+
+  await db
+    .update(projects)
+    .set({ deleted_at: null, updated_at: new Date() })
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id)));
+  return c.json({ ok: true });
 });
 
 projectsRoute.get("/:id", async (c) => {
@@ -973,6 +1009,10 @@ function serializeGtmBrief(id: string, row: typeof gtm_briefs.$inferSelect) {
 
 function voiceIdFromWorkflow(workflowId?: string | null) {
   return workflowId?.startsWith("audition:") ? workflowId.slice("audition:".length) : "";
+}
+
+function recentDeleteCutoff() {
+  return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 }
 
 async function renderElevenLabsAudition(apiKey: string, voiceId: string, text: string) {

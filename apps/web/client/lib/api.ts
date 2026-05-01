@@ -33,6 +33,7 @@ export type Project = {
   voice_id?: string | null;
   created_at: number;
   updated_at: number;
+  deleted_at?: number | string | null;
 };
 
 export type VoiceSample = {
@@ -269,6 +270,8 @@ export type GtmBrief = {
 
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
+  listDeletedProjects: () =>
+    fetchJson<{ items: Project[]; retention_days: number }>("/api/v1/projects/deleted/recent"),
   createProject: (input: { title: string; type: "nonfiction" | "fiction" }) =>
     fetchJson<{ id: string }>("/api/v1/projects", {
       method: "POST",
@@ -424,6 +427,8 @@ export const api = {
     ),
   deleteProject: (id: string) =>
     fetch(`/api/v1/projects/${id}`, { method: "DELETE", credentials: "include" }),
+  restoreProject: (id: string) =>
+    fetchJson<{ ok: true }>(`/api/v1/projects/${id}/restore`, { method: "POST" }),
   listVoices: () => fetchJson<{ items: Voice[] }>("/api/v1/voices"),
   getVoice: (id: string) => fetchJson<Voice>(`/api/v1/voices/${id}`),
   createVoice: (input: { name: string; samples?: { source: "paste"; text: string }[] }) =>
@@ -446,6 +451,7 @@ export const api = {
 
 export const queryKeys = {
   projects: () => ["projects"] as const,
+  deletedProjects: () => ["projects", "deleted"] as const,
   project: (id: string) => ["projects", id] as const,
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
   fullBook: (id: string) => ["projects", id, "book"] as const,

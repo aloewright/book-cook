@@ -35,6 +35,8 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(link).toBeVisible();
   await link.click();
 
+  await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
+  await page.getByLabel("Go to Voice workflow").click();
   await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();
   await expect
     .poll(async () => {
@@ -46,7 +48,7 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
     .toBeLessThanOrEqual(2);
   await page.getByLabel("Go to Publish workflow").click();
   await expect(page).toHaveURL(/#publish$/);
-  await expect(page.getByRole("heading", { name: "Publish" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Publish", exact: true })).toBeVisible();
   await expect
     .poll(async () =>
       page.evaluate(() => {

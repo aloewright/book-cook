@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Search, Sparkles } from "lucide-react";
+import { ListChecks, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "../components/ui/badge";
@@ -111,6 +111,7 @@ function ScoutPage() {
 }
 
 export function ScoutResultView({ result }: { result: ScoutResult }) {
+  const [tab, setTab] = useState<"summary" | "risks" | "comps" | "actions">("summary");
   const evidence = result.finding.evidence_json;
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -124,9 +125,44 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
           </div>
           <Badge>{result.query.type}</Badge>
         </div>
-        <div className="prose prose-neutral prose-sm mt-4 max-w-none dark:prose-invert">
-          <ReactMarkdown>{result.finding.summary_md}</ReactMarkdown>
+        <div className="mt-4 flex flex-wrap gap-2 border-b pb-3">
+          {[
+            ["summary", "Summary"],
+            ["risks", "Risks"],
+            ["comps", "Comparable titles"],
+            ["actions", "Action items"],
+          ].map(([value, label]) => (
+            <Button
+              key={value}
+              type="button"
+              size="sm"
+              variant={tab === value ? "default" : "ghost"}
+              onClick={() => setTab(value as typeof tab)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
+        {tab === "summary" ? (
+          <div className="prose prose-neutral prose-sm mt-4 max-w-none dark:prose-invert">
+            <ReactMarkdown>{result.finding.summary_md}</ReactMarkdown>
+          </div>
+        ) : null}
+        {tab === "risks" ? (
+          <ScoutList
+            items={evidence.gaps}
+            empty="No gaps were found in this Scout read."
+            label="Market and positioning risks"
+          />
+        ) : null}
+        {tab === "comps" ? <ComparableTitleList result={result} /> : null}
+        {tab === "actions" ? (
+          <ScoutList
+            items={evidence.recommendations}
+            empty="No action items were generated for this Scout read."
+            label="Recommended next moves"
+          />
+        ) : null}
       </Card>
 
       <aside>
@@ -136,12 +172,23 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
             <h2 className="text-base font-semibold">Gap analysis</h2>
           </div>
           <ul className="mt-4 space-y-3 text-sm">
-            {evidence.gaps.map((gap) => (
+            {evidence.gaps.slice(0, 4).map((gap) => (
               <li key={gap} className="rounded-md bg-muted/40 p-3">
                 {gap}
               </li>
             ))}
           </ul>
+          <div className="mt-4 border-t pt-4">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Action items</h3>
+            </div>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {evidence.recommendations.slice(0, 3).map((recommendation) => (
+                <li key={recommendation}>{recommendation}</li>
+              ))}
+            </ul>
+          </div>
         </Card>
       </aside>
 
@@ -184,6 +231,54 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ScoutList({
+  items,
+  empty,
+  label,
+}: {
+  items: string[];
+  empty: string;
+  label: string;
+}) {
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      {items.length ? (
+        <div className="mt-3 grid gap-3">
+          {items.map((item) => (
+            <div key={item} className="rounded-md border bg-muted/20 p-3 text-sm">
+              {item}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
+      )}
+    </div>
+  );
+}
+
+function ComparableTitleList({ result }: { result: ScoutResult }) {
+  const records = result.finding.evidence_json.records.slice(0, 6);
+  return (
+    <div className="mt-4 grid gap-3">
+      {records.map((record) => (
+        <div
+          key={`${record.source}-${record.rank}-${record.title}`}
+          className="rounded-md border p-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-medium">{record.title}</h3>
+            <Badge variant="secondary">{record.source}</Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{record.author}</p>
+          <p className="mt-3 text-sm">{record.signal}</p>
+        </div>
+      ))}
     </div>
   );
 }

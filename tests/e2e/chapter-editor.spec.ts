@@ -12,6 +12,7 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
   await page.getByRole("button", { name: /new book/i }).click();
 
   await page.getByRole("link", { name: /quiet operator/i }).click();
+  await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
 
   await page

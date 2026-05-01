@@ -1,67 +1,91 @@
-import { useEffect, useState } from "react";
+import {
+  BookOpen,
+  Boxes,
+  FileText,
+  Flag,
+  Megaphone,
+  Mic2,
+  PackageCheck,
+  Search,
+} from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const MODES = [
-  { key: "concept", label: "Concept", icon: "◷" },
-  { key: "voice", label: "Voice", icon: "🎤" },
-  { key: "outline", label: "Outline", icon: "🗂" },
-  { key: "chapters", label: "Chapters", icon: "✏️" },
-  { key: "book", label: "Book", icon: "📖" },
-  { key: "publish", label: "Publish", icon: "📦" },
-  { key: "launch", label: "Launch", icon: "🚀" },
+  { key: "concept", label: "Concept", icon: Search },
+  { key: "voice", label: "Voice", icon: Mic2 },
+  { key: "outline", label: "Outline", icon: Boxes },
+  { key: "chapters", label: "Chapters", icon: FileText },
+  { key: "book", label: "Book", icon: BookOpen },
+  { key: "publish", label: "Publish", icon: PackageCheck },
+  { key: "launch", label: "Launch", icon: Megaphone },
 ] as const;
 
-export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[number]["key"] }) {
-  const [activeMode, setActiveMode] = useState(active);
+export type WorkflowKey = (typeof MODES)[number]["key"];
+export type WorkflowStatus = "not-started" | "in-progress" | "needs-review" | "approved";
 
-  useEffect(() => {
-    const syncHash = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (MODES.some((mode) => mode.key === hash)) {
-        setActiveMode(hash as (typeof MODES)[number]["key"]);
-        requestAnimationFrame(() => {
-          document.getElementById(hash)?.scrollIntoView({ block: "start" });
-          window.scrollTo(0, 0);
-        });
-      }
-    };
-    syncHash();
-    window.addEventListener("hashchange", syncHash);
-    return () => window.removeEventListener("hashchange", syncHash);
-  }, []);
+const STATUS_LABELS: Record<WorkflowStatus, string> = {
+  "not-started": "Not started",
+  "in-progress": "In progress",
+  "needs-review": "Needs review",
+  approved: "Approved",
+};
+
+const STATUS_DOTS: Record<WorkflowStatus, string> = {
+  "not-started": "bg-muted-foreground/35",
+  "in-progress": "bg-blue-500",
+  "needs-review": "bg-amber-500",
+  approved: "bg-emerald-500",
+};
+
+export function OutlineRail({
+  active = "concept",
+  statuses = {},
+  onSelect,
+}: {
+  active?: WorkflowKey;
+  statuses?: Partial<Record<WorkflowKey, WorkflowStatus>>;
+  onSelect?: (mode: WorkflowKey) => void;
+}) {
+  const activeMode = active;
 
   return (
     <aside className="h-full min-h-0 w-full overflow-y-auto border-r bg-muted/30 p-3">
-      <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        Project
+      <div className="mb-3 px-2">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          <Flag className="h-3 w-3" />
+          Project
+        </div>
       </div>
       <div className="flex flex-col gap-0.5">
-        {MODES.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            aria-label={`Go to ${m.label} workflow`}
-            onClick={() => {
-              if (m.key === "book") {
-                window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/book`);
-                return;
-              }
-              setActiveMode(m.key);
-              document.getElementById(m.key)?.scrollIntoView({ block: "start" });
-              history.replaceState(null, "", `#${m.key}`);
-              window.scrollTo(0, 0);
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
-              activeMode === m.key
-                ? "bg-primary text-primary-foreground"
-                : "text-foreground hover:bg-accent",
-            )}
-          >
-            <span aria-hidden>{m.icon}</span>
-            <span>{m.label}</span>
-          </button>
-        ))}
+        {MODES.map((m) => {
+          const Icon = m.icon;
+          const status = statuses[m.key] ?? "not-started";
+          return (
+            <button
+              key={m.key}
+              type="button"
+              aria-label={`Go to ${m.label} workflow`}
+              title={`${m.label}: ${STATUS_LABELS[status]}`}
+              onClick={() => onSelect?.(m.key)}
+              className={cn(
+                "grid w-full grid-cols-[20px_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
+                activeMode === m.key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-accent",
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              <span className="min-w-0 truncate">{m.label}</span>
+              <span
+                aria-label={STATUS_LABELS[status]}
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  activeMode === m.key ? "bg-primary-foreground/80" : STATUS_DOTS[status],
+                )}
+              />
+            </button>
+          );
+        })}
       </div>
     </aside>
   );

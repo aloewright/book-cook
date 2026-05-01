@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleAlert, Search } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
-import { OutlineRail } from "../components/workspace/outline-rail";
+import {
+  OutlineRail,
+  type WorkflowKey,
+  type WorkflowStatus,
+} from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
 import {
   type NarrationApproval,
@@ -162,13 +166,64 @@ const OUTLINE_FRAMEWORKS = [
   },
 ] as const;
 
+const WORKFLOW_COPY: Record<WorkflowKey, { title: string; description: string }> = {
+  concept: {
+    title: "Concept",
+    description: "Confirm the book promise against market evidence before production work.",
+  },
+  voice: {
+    title: "Voice",
+    description: "Select or build the author voice that downstream drafting will use.",
+  },
+  outline: {
+    title: "Outline",
+    description: "Choose the story or nonfiction framework and decide the chapter plan.",
+  },
+  chapters: {
+    title: "Chapters",
+    description: "Review chapter purpose, draft status, and open the next chapter to write.",
+  },
+  book: {
+    title: "Book",
+    description: "Review the assembled manuscript and export production files.",
+  },
+  publish: {
+    title: "Publish",
+    description: "Prepare metadata, downloads, narration, and launch readiness.",
+  },
+  launch: {
+    title: "Launch",
+    description: "Create the go-to-market handoff once publishing assets are approved.",
+  },
+};
+
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
   const location = useLocation();
+  const [workflow, setWorkflow] = useState<WorkflowKey>(() => workflowFromHash());
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
   });
+  const outline = useQuery({
+    queryKey: queryKeys.projectOutline(projectId),
+    queryFn: () => api.getProjectOutline(projectId),
+  });
+  const scout = useQuery({
+    queryKey: queryKeys.projectScoutFindings(projectId),
+    queryFn: () => api.listProjectScoutFindings(projectId),
+  });
+  const pack = useQuery({
+    queryKey: queryKeys.publisherPack(projectId),
+    queryFn: () => api.getPublisherPack(projectId),
+  });
+
+  useEffect(() => {
+    const syncHash = () => setWorkflow(workflowFromHash());
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
 
   if (
     location.pathname.includes("/chapters/") ||
@@ -182,23 +237,232 @@ function ProjectWorkspace() {
     return <p className="px-6 py-12 text-slate-500">Loading…</p>;
   }
 
+  const statuses = workflowStatuses({
+    project: project.data,
+    scoutCount: scout.data?.items.length ?? 0,
+    chapterCount: outline.data?.chapters.length ?? 0,
+    draftedChapterCount:
+      outline.data?.chapters.filter((chapter) => chapter.draft_md.trim().length > 0).length ?? 0,
+    publisherStatus: pack.data?.pack?.status ?? null,
+  });
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden" data-project-workspace>
       <TopBar project={project.data} />
       <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_360px] overflow-hidden">
-        <OutlineRail active="concept" />
-        <main className="overflow-y-auto px-6 py-12">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
-            <ConceptScoutPanel project={project.data} />
-            <VoicePanel project={project.data} />
-            <OutlineBuilder project={project.data} />
-            <PublishPanel project={project.data} />
+        <OutlineRail
+          active={workflow}
+          statuses={statuses}
+          onSelect={(mode) => {
+            if (mode === "book") {
+              window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/book`);
+              return;
+            }
+            if (mode === "launch") {
+              window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/launch`);
+              return;
+            }
+            setWorkflow(mode);
+            history.replaceState(null, "", `#${mode}`);
+          }}
+        />
+        <main className="overflow-y-auto px-6 py-8">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+            <WorkflowHeader
+              workflow={workflow}
+              statuses={statuses}
+              project={project.data}
+              scoutCount={scout.data?.items.length ?? 0}
+              chapterCount={outline.data?.chapters.length ?? 0}
+              draftedChapterCount={
+                outline.data?.chapters.filter((chapter) => chapter.draft_md.trim().length > 0)
+                  .length ?? 0
+              }
+              publisherStatus={pack.data?.pack?.status ?? null}
+            />
+            {workflow === "concept" ? <ConceptScoutPanel project={project.data} /> : null}
+            {workflow === "voice" ? <VoicePanel project={project.data} /> : null}
+            {workflow === "outline" || workflow === "chapters" ? (
+              <OutlineBuilder project={project.data} view={workflow} />
+            ) : null}
+            {workflow === "publish" ? <PublishPanel project={project.data} /> : null}
           </div>
         </main>
         <AloysiusSidecar projectId={projectId} />
       </div>
     </div>
   );
+}
+
+function WorkflowHeader({
+  workflow,
+  statuses,
+  project,
+  scoutCount,
+  chapterCount,
+  draftedChapterCount,
+  publisherStatus,
+}: {
+  workflow: WorkflowKey;
+  statuses: Partial<Record<WorkflowKey, WorkflowStatus>>;
+  project: Project;
+  scoutCount: number;
+  chapterCount: number;
+  draftedChapterCount: number;
+  publisherStatus: PublisherPack["status"] | null;
+}) {
+  const copy = WORKFLOW_COPY[workflow];
+  const status = statuses[workflow] ?? "not-started";
+  const nextAction = nextWorkflowAction({
+    project,
+    scoutCount,
+    chapterCount,
+    draftedChapterCount,
+    publisherStatus,
+  });
+
+  return (
+    <header className="border-b pb-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">{copy.title}</h1>
+            <WorkflowStatusBadge status={status} />
+          </div>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{copy.description}</p>
+        </div>
+        <Card className="w-full max-w-sm p-3 shadow-none">
+          <div className="flex items-start gap-2">
+            <ArrowRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Next recommended action
+              </p>
+              <p className="mt-1 text-sm">{nextAction}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ReadinessTile
+          label="Scout reads"
+          value={scoutCount.toLocaleString()}
+          ok={scoutCount > 0}
+        />
+        <ReadinessTile
+          label="Voice"
+          value={project.voice_id ? "Selected" : "Missing"}
+          ok={Boolean(project.voice_id)}
+        />
+        <ReadinessTile
+          label="Chapters"
+          value={`${draftedChapterCount}/${chapterCount}`}
+          ok={chapterCount > 0 && draftedChapterCount === chapterCount}
+        />
+        <ReadinessTile
+          label="Publisher pack"
+          value={publisherStatus ?? "Missing"}
+          ok={publisherStatus === "approved"}
+        />
+      </div>
+    </header>
+  );
+}
+
+function ReadinessTile({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+  return (
+    <Card className="p-3 shadow-none">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase text-muted-foreground">{label}</p>
+        {ok ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        ) : (
+          <CircleAlert className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <p className="mt-2 text-sm font-medium">{value}</p>
+    </Card>
+  );
+}
+
+function WorkflowStatusBadge({ status }: { status: WorkflowStatus }) {
+  const labels: Record<WorkflowStatus, string> = {
+    "not-started": "Not started",
+    "in-progress": "In progress",
+    "needs-review": "Needs review",
+    approved: "Approved",
+  };
+  const variant =
+    status === "approved" ? "default" : status === "not-started" ? "secondary" : "outline";
+  return <Badge variant={variant}>{labels[status]}</Badge>;
+}
+
+function workflowFromHash(): WorkflowKey {
+  if (typeof window === "undefined") return "concept";
+  const hash = window.location.hash.replace("#", "");
+  if (hash === "voice" || hash === "outline" || hash === "chapters" || hash === "publish") {
+    return hash;
+  }
+  return "concept";
+}
+
+function workflowStatuses({
+  project,
+  scoutCount,
+  chapterCount,
+  draftedChapterCount,
+  publisherStatus,
+}: {
+  project: Project;
+  scoutCount: number;
+  chapterCount: number;
+  draftedChapterCount: number;
+  publisherStatus: PublisherPack["status"] | null;
+}): Partial<Record<WorkflowKey, WorkflowStatus>> {
+  return {
+    concept: scoutCount > 0 ? "approved" : "in-progress",
+    voice: project.voice_id ? "approved" : "not-started",
+    outline: chapterCount > 0 ? "approved" : "not-started",
+    chapters:
+      chapterCount === 0
+        ? "not-started"
+        : draftedChapterCount === chapterCount
+          ? "approved"
+          : draftedChapterCount > 0
+            ? "in-progress"
+            : "needs-review",
+    book: draftedChapterCount > 0 ? "in-progress" : "not-started",
+    publish:
+      publisherStatus === "approved"
+        ? "approved"
+        : publisherStatus === "draft"
+          ? "needs-review"
+          : "not-started",
+    launch: publisherStatus === "approved" ? "in-progress" : "not-started",
+  };
+}
+
+function nextWorkflowAction({
+  project,
+  scoutCount,
+  chapterCount,
+  draftedChapterCount,
+  publisherStatus,
+}: {
+  project: Project;
+  scoutCount: number;
+  chapterCount: number;
+  draftedChapterCount: number;
+  publisherStatus: PublisherPack["status"] | null;
+}) {
+  if (scoutCount === 0) return "Run Scout so the concept has evidence before outlining.";
+  if (!project.voice_id) return "Select or create the voice that should guide the manuscript.";
+  if (chapterCount === 0) return "Build the outline and chapter decision board.";
+  if (draftedChapterCount < chapterCount)
+    return "Draft the next planned chapter from the chapter list.";
+  if (!publisherStatus) return "Generate publisher metadata from the completed manuscript.";
+  if (publisherStatus === "draft") return "Review and approve the publisher pack.";
+  return "Open Launch and prepare the handoff package.";
 }
 
 function ConceptScoutPanel({ project }: { project: Project }) {
@@ -229,7 +493,7 @@ function ConceptScoutPanel({ project }: { project: Project }) {
     <section id="concept" className="scroll-mt-6 border-b pb-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Concept</h1>
+          <h2 className="text-xl font-semibold">Concept brief</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Attach market evidence to this book before voice, outline, and publishing work.
           </p>
@@ -407,7 +671,7 @@ function VoicePanel({ project }: { project: Project }) {
       <section className="border-b pb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Voice library</h1>
+            <h2 className="text-xl font-semibold">Voice library</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               Build reusable author voices from pasted samples. Architect and Writer use the
               selected voice for outline and draft generation.
@@ -564,7 +828,10 @@ function VoicePanel({ project }: { project: Project }) {
   );
 }
 
-function OutlineBuilder({ project }: { project: Project }) {
+function OutlineBuilder({
+  project,
+  view = "outline",
+}: { project: Project; view?: "outline" | "chapters" }) {
   const queryClient = useQueryClient();
   const [framework, setFramework] = useState(project.type === "fiction" ? "hero-journey" : "paas");
   const [questionnaire, setQuestionnaire] = useState("");
@@ -632,13 +899,16 @@ function OutlineBuilder({ project }: { project: Project }) {
   });
 
   return (
-    <section id="outline" className="scroll-mt-6 border-t pt-8">
+    <section id={view} className="scroll-mt-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Outline builder</h1>
+          <h2 className="text-xl font-semibold">
+            {view === "chapters" ? "Chapter workspace" : "Outline builder"}
+          </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Pick a framework, answer the architect prompt, and generate chapter skeletons for
-            drafting.
+            {view === "chapters"
+              ? "Open the next chapter, check draft coverage, and keep manuscript work moving."
+              : "Pick a framework, answer the architect prompt, and generate chapter skeletons for drafting."}
           </p>
         </div>
         {outline.data?.outline ? (
@@ -648,275 +918,283 @@ function OutlineBuilder({ project }: { project: Project }) {
         )}
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
-        <form
-          className="rounded-lg border bg-background p-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            generate.mutate();
-          }}
-        >
-          <div className="space-y-3">
-            <Select value={framework} onValueChange={setFramework}>
-              <SelectTrigger aria-label="Outline framework">
-                <SelectValue placeholder="Framework" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableFrameworks.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedFramework ? (
-              <div className="rounded-md border bg-muted/20 p-3">
-                <div className="text-sm font-medium">{selectedFramework.label}</div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {selectedFramework.description}
-                </p>
-                <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                  {selectedFramework.questions.map((question) => (
-                    <li key={question} className="flex gap-2">
-                      <span aria-hidden className="text-muted-foreground/60">
-                        •
-                      </span>
-                      <span>{question}</span>
-                    </li>
+      <div
+        className={
+          view === "chapters"
+            ? "mt-6 grid gap-6"
+            : "mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]"
+        }
+      >
+        {view === "outline" ? (
+          <form
+            className="rounded-lg border bg-background p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              generate.mutate();
+            }}
+          >
+            <div className="space-y-3">
+              <Select value={framework} onValueChange={setFramework}>
+                <SelectTrigger aria-label="Outline framework">
+                  <SelectValue placeholder="Framework" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableFrameworks.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
                   ))}
-                </ul>
-              </div>
-            ) : null}
-            <Textarea
-              value={questionnaire}
-              onChange={(event) => setQuestionnaire(event.target.value)}
-              placeholder={
-                project.type === "fiction"
-                  ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
-                  : "Reader, promise, proof, constraints, must-include stories..."
-              }
-              className="min-h-52 resize-y"
-              required
-            />
-            <div className="space-y-4 rounded-md border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                </SelectContent>
+              </Select>
+              {selectedFramework ? (
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <div className="text-sm font-medium">{selectedFramework.label}</div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Decide what happens in each chapter before generating summaries.
+                    {selectedFramework.description}
                   </p>
+                  <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    {selectedFramework.questions.map((question) => (
+                      <li key={question} className="flex gap-2">
+                        <span aria-hidden className="text-muted-foreground/60">
+                          •
+                        </span>
+                        <span>{question}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <Badge variant="secondary">{chapterPlan.length} planned slots</Badge>
-              </div>
-              <div className="space-y-3">
-                {chapterPlan.map((chapter, index) => (
-                  <div key={chapter.id} className="rounded-md border bg-background p-3">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold">Chapter {index + 1}</h3>
-                      {chapter.event.trim() ? (
-                        <Badge>Decision set</Badge>
-                      ) : (
-                        <Badge variant="secondary">Open</Badge>
-                      )}
-                    </div>
-                    <div className="grid gap-3">
-                      <Input
-                        aria-label={`Chapter ${index + 1} working title`}
-                        value={chapter.title}
-                        onChange={(event) =>
-                          updateChapterPlan(setChapterPlan, chapter.id, {
-                            title: event.target.value,
-                          })
-                        }
-                        placeholder="Working title"
-                      />
-                      <Textarea
-                        aria-label={`Chapter ${index + 1} what happens`}
-                        value={chapter.event}
-                        onChange={(event) =>
-                          updateChapterPlan(setChapterPlan, chapter.id, {
-                            event: event.target.value,
-                          })
-                        }
-                        placeholder={
-                          project.type === "fiction"
-                            ? "What visibly happens in this chapter?"
-                            : "What claim, lesson, story, or exercise happens in this chapter?"
-                        }
-                        className="min-h-20 resize-y"
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Input
-                          aria-label={`Chapter ${index + 1} purpose`}
-                          value={chapter.purpose}
-                          onChange={(event) =>
-                            updateChapterPlan(setChapterPlan, chapter.id, {
-                              purpose: event.target.value,
-                            })
-                          }
-                          placeholder="Purpose or turn"
-                        />
-                        <Input
-                          aria-label={`Chapter ${index + 1} POV`}
-                          value={chapter.pov}
-                          onChange={(event) =>
-                            updateChapterPlan(setChapterPlan, chapter.id, {
-                              pov: event.target.value,
-                            })
-                          }
-                          placeholder={project.type === "fiction" ? "POV" : "Reader state"}
-                        />
-                      </div>
-                      <Input
-                        aria-label={`Chapter ${index + 1} characters`}
-                        value={chapter.characters}
-                        onChange={(event) =>
-                          updateChapterPlan(setChapterPlan, chapter.id, {
-                            characters: event.target.value,
-                          })
-                        }
-                        placeholder={
-                          project.type === "fiction"
-                            ? "Characters in play"
-                            : "Examples, experts, or case studies in play"
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={chapterPlan.length >= 40}
-                  onClick={() =>
-                    setChapterPlan((current) => [
-                      ...current,
-                      createChapterPlanDraft(current.length + 1),
-                    ])
-                  }
-                >
-                  Add chapter slot
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={chapterPlan.length <= 1}
-                  onClick={() => setChapterPlan((current) => current.slice(0, -1))}
-                >
-                  Remove slot
-                </Button>
-              </div>
-            </div>
-            {project.type === "fiction" ? (
+              ) : null}
+              <Textarea
+                value={questionnaire}
+                onChange={(event) => setQuestionnaire(event.target.value)}
+                placeholder={
+                  project.type === "fiction"
+                    ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
+                    : "Reader, promise, proof, constraints, must-include stories..."
+                }
+                className="min-h-52 resize-y"
+                required
+              />
               <div className="space-y-4 rounded-md border bg-muted/20 p-3">
-                <div>
-                  <h2 className="text-sm font-semibold">Character arcs</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Add each important character and where they should be in their arc for this
-                    outline.
-                  </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Decide what happens in each chapter before generating summaries.
+                    </p>
+                  </div>
+                  <Badge variant="secondary">{chapterPlan.length} planned slots</Badge>
                 </div>
                 <div className="space-y-3">
-                  {characters.map((character, index) => (
-                    <div key={character.id} className="rounded-md border bg-background p-3">
+                  {chapterPlan.map((chapter, index) => (
+                    <div key={chapter.id} className="rounded-md border bg-background p-3">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-semibold">Chapter {index + 1}</h3>
+                        {chapter.event.trim() ? (
+                          <Badge>Decision set</Badge>
+                        ) : (
+                          <Badge variant="secondary">Open</Badge>
+                        )}
+                      </div>
                       <div className="grid gap-3">
                         <Input
-                          aria-label={`Character ${index + 1} name`}
-                          value={character.name}
+                          aria-label={`Chapter ${index + 1} working title`}
+                          value={chapter.title}
                           onChange={(event) =>
-                            updateCharacter(setCharacters, character.id, {
-                              name: event.target.value,
+                            updateChapterPlan(setChapterPlan, chapter.id, {
+                              title: event.target.value,
                             })
                           }
-                          placeholder="Character name"
+                          placeholder="Working title"
                         />
-                        <Select
-                          value={character.arc}
-                          onValueChange={(value) =>
-                            updateCharacter(setCharacters, character.id, { arc: value })
-                          }
-                        >
-                          <SelectTrigger aria-label={`Character ${index + 1} arc`}>
-                            <SelectValue placeholder="Arc" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CHARACTER_ARC_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <Textarea
-                          aria-label={`Character ${index + 1} arc position`}
-                          value={character.position}
+                          aria-label={`Chapter ${index + 1} what happens`}
+                          value={chapter.event}
                           onChange={(event) =>
-                            updateCharacter(setCharacters, character.id, {
-                              position: event.target.value,
+                            updateChapterPlan(setChapterPlan, chapter.id, {
+                              event: event.target.value,
                             })
                           }
-                          placeholder="Where this character is in the arc at this point in the story..."
+                          placeholder={
+                            project.type === "fiction"
+                              ? "What visibly happens in this chapter?"
+                              : "What claim, lesson, story, or exercise happens in this chapter?"
+                          }
                           className="min-h-20 resize-y"
                         />
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Input
+                            aria-label={`Chapter ${index + 1} purpose`}
+                            value={chapter.purpose}
+                            onChange={(event) =>
+                              updateChapterPlan(setChapterPlan, chapter.id, {
+                                purpose: event.target.value,
+                              })
+                            }
+                            placeholder="Purpose or turn"
+                          />
+                          <Input
+                            aria-label={`Chapter ${index + 1} POV`}
+                            value={chapter.pov}
+                            onChange={(event) =>
+                              updateChapterPlan(setChapterPlan, chapter.id, {
+                                pov: event.target.value,
+                              })
+                            }
+                            placeholder={project.type === "fiction" ? "POV" : "Reader state"}
+                          />
+                        </div>
                         <Input
-                          aria-label={`Character ${index + 1} scene role`}
-                          value={character.sceneRole}
+                          aria-label={`Chapter ${index + 1} characters`}
+                          value={chapter.characters}
                           onChange={(event) =>
-                            updateCharacter(setCharacters, character.id, {
-                              sceneRole: event.target.value,
+                            updateChapterPlan(setChapterPlan, chapter.id, {
+                              characters: event.target.value,
                             })
                           }
-                          placeholder="Scene role, relationship pressure, or conflict function"
+                          placeholder={
+                            project.type === "fiction"
+                              ? "Characters in play"
+                              : "Examples, experts, or case studies in play"
+                          }
                         />
                       </div>
                     </div>
                   ))}
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={characters.length >= CHARACTER_SLOT_IDS.length}
-                  onClick={() =>
-                    setCharacters((current) => [
-                      ...current,
-                      {
-                        id: CHARACTER_SLOT_IDS[current.length],
-                        name: "",
-                        arc: "positive-change",
-                        position: "",
-                        sceneRole: "",
-                      },
-                    ])
-                  }
-                >
-                  Add character
-                </Button>
-                <div className="space-y-3">
-                  <Textarea
-                    value={defaultCast}
-                    onChange={(event) => setDefaultCast(event.target.value)}
-                    placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
-                    className="min-h-20 resize-y"
-                  />
-                  <Textarea
-                    value={miniStructure}
-                    onChange={(event) => setMiniStructure(event.target.value)}
-                    placeholder="Three-act mini scene structure..."
-                    className="min-h-24 resize-y"
-                  />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={chapterPlan.length >= 40}
+                    onClick={() =>
+                      setChapterPlan((current) => [
+                        ...current,
+                        createChapterPlanDraft(current.length + 1),
+                      ])
+                    }
+                  >
+                    Add chapter slot
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={chapterPlan.length <= 1}
+                    onClick={() => setChapterPlan((current) => current.slice(0, -1))}
+                  >
+                    Remove slot
+                  </Button>
                 </div>
               </div>
-            ) : null}
-            <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
-              {generate.isPending ? "Generating..." : "Generate outline"}
-            </Button>
-            {generate.error ? (
-              <p className="text-sm text-destructive">{generate.error.message}</p>
-            ) : null}
-          </div>
-        </form>
+              {project.type === "fiction" ? (
+                <div className="space-y-4 rounded-md border bg-muted/20 p-3">
+                  <div>
+                    <h2 className="text-sm font-semibold">Character arcs</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Add each important character and where they should be in their arc for this
+                      outline.
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {characters.map((character, index) => (
+                      <div key={character.id} className="rounded-md border bg-background p-3">
+                        <div className="grid gap-3">
+                          <Input
+                            aria-label={`Character ${index + 1} name`}
+                            value={character.name}
+                            onChange={(event) =>
+                              updateCharacter(setCharacters, character.id, {
+                                name: event.target.value,
+                              })
+                            }
+                            placeholder="Character name"
+                          />
+                          <Select
+                            value={character.arc}
+                            onValueChange={(value) =>
+                              updateCharacter(setCharacters, character.id, { arc: value })
+                            }
+                          >
+                            <SelectTrigger aria-label={`Character ${index + 1} arc`}>
+                              <SelectValue placeholder="Arc" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CHARACTER_ARC_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Textarea
+                            aria-label={`Character ${index + 1} arc position`}
+                            value={character.position}
+                            onChange={(event) =>
+                              updateCharacter(setCharacters, character.id, {
+                                position: event.target.value,
+                              })
+                            }
+                            placeholder="Where this character is in the arc at this point in the story..."
+                            className="min-h-20 resize-y"
+                          />
+                          <Input
+                            aria-label={`Character ${index + 1} scene role`}
+                            value={character.sceneRole}
+                            onChange={(event) =>
+                              updateCharacter(setCharacters, character.id, {
+                                sceneRole: event.target.value,
+                              })
+                            }
+                            placeholder="Scene role, relationship pressure, or conflict function"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={characters.length >= CHARACTER_SLOT_IDS.length}
+                    onClick={() =>
+                      setCharacters((current) => [
+                        ...current,
+                        {
+                          id: CHARACTER_SLOT_IDS[current.length],
+                          name: "",
+                          arc: "positive-change",
+                          position: "",
+                          sceneRole: "",
+                        },
+                      ])
+                    }
+                  >
+                    Add character
+                  </Button>
+                  <div className="space-y-3">
+                    <Textarea
+                      value={defaultCast}
+                      onChange={(event) => setDefaultCast(event.target.value)}
+                      placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
+                      className="min-h-20 resize-y"
+                    />
+                    <Textarea
+                      value={miniStructure}
+                      onChange={(event) => setMiniStructure(event.target.value)}
+                      placeholder="Three-act mini scene structure..."
+                      className="min-h-24 resize-y"
+                    />
+                  </div>
+                </div>
+              ) : null}
+              <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
+                {generate.isPending ? "Generating..." : "Generate outline"}
+              </Button>
+              {generate.error ? (
+                <p className="text-sm text-destructive">{generate.error.message}</p>
+              ) : null}
+            </div>
+          </form>
+        ) : null}
 
         <div id="chapters" className="scroll-mt-6 rounded-lg border bg-background p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -936,22 +1214,32 @@ function OutlineBuilder({ project }: { project: Project }) {
           </div>
           <div className="mt-4 space-y-3">
             {(outline.data?.chapters ?? []).length ? (
-              outline.data?.chapters.map((chapter) => (
-                <Link
-                  key={chapter.id}
-                  to="/projects/$projectId/chapters/$chapterId"
-                  params={{ projectId: project.id, chapterId: chapter.id }}
-                  className="block rounded-md border bg-muted/20 p-3 transition-colors hover:bg-accent"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-medium">
-                      {chapter.ordinal}. {chapter.title}
-                    </h3>
-                    <Badge variant="secondary">{chapter.target_words.toLocaleString()} words</Badge>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{chapter.summary}</p>
-                </Link>
-              ))
+              outline.data?.chapters.map((chapter) => {
+                const drafted = chapter.draft_md.trim().length > 0;
+                return (
+                  <Link
+                    key={chapter.id}
+                    to="/projects/$projectId/chapters/$chapterId"
+                    params={{ projectId: project.id, chapterId: chapter.id }}
+                    className="block rounded-md border bg-muted/20 p-3 transition-colors hover:bg-accent"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-medium">
+                        {chapter.ordinal}. {chapter.title}
+                      </h3>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Badge variant={drafted ? "default" : "secondary"}>
+                          {drafted ? "Drafted" : "Planned"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {chapter.target_words.toLocaleString()} words
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{chapter.summary}</p>
+                  </Link>
+                );
+              })
             ) : (
               <p className="text-sm text-muted-foreground">
                 Generated chapters will appear here after the first outline run.
@@ -1084,7 +1372,7 @@ function PublishPanel({ project }: { project: Project }) {
     <section id="publish" className="scroll-mt-6 border-t pt-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Publish</h1>
+          <h2 className="text-xl font-semibold">Publisher pack</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Generate KDP-ready metadata from the manuscript, tune each field, and approve the
             publisher pack when it is final.

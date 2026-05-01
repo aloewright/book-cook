@@ -22,6 +22,21 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page
     .getByPlaceholder(/Protagonist, want, weakness/i)
     .fill("A botanist discovers plants that store memories from future colonists.");
+  await page.getByLabel("Character 1 name").fill("Mara");
+  await page.getByRole("combobox", { name: "Character 1 arc", exact: true }).click();
+  await page.getByRole("option", { name: "Positive Change", exact: true }).click();
+  await page
+    .getByLabel("Character 1 arc position")
+    .fill("Refusing the truth that memory can be communal.");
+  await page
+    .getByLabel("Character 1 scene role")
+    .fill("Protagonist under scientific and family pressure.");
+  await page.getByRole("button", { name: /add character/i }).click();
+  await page.getByLabel("Character 2 name").fill("Ivo");
+  await page.getByRole("combobox", { name: "Character 2 arc", exact: true }).click();
+  await page.getByRole("option", { name: "Flat", exact: true }).click();
+  await page.getByLabel("Character 2 arc position").fill("Already carries the story truth.");
+  await page.getByPlaceholder(/Default scene cast/i).fill("Use Mara and Ivo in discovery scenes.");
   await page.getByRole("button", { name: /generate outline/i }).click();
 
   await expect(page.getByText(/1\. World signal/)).toBeVisible();

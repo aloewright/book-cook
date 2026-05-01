@@ -12,6 +12,18 @@ export type FrameworkChapter = {
   }[];
 };
 
+export type CharacterArcGuidance = {
+  name: string;
+  arc: string;
+  position: string;
+  sceneRole?: string;
+};
+
+export type ScenePlanGuidance = {
+  defaultCast?: string;
+  miniStructure?: string;
+};
+
 export type FrameworkOutline = {
   framework: string;
   acts: {
@@ -31,6 +43,8 @@ export type Framework = {
     targetWordCount: number;
     questionnaire: string;
     voiceSummary?: string;
+    characterArcs?: CharacterArcGuidance[];
+    scenePlan?: ScenePlanGuidance;
   }): FrameworkOutline;
 };
 
@@ -71,4 +85,32 @@ export function chapter(
 
 export function voiceDirection(voiceSummary?: string) {
   return voiceSummary ? ` Voice direction: ${voiceSummary}` : "";
+}
+
+export function fictionGuidance(input: {
+  characterArcs?: CharacterArcGuidance[];
+  scenePlan?: ScenePlanGuidance;
+}) {
+  const characters = (input.characterArcs ?? [])
+    .filter((character) => character.name.trim())
+    .map((character) =>
+      [
+        character.name.trim(),
+        character.arc.trim() ? `arc: ${character.arc.trim()}` : "",
+        character.position.trim() ? `current position: ${character.position.trim()}` : "",
+        character.sceneRole?.trim() ? `scene role: ${character.sceneRole.trim()}` : "",
+      ]
+        .filter(Boolean)
+        .join("; "),
+    );
+
+  const characterText = characters.length ? ` Character arc map: ${characters.join(" | ")}.` : "";
+  const castText = input.scenePlan?.defaultCast?.trim()
+    ? ` Default scene cast guidance: ${input.scenePlan.defaultCast.trim()}.`
+    : "";
+  const miniStructure =
+    input.scenePlan?.miniStructure?.trim() ||
+    "Use a three-part mini-scene structure: setup the scene goal and conflict, force a turn or reversal, then close with a consequence that changes the next scene.";
+
+  return `${characterText}${castText} Scene structure: ${miniStructure}`;
 }

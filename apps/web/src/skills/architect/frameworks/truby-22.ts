@@ -1,4 +1,4 @@
-import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
+import { type Framework, chapter, chapterTarget, fictionGuidance, voiceDirection } from "./shared";
 
 const BEAT_GROUPS = [
   {
@@ -50,11 +50,11 @@ export const truby22Framework: Framework = {
     "Who is the opponent and why are they morally persuasive?",
     "What final choice proves the protagonist has changed?",
   ],
-  build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
+  build({ title, genre, targetWordCount, questionnaire, voiceSummary, characterArcs, scenePlan }) {
     const beatCount = BEAT_GROUPS.reduce((total, group) => total + group.beats.length, 0);
     const perChapter = chapterTarget(targetWordCount, beatCount);
     const context = questionnaire || `A ${genre || "fiction"} story titled ${title}.`;
-    const voice = voiceDirection(voiceSummary);
+    const guidance = `${voiceDirection(voiceSummary)}${fictionGuidance({ characterArcs, scenePlan })}`;
     return {
       framework: "truby-22",
       acts: BEAT_GROUPS.map((group) => ({
@@ -63,19 +63,19 @@ export const truby22Framework: Framework = {
           chapter(beat, `${beat}: build this beat from ${context}`, perChapter, [
             {
               kind: "scene",
-              prompt: `Write the visible story event for the ${beat} beat.${voice}`,
+              prompt: `Write the visible story event for the ${beat} beat.${guidance}`,
               share: 0.55,
               beat,
             },
             {
               kind: "desire-shift",
-              prompt: `Show how this beat changes the protagonist's desire, plan, or moral pressure.${voice}`,
+              prompt: `Show how this beat changes the protagonist's desire, plan, or moral pressure.${guidance}`,
               share: 0.3,
               beat: "Desire and moral shift",
             },
             {
               kind: "turn",
-              prompt: `Close with a revelation or decision that makes the next beat necessary.${voice}`,
+              prompt: `Close with a revelation or decision that makes the next beat necessary.${guidance}`,
               share: 0.15,
               beat: "Revelation",
             },

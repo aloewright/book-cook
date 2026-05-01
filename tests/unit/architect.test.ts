@@ -77,6 +77,41 @@ describe("architect outline generation", () => {
     expect(outline.acts[2].title).toBe("Apply");
   });
 
+  it("threads fiction character arc and scene guidance into prompts", () => {
+    const outline = generateOutline({
+      title: "Signal Garden",
+      type: "fiction",
+      targetWordCount: 84_000,
+      framework: "sci-fi",
+      questionnaire: "A botanist discovers plants that store memories from future colonists.",
+      characterArcs: [
+        {
+          name: "Mara",
+          arc: "Positive Change",
+          position: "refusing the truth that memory can be communal",
+          sceneRole: "protagonist under scientific and family pressure",
+        },
+        {
+          name: "Ivo",
+          arc: "Flat",
+          position: "already believes the future colony must be protected",
+          sceneRole: "ally who pressures Mara to act",
+        },
+      ],
+      scenePlan: {
+        defaultCast: "Use Mara and Ivo together in discovery scenes.",
+        miniStructure: "Setup the discovery, turn on a memory reveal, close with a cost.",
+      },
+    });
+
+    const firstPrompt = outline.acts[0].chapters[0].sections[0].prompt;
+    expect(firstPrompt).toContain("Character arc map");
+    expect(firstPrompt).toContain("Mara");
+    expect(firstPrompt).toContain("Positive Change");
+    expect(firstPrompt).toContain("Use Mara and Ivo together");
+    expect(firstPrompt).toContain("Setup the discovery");
+  });
+
   it("does not apply a framework from the wrong project type", () => {
     const outline = generateOutline({
       title: "Better Systems",

@@ -24,6 +24,12 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await expect(page.getByRole("heading", { name: /^full book$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /export pdf/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /export epub/i })).toBeVisible();
+  await page
+    .getByRole("link", { name: /^edit$/i })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/projects\/.+\/chapters\/.+$/);
+  await expect(page.getByRole("heading", { name: /1\. The Cost of Staying Stuck/ })).toBeVisible();
   await page.getByRole("link", { name: /back to workspace/i }).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+$/);
 

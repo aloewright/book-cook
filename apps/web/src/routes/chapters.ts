@@ -147,6 +147,7 @@ chaptersRoute.post("/:id/sections/:sectionId/draft", async (c) => {
     kind: row.section.kind,
     prompt: row.section.prompt,
     previousDraft: row.section.draft_md,
+    currentChapterDraft: row.chapter.draft_md,
     voiceProfile: row.voice?.profile_json,
   });
   const revisionId = crypto.randomUUID();

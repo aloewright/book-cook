@@ -56,7 +56,7 @@ export const characterArcFramework: Framework = {
 function arcChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(
     beat,
-    `${beat}: connect the outer plot to the protagonist's inner change. ${context}`,
+    `Story overview: Use this chapter to make the ${beat} stage visible through an outer plot event and a specific inner shift. Show what should change in the protagonist's belief, desire, or choice by chapter end. Use the book premise as source material: ${context}`,
     targetWords,
     [
       {

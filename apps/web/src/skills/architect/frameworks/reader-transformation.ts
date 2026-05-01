@@ -58,7 +58,7 @@ export const readerTransformationFramework: Framework = {
 function nonfictionChapter(beat: string, context: string, targetWords: number, voice: string) {
   return chapter(
     beat,
-    `${beat}: move the reader toward the promised transformation. ${context}`,
+    `Chapter overview: Use this chapter to move the reader through the ${beat} step of the transformation. Define what should become clearer, easier, or more actionable for the reader by chapter end. Use the book premise as source material: ${context}`,
     targetWords,
     [
       {

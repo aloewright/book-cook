@@ -90,6 +90,21 @@ describe("chapters", () => {
     expect(additiveSection.section.draft_md).toContain("Continue from the current chapter draft");
     expect(additiveSection.section.draft_md).toContain("without replaying its opening");
 
+    const directedRedraft = await SELF.fetch(
+      `http://x/api/v1/chapters/${chapterId}/sections/${sections.items[1].id}/draft`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ instruction: "Make the continuation more tense." }),
+      },
+    );
+    expect(directedRedraft.status).toBe(200);
+    // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
+    const directedSection = (await directedRedraft.json()) as any;
+    expect(directedSection.section.draft_md).toContain(
+      "Apply this redraft direction: Make the continuation more tense.",
+    );
+
     const revise = await SELF.fetch(`http://x/api/v1/chapters/${chapterId}/revise`, {
       method: "POST",
       headers,

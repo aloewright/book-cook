@@ -18,6 +18,10 @@ const patchSectionSchema = z.object({
   draft_md: z.string().max(500_000).optional(),
 });
 
+const draftSectionSchema = z.object({
+  instruction: z.string().max(4000).optional(),
+});
+
 const reviseInlineSchema = z.object({
   action: z.enum(["rewrite", "tighten", "expand", "change-tone", "fix-grammar"]),
   tone: z.enum(["formal", "casual", "punchy"]).optional(),
@@ -116,6 +120,7 @@ chaptersRoute.post("/:id/sections/:sectionId/draft", async (c) => {
   const user = c.get("user");
   const chapterId = c.req.param("id");
   const sectionId = c.req.param("sectionId");
+  const body = draftSectionSchema.parse(await c.req.json().catch(() => ({})));
   const db = drizzle(c.env.DB);
   const [row] = await db
     .select({ chapter: chapters, project: projects, section: sections, voice: voices })
@@ -148,6 +153,7 @@ chaptersRoute.post("/:id/sections/:sectionId/draft", async (c) => {
     prompt: row.section.prompt,
     previousDraft: row.section.draft_md,
     currentChapterDraft: row.chapter.draft_md,
+    redraftInstruction: body.instruction?.trim(),
     voiceProfile: row.voice?.profile_json,
   });
   const revisionId = crypto.randomUUID();

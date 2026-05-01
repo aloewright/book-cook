@@ -32,6 +32,17 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
   await expect(page.getByTestId("section-diff").first()).toContainText("concrete moment", {
     timeout: 15_000,
   });
+  await expect(page.getByLabel("Redraft instructions for section 1")).toBeVisible();
+  await page
+    .getByLabel("Redraft instructions for section 1")
+    .fill("Make this more specific and keep the operating model language.");
+  await page
+    .getByRole("button", { name: /redraft/i })
+    .first()
+    .click();
+  await expect(page.getByTestId("section-diff").first()).toContainText("Apply this redraft", {
+    timeout: 15_000,
+  });
   await page
     .getByRole("button", { name: /accept into chapter/i })
     .first()

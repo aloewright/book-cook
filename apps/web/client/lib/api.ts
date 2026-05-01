@@ -151,6 +151,25 @@ export type RenderJob = {
   download_url?: string | null;
 };
 
+export type ExportKind = "epub" | "pdf" | "kpf";
+
+export type FullBookChapter = {
+  ordinal: number;
+  title: string;
+  summary: string;
+  body_md: string;
+  word_count: number;
+  has_draft: boolean;
+};
+
+export type FullBookView = {
+  title: string;
+  chapters: FullBookChapter[];
+  manuscript_md: string;
+  total_words: number;
+  drafted_chapters: number;
+};
+
 export type NarrationAudition = RenderJob & {
   voice_id: string;
   audio_url?: string | null;
@@ -292,10 +311,19 @@ export const api = {
     fetchJson<{ pack: PublisherPack }>(`/api/v1/projects/${id}/publisher-pack/approve`, {
       method: "POST",
     }),
+  getFullBook: (id: string) =>
+    fetchJson<{
+      project: Pick<Project, "id" | "title">;
+      book: FullBookView;
+      export_formats: ExportKind[];
+    }>(`/api/v1/projects/${id}/book`),
   listRenderJobs: (id: string) =>
     fetchJson<{ items: RenderJob[] }>(`/api/v1/projects/${id}/export/jobs`),
-  startBookExport: (id: string) =>
-    fetchJson<{ id: string }>(`/api/v1/projects/${id}/export`, { method: "POST" }),
+  startBookExport: (id: string, input?: { formats?: ExportKind[] }) =>
+    fetchJson<{ id: string }>(`/api/v1/projects/${id}/export`, {
+      method: "POST",
+      body: JSON.stringify(input ?? {}),
+    }),
   getElevenLabsKeyStatus: () =>
     fetchJson<{ configured: boolean }>("/api/v1/account/elevenlabs-key"),
   saveElevenLabsKey: (apiKey: string) =>
@@ -419,6 +447,7 @@ export const queryKeys = {
   projects: () => ["projects"] as const,
   project: (id: string) => ["projects", id] as const,
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
+  fullBook: (id: string) => ["projects", id, "book"] as const,
   publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
   renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,
   narrationAuditions: (id: string) => ["projects", id, "narration-auditions"] as const,

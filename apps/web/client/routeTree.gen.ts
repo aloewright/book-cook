@@ -17,6 +17,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
+import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
 import { Route as ProjectsProjectIdChaptersChapterIdRouteImport } from './routes/projects.$projectId.chapters.$chapterId'
 
 const SignUpRoute = SignUpRouteImport.update({
@@ -59,6 +60,11 @@ const ProjectsProjectIdLaunchRoute = ProjectsProjectIdLaunchRouteImport.update({
   path: '/launch',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const ProjectsProjectIdBookRoute = ProjectsProjectIdBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => ProjectsProjectIdRoute,
+} as any)
 const ProjectsProjectIdChaptersChapterIdRoute =
   ProjectsProjectIdChaptersChapterIdRouteImport.update({
     id: '/chapters/$chapterId',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/projects/$projectId'
+    | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/projects/$projectId'
+    | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
   id:
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/projects/$projectId'
+    | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
@@ -204,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdLaunchRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/projects/$projectId/book': {
+      id: '/projects/$projectId/book'
+      path: '/book'
+      fullPath: '/projects/$projectId/book'
+      preLoaderRoute: typeof ProjectsProjectIdBookRouteImport
+      parentRoute: typeof ProjectsProjectIdRoute
+    }
     '/projects/$projectId/chapters/$chapterId': {
       id: '/projects/$projectId/chapters/$chapterId'
       path: '/chapters/$chapterId'
@@ -215,11 +234,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProjectsProjectIdRouteChildren {
+  ProjectsProjectIdBookRoute: typeof ProjectsProjectIdBookRoute
   ProjectsProjectIdLaunchRoute: typeof ProjectsProjectIdLaunchRoute
   ProjectsProjectIdChaptersChapterIdRoute: typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 
 const ProjectsProjectIdRouteChildren: ProjectsProjectIdRouteChildren = {
+  ProjectsProjectIdBookRoute: ProjectsProjectIdBookRoute,
   ProjectsProjectIdLaunchRoute: ProjectsProjectIdLaunchRoute,
   ProjectsProjectIdChaptersChapterIdRoute:
     ProjectsProjectIdChaptersChapterIdRoute,

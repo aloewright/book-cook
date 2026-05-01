@@ -168,7 +168,11 @@ function ProjectWorkspace() {
     queryFn: () => api.getProject(projectId),
   });
 
-  if (location.pathname.includes("/chapters/") || location.pathname.includes("/launch")) {
+  if (
+    location.pathname.includes("/chapters/") ||
+    location.pathname.includes("/launch") ||
+    location.pathname.includes("/book")
+  ) {
     return <Outlet />;
   }
 
@@ -910,11 +914,20 @@ function OutlineBuilder({ project }: { project: Project }) {
         </form>
 
         <div id="chapters" className="scroll-mt-6 rounded-lg border bg-background p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">Chapter skeletons</h2>
-            <span className="text-sm text-muted-foreground">
-              {outline.data?.chapters.length ?? 0} chapters
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">Chapter skeletons</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {(outline.data?.chapters.length ?? 0).toLocaleString()} chapters
+              </p>
+            </div>
+            {(outline.data?.chapters ?? []).length ? (
+              <Button asChild size="sm" variant="secondary">
+                <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
+                  Full book
+                </Link>
+              </Button>
+            ) : null}
           </div>
           <div className="mt-4 space-y-3">
             {(outline.data?.chapters ?? []).length ? (
@@ -1193,6 +1206,11 @@ function PublishPanel({ project }: { project: Project }) {
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
+              <Button asChild variant="outline" disabled={!canGenerate}>
+                <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
+                  Open full book
+                </Link>
+              </Button>
               <Button
                 type="button"
                 variant="secondary"

@@ -25,6 +25,11 @@ import {
   synthesizePublisherSeo,
   validatePublisherSeoPack,
 } from "../skills/publisher/seo";
+import {
+  downloadableBookKinds,
+  fullBookView,
+  normalizeExportKinds,
+} from "../workflows/book-export-helpers";
 import { prepareGtmBriefInput } from "../workflows/gtm-brief";
 
 const createSchema = z.object({
@@ -84,6 +89,13 @@ const publisherPackSchema = z.object({
 
 const auditionSchema = z.object({
   elevenlabs_voice_ids: z.array(z.string().trim().min(1).max(120)).min(1).max(3),
+});
+
+const exportSchema = z.object({
+  formats: z
+    .array(z.enum(["epub", "pdf", "kpf"]))
+    .max(3)
+    .optional(),
 });
 
 export const projectsRoute = new Hono<{
@@ -378,6 +390,35 @@ projectsRoute.post("/:id/publisher-pack/approve", async (c) => {
   return c.json({ pack: { ...serialized, status: "approved" } });
 });
 
+projectsRoute.get("/:id/book", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id, title: projects.title })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const chapterRows = await db
+    .select({
+      ordinal: chapters.ordinal,
+      title: chapters.title,
+      summary: chapters.summary,
+      draft_md: chapters.draft_md,
+    })
+    .from(chapters)
+    .where(eq(chapters.project_id, id))
+    .orderBy(asc(chapters.ordinal));
+
+  return c.json({
+    project: p,
+    book: fullBookView(p.title, chapterRows),
+    export_formats: downloadableBookKinds,
+  });
+});
+
 projectsRoute.get("/:id/export/jobs", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
@@ -400,6 +441,7 @@ projectsRoute.get("/:id/export/jobs", async (c) => {
 projectsRoute.post("/:id/export", async (c) => {
   const user = c.get("user");
   const id = c.req.param("id");
+  const body = exportSchema.parse(await c.req.json().catch(() => ({})));
   if (!c.env.BOOK_EXPORT_WORKFLOW) {
     return c.json({ error: "book export workflow is not configured" }, 503);
   }
@@ -415,7 +457,7 @@ projectsRoute.post("/:id/export", async (c) => {
   const instanceId = `book-export-${id}-${Date.now()}`;
   await c.env.BOOK_EXPORT_WORKFLOW.create({
     id: instanceId,
-    params: { projectId: id, userId: user.id },
+    params: { projectId: id, userId: user.id, formats: normalizeExportKinds(body.formats) },
   });
   return c.json({ id: instanceId }, 202);
 });

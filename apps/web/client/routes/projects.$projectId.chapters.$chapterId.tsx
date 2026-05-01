@@ -57,7 +57,14 @@ function ChapterEditorRoute() {
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{chapter.data.summary}</p>
             </div>
-            <ChapterStats chapter={chapter.data} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline">
+                <Link to="/projects/$projectId/book" params={{ projectId }}>
+                  View full book
+                </Link>
+              </Button>
+              <ChapterStats chapter={chapter.data} />
+            </div>
           </div>
 
           <ChapterEditor chapter={chapter.data} sections={sections.data?.items ?? []} />

@@ -17,6 +17,7 @@ import {
   api,
   queryKeys,
 } from "../lib/api";
+import { useDarkMode } from "../lib/use-theme-mode";
 
 export const Route = createFileRoute("/projects/$projectId/chapters/$chapterId")({
   component: ChapterEditorRoute,
@@ -169,6 +170,7 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
       await queryClient.invalidateQueries({ queryKey: queryKeys.chapterRevisions(chapter.id) });
     },
   });
+  const darkMode = useDarkMode();
 
   useEffect(() => {
     return () => {
@@ -277,7 +279,7 @@ function ChapterEditorInner({ chapter, sections }: { chapter: Chapter; sections:
           <div ref={editorRoot}>
             <BlockNoteView
               editor={editor}
-              theme="light"
+              theme={darkMode ? "dark" : "light"}
               onChange={() => {
                 if (pendingSave.current) window.clearTimeout(pendingSave.current);
                 pendingSave.current = window.setTimeout(() => saveMutation.mutate(), 1000);

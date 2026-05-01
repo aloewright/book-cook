@@ -61,7 +61,7 @@ export const thrillerFramework: Framework = {
 function thrillerChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(
     beat,
-    `${beat}: escalate suspense while staying grounded in ${context}`,
+    `Story overview: Use this chapter to deliver the ${beat} function by changing what the protagonist knows, wants, fears, or can safely do next. Escalate suspense with a concrete clue, threat, reversal, or deadline. Use the book premise as source material: ${context}`,
     targetWords,
     [
       {

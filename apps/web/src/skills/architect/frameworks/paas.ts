@@ -49,7 +49,7 @@ export const paasFramework: Framework = {
 function chapter(title: string, context: string, targetWords: number, voice: string) {
   return {
     title,
-    summary: `${title}. Ground this chapter in: ${context}`,
+    summary: `Chapter overview: Use this chapter to move the reader through "${title}" as a clear step in the problem, agitation, or solution arc. Define what should shift in the reader's understanding, urgency, or next action by chapter end. Use the book premise as source material: ${context}`,
     target_words: targetWords,
     sections: [
       {

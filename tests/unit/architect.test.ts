@@ -25,6 +25,8 @@ describe("architect outline generation", () => {
 
     expect(outline.framework).toBe("hero-journey");
     expect(outline.acts.flatMap((act) => act.chapters)).toHaveLength(12);
+    expect(outline.acts[1].chapters[0].summary).toContain("Story overview");
+    expect(outline.acts[1].chapters[0].summary).toContain("point of no return");
   });
 
   it("builds Truby-style 22 beat fiction structure", () => {

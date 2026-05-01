@@ -60,26 +60,31 @@ export const truby22Framework: Framework = {
       acts: BEAT_GROUPS.map((group) => ({
         title: group.title,
         chapters: group.beats.map((beat) =>
-          chapter(beat, `${beat}: build this beat from ${context}`, perChapter, [
-            {
-              kind: "scene",
-              prompt: `Write the visible story event for the ${beat} beat.${guidance}`,
-              share: 0.55,
-              beat,
-            },
-            {
-              kind: "desire-shift",
-              prompt: `Show how this beat changes the protagonist's desire, plan, or moral pressure.${guidance}`,
-              share: 0.3,
-              beat: "Desire and moral shift",
-            },
-            {
-              kind: "turn",
-              prompt: `Close with a revelation or decision that makes the next beat necessary.${guidance}`,
-              share: 0.15,
-              beat: "Revelation",
-            },
-          ]),
+          chapter(
+            beat,
+            `Story overview: Use this chapter to advance the ${beat} beat as a cause-and-effect story turn. Define what should change in the plan, opposition, moral pressure, or self-understanding by the end. Use the book premise as source material: ${context}`,
+            perChapter,
+            [
+              {
+                kind: "scene",
+                prompt: `Write the visible story event for the ${beat} beat.${guidance}`,
+                share: 0.55,
+                beat,
+              },
+              {
+                kind: "desire-shift",
+                prompt: `Show how this beat changes the protagonist's desire, plan, or moral pressure.${guidance}`,
+                share: 0.3,
+                beat: "Desire and moral shift",
+              },
+              {
+                kind: "turn",
+                prompt: `Close with a revelation or decision that makes the next beat necessary.${guidance}`,
+                share: 0.15,
+                beat: "Revelation",
+              },
+            ],
+          ),
         ),
       })),
     };

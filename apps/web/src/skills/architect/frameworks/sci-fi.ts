@@ -60,7 +60,7 @@ export const sciFiFramework: Framework = {
 function sciFiChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(
     beat,
-    `${beat}: make the speculative idea visible through character action. ${context}`,
+    `Story overview: Use this chapter to make the ${beat} function change the visible world and the human stakes. Decide what the reader should understand differently about the speculative premise by the end. Use the book premise as source material: ${context}`,
     targetWords,
     [
       {

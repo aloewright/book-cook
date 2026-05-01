@@ -6,6 +6,7 @@ const MODES = [
   { key: "voice", label: "Voice", icon: "🎤" },
   { key: "outline", label: "Outline", icon: "🗂" },
   { key: "chapters", label: "Chapters", icon: "✏️" },
+  { key: "book", label: "Book", icon: "📖" },
   { key: "publish", label: "Publish", icon: "📦" },
   { key: "launch", label: "Launch", icon: "🚀" },
 ] as const;
@@ -41,6 +42,10 @@ export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[nu
             type="button"
             aria-label={`Go to ${m.label} workflow`}
             onClick={() => {
+              if (m.key === "book") {
+                window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/book`);
+                return;
+              }
               setActiveMode(m.key);
               document.getElementById(m.key)?.scrollIntoView({ block: "start" });
               history.replaceState(null, "", `#${m.key}`);

@@ -6,11 +6,12 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { chapters, projects, render_jobs } from "../db/schema";
 import type { Env } from "../env";
-import { type ExportKind, exportKinds, manuscriptMarkdown } from "./book-export-helpers";
+import { type ExportKind, manuscriptMarkdown, normalizeExportKinds } from "./book-export-helpers";
 
 export type BookExportWorkflowParams = {
   projectId: string;
   userId: string;
+  formats?: ExportKind[];
 };
 
 type Manuscript = {
@@ -34,12 +35,13 @@ export class BookExportWorkflow extends WorkflowEntrypoint<Env, BookExportWorkfl
     const manuscript = await step.do("assemble manuscript", () =>
       assembleManuscript(this.env, payload.projectId, payload.userId),
     );
+    const formats = normalizeExportKinds(payload.formats);
     const jobs = await step.do("queue render jobs", () =>
-      createRenderJobs(this.env, payload.projectId, event.instanceId),
+      createRenderJobs(this.env, payload.projectId, formats, event.instanceId),
     );
 
     const outputs: { kind: ExportKind; r2Key: string; bytes: number }[] = [];
-    for (const kind of exportKinds) {
+    for (const kind of formats) {
       const jobId = jobs[kind];
       const output = await step.do(`render ${kind}`, async () => {
         await updateRenderJob(this.env, jobId, { status: "running" });
@@ -100,14 +102,19 @@ export async function assembleManuscript(env: Env, projectId: string, userId: st
   };
 }
 
-async function createRenderJobs(env: Env, projectId: string, workflowId?: string) {
+async function createRenderJobs(
+  env: Env,
+  projectId: string,
+  formats: ExportKind[],
+  workflowId?: string,
+) {
   const db = drizzle(env.DB);
-  const ids = Object.fromEntries(exportKinds.map((kind) => [kind, crypto.randomUUID()])) as Record<
+  const ids = Object.fromEntries(formats.map((kind) => [kind, crypto.randomUUID()])) as Record<
     ExportKind,
     string
   >;
   await db.insert(render_jobs).values(
-    exportKinds.map((kind) => ({
+    formats.map((kind) => ({
       id: ids[kind],
       project_id: projectId,
       kind,

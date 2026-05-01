@@ -19,6 +19,13 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
     .fill("Readers are stuck in reactive work. Promise a calmer operating model.");
   await page.getByRole("button", { name: /generate outline/i }).click();
   await expect(page.getByText(/1\. The Cost of Staying Stuck/)).toBeVisible();
+  await page.getByRole("link", { name: /^full book$/i }).click();
+  await expect(page).toHaveURL(/\/projects\/.+\/book$/);
+  await expect(page.getByRole("heading", { name: /^full book$/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /export pdf/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /export epub/i })).toBeVisible();
+  await page.getByRole("link", { name: /back to workspace/i }).click();
+  await expect(page).toHaveURL(/\/projects\/[^/]+$/);
 
   await page.getByRole("heading", { name: "Publish" }).scrollIntoViewIfNeeded();
   await page.getByRole("button", { name: /generate seo pack/i }).click();

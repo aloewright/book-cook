@@ -1,4 +1,4 @@
-import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
+import { type Framework, chapter, chapterTarget, fictionGuidance, voiceDirection } from "./shared";
 
 const BEATS = [
   "The lie they believe",
@@ -25,31 +25,35 @@ export const characterArcFramework: Framework = {
     "What truth would make them whole?",
     "What pressure forces them to choose between the lie and the truth?",
   ],
-  build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
+  build({ title, genre, targetWordCount, questionnaire, voiceSummary, characterArcs, scenePlan }) {
     const perChapter = chapterTarget(targetWordCount, BEATS.length);
     const context = questionnaire || `A ${genre || "fiction"} story titled ${title}.`;
-    const voice = voiceDirection(voiceSummary);
+    const guidance = `${voiceDirection(voiceSummary)}${fictionGuidance({ characterArcs, scenePlan })}`;
     return {
       framework: "character-arc",
       acts: [
         {
           title: "Lie",
-          chapters: BEATS.slice(0, 4).map((beat) => arcChapter(beat, context, perChapter, voice)),
+          chapters: BEATS.slice(0, 4).map((beat) =>
+            arcChapter(beat, context, perChapter, guidance),
+          ),
         },
         {
           title: "Pressure",
-          chapters: BEATS.slice(4, 9).map((beat) => arcChapter(beat, context, perChapter, voice)),
+          chapters: BEATS.slice(4, 9).map((beat) =>
+            arcChapter(beat, context, perChapter, guidance),
+          ),
         },
         {
           title: "Truth",
-          chapters: BEATS.slice(9).map((beat) => arcChapter(beat, context, perChapter, voice)),
+          chapters: BEATS.slice(9).map((beat) => arcChapter(beat, context, perChapter, guidance)),
         },
       ],
     };
   },
 };
 
-function arcChapter(beat: string, context: string, targetWords: number, voice: string) {
+function arcChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(
     beat,
     `${beat}: connect the outer plot to the protagonist's inner change. ${context}`,
@@ -57,19 +61,19 @@ function arcChapter(beat: string, context: string, targetWords: number, voice: s
     [
       {
         kind: "outer-plot",
-        prompt: `Draft the external event that forces the ${beat} moment.${voice}`,
+        prompt: `Draft the external event that forces the ${beat} moment.${guidance}`,
         share: 0.45,
         beat,
       },
       {
         kind: "inner-arc",
-        prompt: `Reveal how the protagonist's lie, want, need, or truth changes in this chapter.${voice}`,
+        prompt: `Reveal how the protagonist's lie, want, need, or truth changes in this chapter.${guidance}`,
         share: 0.4,
         beat: "Inner arc",
       },
       {
         kind: "choice",
-        prompt: `End on a choice, denial, or acceptance that advances the arc.${voice}`,
+        prompt: `End on a choice, denial, or acceptance that advances the arc.${guidance}`,
         share: 0.15,
         beat: "Arc turn",
       },

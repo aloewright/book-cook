@@ -1,4 +1,4 @@
-import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
+import { type Framework, chapter, chapterTarget, fictionGuidance, voiceDirection } from "./shared";
 
 const BEATS = [
   "Cold open threat",
@@ -28,29 +28,29 @@ export const thrillerFramework: Framework = {
     "What does the antagonist know that the protagonist does not?",
     "What reversal changes the meaning of the investigation?",
   ],
-  build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
+  build({ title, genre, targetWordCount, questionnaire, voiceSummary, characterArcs, scenePlan }) {
     const perChapter = chapterTarget(targetWordCount, BEATS.length);
     const context = questionnaire || `A ${genre || "thriller"} titled ${title}.`;
-    const voice = voiceDirection(voiceSummary);
+    const guidance = `${voiceDirection(voiceSummary)}${fictionGuidance({ characterArcs, scenePlan })}`;
     return {
       framework: "thriller",
       acts: [
         {
           title: "Threat",
           chapters: BEATS.slice(0, 5).map((beat) =>
-            thrillerChapter(beat, context, perChapter, voice),
+            thrillerChapter(beat, context, perChapter, guidance),
           ),
         },
         {
           title: "Reversal",
           chapters: BEATS.slice(5, 11).map((beat) =>
-            thrillerChapter(beat, context, perChapter, voice),
+            thrillerChapter(beat, context, perChapter, guidance),
           ),
         },
         {
           title: "Confrontation",
           chapters: BEATS.slice(11).map((beat) =>
-            thrillerChapter(beat, context, perChapter, voice),
+            thrillerChapter(beat, context, perChapter, guidance),
           ),
         },
       ],
@@ -58,7 +58,7 @@ export const thrillerFramework: Framework = {
   },
 };
 
-function thrillerChapter(beat: string, context: string, targetWords: number, voice: string) {
+function thrillerChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(
     beat,
     `${beat}: escalate suspense while staying grounded in ${context}`,
@@ -66,19 +66,19 @@ function thrillerChapter(beat: string, context: string, targetWords: number, voi
     [
       {
         kind: "threat",
-        prompt: `Open with a concrete threat, clue, or pressure point for ${beat}.${voice}`,
+        prompt: `Open with a concrete threat, clue, or pressure point for ${beat}.${guidance}`,
         share: 0.35,
         beat,
       },
       {
         kind: "investigation",
-        prompt: `Advance the investigation while adding one complication or false certainty.${voice}`,
+        prompt: `Advance the investigation while adding one complication or false certainty.${guidance}`,
         share: 0.45,
         beat: "Investigation pressure",
       },
       {
         kind: "cliffhanger",
-        prompt: `End with a reveal, deadline, betrayal, or danger that forces the next chapter.${voice}`,
+        prompt: `End with a reveal, deadline, betrayal, or danger that forces the next chapter.${guidance}`,
         share: 0.2,
         beat: "Suspense turn",
       },

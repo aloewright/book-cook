@@ -1,5 +1,10 @@
 import { frameworkFor } from "./architect/frameworks";
-import type { FrameworkOutline, ProjectKind } from "./architect/frameworks/shared";
+import type {
+  CharacterArcGuidance,
+  FrameworkOutline,
+  ProjectKind,
+  ScenePlanGuidance,
+} from "./architect/frameworks/shared";
 
 export type GenerateOutlineInput = {
   title: string;
@@ -9,6 +14,8 @@ export type GenerateOutlineInput = {
   framework?: string;
   questionnaire: string;
   voiceProfile?: unknown;
+  characterArcs?: CharacterArcGuidance[];
+  scenePlan?: ScenePlanGuidance;
 };
 
 export function generateOutline(input: GenerateOutlineInput): FrameworkOutline {
@@ -27,5 +34,7 @@ export function generateOutline(input: GenerateOutlineInput): FrameworkOutline {
     targetWordCount: input.targetWordCount,
     questionnaire: input.questionnaire,
     voiceSummary,
+    characterArcs: input.characterArcs,
+    scenePlan: input.scenePlan,
   });
 }

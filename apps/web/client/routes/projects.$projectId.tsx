@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -38,6 +38,31 @@ const POSTPILOT_SUGGESTIONS = [
 ] as const;
 
 const FIELD_SLOT_IDS = ["one", "two", "three", "four", "five", "six", "seven"] as const;
+const CHARACTER_SLOT_IDS = [
+  "char-one",
+  "char-two",
+  "char-three",
+  "char-four",
+  "char-five",
+] as const;
+
+const CHARACTER_ARC_OPTIONS = [
+  { value: "positive-change", label: "Positive Change" },
+  { value: "flat", label: "Flat" },
+  { value: "disillusionment", label: "Disillusionment" },
+  { value: "fall", label: "Fall" },
+  { value: "corruption", label: "Corruption" },
+  { value: "redemption", label: "Redemption" },
+  { value: "static-foil", label: "Static / Foil" },
+] as const;
+
+type CharacterArcDraft = {
+  id: string;
+  name: string;
+  arc: string;
+  position: string;
+  sceneRole: string;
+};
 
 const OUTLINE_FRAMEWORKS = [
   {
@@ -525,6 +550,19 @@ function OutlineBuilder({ project }: { project: Project }) {
   const queryClient = useQueryClient();
   const [framework, setFramework] = useState(project.type === "fiction" ? "hero-journey" : "paas");
   const [questionnaire, setQuestionnaire] = useState("");
+  const [characters, setCharacters] = useState<CharacterArcDraft[]>([
+    {
+      id: CHARACTER_SLOT_IDS[0],
+      name: "",
+      arc: "positive-change",
+      position: "",
+      sceneRole: "",
+    },
+  ]);
+  const [defaultCast, setDefaultCast] = useState("");
+  const [miniStructure, setMiniStructure] = useState(
+    "Setup: scene goal, cast, and conflict. Turn: force a reversal, reveal, or choice. Fallout: end with a consequence that changes the next scene.",
+  );
   const availableFrameworks = OUTLINE_FRAMEWORKS.filter((item) => item.type === project.type);
   const selectedFramework =
     availableFrameworks.find((item) => item.id === framework) ?? availableFrameworks[0];
@@ -533,7 +571,27 @@ function OutlineBuilder({ project }: { project: Project }) {
     queryFn: () => api.getProjectOutline(project.id),
   });
   const generate = useMutation({
-    mutationFn: () => api.generateProjectOutline(project.id, { framework, questionnaire }),
+    mutationFn: () =>
+      api.generateProjectOutline(project.id, {
+        framework,
+        questionnaire,
+        ...(project.type === "fiction"
+          ? {
+              character_arcs: characters
+                .filter((character) => character.name.trim())
+                .map((character) => ({
+                  name: character.name.trim(),
+                  arc: characterArcLabel(character.arc),
+                  position: character.position.trim(),
+                  sceneRole: character.sceneRole.trim(),
+                })),
+              scene_plan: {
+                defaultCast: defaultCast.trim(),
+                miniStructure: miniStructure.trim(),
+              },
+            }
+          : {}),
+      }),
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
@@ -608,6 +666,106 @@ function OutlineBuilder({ project }: { project: Project }) {
               className="min-h-52 resize-y"
               required
             />
+            {project.type === "fiction" ? (
+              <div className="space-y-4 rounded-md border bg-muted/20 p-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Character arcs</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add each important character and where they should be in their arc for this
+                    outline.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {characters.map((character, index) => (
+                    <div key={character.id} className="rounded-md border bg-background p-3">
+                      <div className="grid gap-3">
+                        <Input
+                          aria-label={`Character ${index + 1} name`}
+                          value={character.name}
+                          onChange={(event) =>
+                            updateCharacter(setCharacters, character.id, {
+                              name: event.target.value,
+                            })
+                          }
+                          placeholder="Character name"
+                        />
+                        <Select
+                          value={character.arc}
+                          onValueChange={(value) =>
+                            updateCharacter(setCharacters, character.id, { arc: value })
+                          }
+                        >
+                          <SelectTrigger aria-label={`Character ${index + 1} arc`}>
+                            <SelectValue placeholder="Arc" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CHARACTER_ARC_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Textarea
+                          aria-label={`Character ${index + 1} arc position`}
+                          value={character.position}
+                          onChange={(event) =>
+                            updateCharacter(setCharacters, character.id, {
+                              position: event.target.value,
+                            })
+                          }
+                          placeholder="Where this character is in the arc at this point in the story..."
+                          className="min-h-20 resize-y"
+                        />
+                        <Input
+                          aria-label={`Character ${index + 1} scene role`}
+                          value={character.sceneRole}
+                          onChange={(event) =>
+                            updateCharacter(setCharacters, character.id, {
+                              sceneRole: event.target.value,
+                            })
+                          }
+                          placeholder="Scene role, relationship pressure, or conflict function"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={characters.length >= CHARACTER_SLOT_IDS.length}
+                  onClick={() =>
+                    setCharacters((current) => [
+                      ...current,
+                      {
+                        id: CHARACTER_SLOT_IDS[current.length],
+                        name: "",
+                        arc: "positive-change",
+                        position: "",
+                        sceneRole: "",
+                      },
+                    ])
+                  }
+                >
+                  Add character
+                </Button>
+                <div className="space-y-3">
+                  <Textarea
+                    value={defaultCast}
+                    onChange={(event) => setDefaultCast(event.target.value)}
+                    placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
+                    className="min-h-20 resize-y"
+                  />
+                  <Textarea
+                    value={miniStructure}
+                    onChange={(event) => setMiniStructure(event.target.value)}
+                    placeholder="Three-act mini scene structure..."
+                    className="min-h-24 resize-y"
+                  />
+                </div>
+              </div>
+            ) : null}
             <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
               {generate.isPending ? "Generating..." : "Generate outline"}
             </Button>
@@ -1221,6 +1379,20 @@ function validateDraftPack(pack: PublisherPack) {
     errors.push("Fill both BISAC categories.");
   }
   return errors;
+}
+
+function updateCharacter(
+  setCharacters: Dispatch<SetStateAction<CharacterArcDraft[]>>,
+  id: string,
+  patch: Partial<CharacterArcDraft>,
+) {
+  setCharacters((current) =>
+    current.map((character) => (character.id === id ? { ...character, ...patch } : character)),
+  );
+}
+
+function characterArcLabel(value: string) {
+  return CHARACTER_ARC_OPTIONS.find((option) => option.value === value)?.label ?? value;
 }
 
 function VoiceProfile({ voice, totalWords }: { voice?: Voice; totalWords: number }) {

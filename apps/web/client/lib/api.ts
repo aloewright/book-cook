@@ -105,6 +105,18 @@ export type ProjectOutline = {
   updated_at: number;
 };
 
+export type CharacterArcInput = {
+  name: string;
+  arc: string;
+  position: string;
+  sceneRole?: string;
+};
+
+export type ScenePlanInput = {
+  defaultCast?: string;
+  miniStructure?: string;
+};
+
 export type PublisherPack = {
   id: string;
   title: string;
@@ -238,7 +250,15 @@ export const api = {
     fetchJson<{ outline: ProjectOutline | null; chapters: Chapter[] }>(
       `/api/v1/projects/${id}/outline`,
     ),
-  generateProjectOutline: (id: string, input: { framework?: string; questionnaire: string }) =>
+  generateProjectOutline: (
+    id: string,
+    input: {
+      framework?: string;
+      questionnaire: string;
+      character_arcs?: CharacterArcInput[];
+      scene_plan?: ScenePlanInput;
+    },
+  ) =>
     fetchJson<{ id: string; outline: unknown; chapters_created: number }>(
       `/api/v1/projects/${id}/outlines`,
       {

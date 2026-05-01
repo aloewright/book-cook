@@ -41,6 +41,23 @@ const patchSchema = z.object({
 const outlineSchema = z.object({
   framework: z.string().max(80).optional(),
   questionnaire: z.string().min(1).max(20_000),
+  character_arcs: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(120),
+        arc: z.string().min(1).max(80),
+        position: z.string().max(500).default(""),
+        sceneRole: z.string().max(500).optional(),
+      }),
+    )
+    .max(12)
+    .optional(),
+  scene_plan: z
+    .object({
+      defaultCast: z.string().max(1000).optional(),
+      miniStructure: z.string().max(1000).optional(),
+    })
+    .optional(),
 });
 
 const publisherPackSchema = z.object({
@@ -782,6 +799,8 @@ projectsRoute.post("/:id/outlines", async (c) => {
     framework: body.framework,
     questionnaire: body.questionnaire,
     voiceProfile: voice?.profile_json,
+    characterArcs: p.type === "fiction" ? body.character_arcs : undefined,
+    scenePlan: p.type === "fiction" ? body.scene_plan : undefined,
   });
   const [{ versionMax }] = await db
     .select({ versionMax: sql<number>`coalesce(max(${outlines.version}), 0)` })

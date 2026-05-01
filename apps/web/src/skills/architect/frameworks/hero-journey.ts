@@ -1,4 +1,4 @@
-import { type Framework, chapter, chapterTarget, voiceDirection } from "./shared";
+import { type Framework, chapter, chapterTarget, fictionGuidance, voiceDirection } from "./shared";
 
 export const heroJourneyFramework: Framework = {
   id: "hero-journey",
@@ -10,10 +10,10 @@ export const heroJourneyFramework: Framework = {
     "What forces them out of the ordinary world?",
     "What choice proves they have changed?",
   ],
-  build({ title, genre, targetWordCount, questionnaire, voiceSummary }) {
+  build({ title, genre, targetWordCount, questionnaire, voiceSummary, characterArcs, scenePlan }) {
     const perChapter = chapterTarget(targetWordCount, 12);
     const context = questionnaire || `A ${genre || "fiction"} story titled ${title}.`;
-    const voice = voiceDirection(voiceSummary);
+    const guidance = `${voiceDirection(voiceSummary)}${fictionGuidance({ characterArcs, scenePlan })}`;
     const beats = [
       "Ordinary World",
       "Call to Adventure",
@@ -33,32 +33,36 @@ export const heroJourneyFramework: Framework = {
       acts: [
         {
           title: "Departure",
-          chapters: beats.slice(0, 4).map((beat) => heroChapter(beat, context, perChapter, voice)),
+          chapters: beats
+            .slice(0, 4)
+            .map((beat) => heroChapter(beat, context, perChapter, guidance)),
         },
         {
           title: "Initiation",
-          chapters: beats.slice(4, 9).map((beat) => heroChapter(beat, context, perChapter, voice)),
+          chapters: beats
+            .slice(4, 9)
+            .map((beat) => heroChapter(beat, context, perChapter, guidance)),
         },
         {
           title: "Return",
-          chapters: beats.slice(9).map((beat) => heroChapter(beat, context, perChapter, voice)),
+          chapters: beats.slice(9).map((beat) => heroChapter(beat, context, perChapter, guidance)),
         },
       ],
     };
   },
 };
 
-function heroChapter(beat: string, context: string, targetWords: number, voice: string) {
+function heroChapter(beat: string, context: string, targetWords: number, guidance: string) {
   return chapter(beat, `${beat}: ${context}`, targetWords, [
     {
       kind: "scene",
-      prompt: `Draft a scene that expresses the ${beat} beat.${voice}`,
+      prompt: `Draft a scene that expresses the ${beat} beat.${guidance}`,
       share: 0.7,
       beat,
     },
     {
       kind: "turn",
-      prompt: `End with a consequential turn that changes the protagonist's options.${voice}`,
+      prompt: `End with a consequential turn that changes the protagonist's options.${guidance}`,
       share: 0.3,
       beat: "Chapter turn",
     },

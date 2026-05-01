@@ -12,6 +12,7 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await page.getByRole("button", { name: /new book/i }).click();
 
   await page.getByRole("link", { name: /quiet operator/i }).click();
+  await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
 
   await page
@@ -33,7 +34,8 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await page.getByRole("link", { name: /back to workspace/i }).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+$/);
 
-  await page.getByRole("heading", { name: "Publish" }).scrollIntoViewIfNeeded();
+  await page.getByLabel("Go to Publish workflow").click();
+  await expect(page.getByRole("heading", { name: "Publish", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /generate seo pack/i }).click();
   await expect(page.getByRole("heading", { name: /kdp preview/i })).toBeVisible({
     timeout: 15_000,

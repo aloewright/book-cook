@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Download, FileText, LibraryBig, Pencil } from "lucide-react";
+import { CheckCircle2, Download, FileText, LibraryBig, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -109,6 +109,38 @@ function FullBookPage() {
           </Card>
 
           <Card className="p-4 shadow-none">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold">Export readiness</h2>
+            </div>
+            <div className="mt-4 space-y-2 text-sm">
+              <ReadinessRow
+                label="Drafted chapters"
+                ready={manuscript.drafted_chapters === manuscript.chapters.length}
+              />
+              <ReadinessRow label="PDF export" ready={manuscript.chapters.length > 0} />
+              <ReadinessRow label="EPUB export" ready={manuscript.chapters.length > 0} />
+            </div>
+          </Card>
+
+          {manuscript.chapters.length ? (
+            <Card className="p-4 shadow-none">
+              <h2 className="text-sm font-semibold">Chapters</h2>
+              <nav className="mt-3 grid gap-1">
+                {manuscript.chapters.map((chapter) => (
+                  <a
+                    key={chapter.ordinal}
+                    href={`#chapter-${chapter.ordinal}`}
+                    className="truncate rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    {chapter.ordinal}. {chapter.title}
+                  </a>
+                ))}
+              </nav>
+            </Card>
+          ) : null}
+
+          <Card className="p-4 shadow-none">
             <h2 className="text-sm font-semibold">Downloads</h2>
             <RenderJobsList jobs={exportableJobs} />
           </Card>
@@ -159,6 +191,15 @@ function FullBookPage() {
         )}
       </div>
     </section>
+  );
+}
+
+function ReadinessRow({ label, ready }: { label: string; ready: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <Badge variant={ready ? "default" : "secondary"}>{ready ? "Ready" : "Open"}</Badge>
+    </div>
   );
 }
 

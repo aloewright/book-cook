@@ -34,7 +34,7 @@ test("project concept can pull findings from Scout", async ({ page }) => {
   await page.getByRole("button", { name: /new book/i }).click();
   await page.getByRole("link", { name: /neurofounder systems/i }).click();
 
-  await expect(page.getByRole("heading", { name: "Concept" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /pull from scout/i }).click();
 
   await expect(page.getByText("Scout pulled")).toBeVisible();

@@ -14,6 +14,7 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByRole("button", { name: /new book/i }).click();
 
   await page.getByRole("link", { name: /signal garden/i }).click();
+  await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
   await page.getByRole("combobox", { name: /outline framework/i }).click();
   await page.getByRole("option", { name: /Sci-Fi World/i }).click();

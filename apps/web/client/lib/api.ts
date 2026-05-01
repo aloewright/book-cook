@@ -154,6 +154,7 @@ export type RenderJob = {
 export type ExportKind = "epub" | "pdf" | "kpf";
 
 export type FullBookChapter = {
+  id?: string;
   ordinal: number;
   title: string;
   summary: string;

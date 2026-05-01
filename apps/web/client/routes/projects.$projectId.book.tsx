@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Download, FileText, LibraryBig } from "lucide-react";
+import { Download, FileText, LibraryBig, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -132,6 +132,17 @@ function FullBookPage() {
                         {chapter.has_draft ? "Draft" : "Summary"}
                       </Badge>
                       <Badge variant="outline">{chapter.word_count.toLocaleString()} words</Badge>
+                      {chapter.id ? (
+                        <Button asChild size="sm" variant="outline">
+                          <Link
+                            to="/projects/$projectId/chapters/$chapterId"
+                            params={{ projectId, chapterId: chapter.id }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                   <div className="prose prose-neutral max-w-none dark:prose-invert">

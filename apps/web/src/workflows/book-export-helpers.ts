@@ -3,6 +3,7 @@ export const exportKinds: ExportKind[] = ["epub", "pdf", "kpf"];
 export const downloadableBookKinds: ExportKind[] = ["epub", "pdf"];
 
 export type ManuscriptChapterInput = {
+  id?: string;
   ordinal: number;
   title: string;
   summary: string;
@@ -10,6 +11,7 @@ export type ManuscriptChapterInput = {
 };
 
 export type FullBookChapter = {
+  id?: string;
   ordinal: number;
   title: string;
   summary: string;
@@ -48,6 +50,7 @@ export function fullBookView(title: string, rows: ManuscriptChapterInput[]): Ful
     const draft = chapter.draft_md.trim();
     const body = draft || chapter.summary.trim() || "_No draft text yet._";
     return {
+      id: chapter.id,
       ordinal: chapter.ordinal,
       title: chapter.title,
       summary: chapter.summary,

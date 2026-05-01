@@ -403,6 +403,7 @@ projectsRoute.get("/:id/book", async (c) => {
 
   const chapterRows = await db
     .select({
+      id: chapters.id,
       ordinal: chapters.ordinal,
       title: chapters.title,
       summary: chapters.summary,

@@ -65,6 +65,7 @@ describe("projects", () => {
     // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
     const bookBody = (await book.json()) as any;
     expect(bookBody.book.title).toBe("My Book");
+    expect(bookBody.book.chapters[0].id).toBe(chapterId);
     expect(bookBody.book.chapters[0].body_md).toBe("Finished chapter draft.");
     expect(bookBody.export_formats).toEqual(["epub", "pdf"]);
 

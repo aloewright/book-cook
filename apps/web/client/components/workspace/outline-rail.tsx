@@ -18,6 +18,10 @@ export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[nu
       const hash = window.location.hash.replace("#", "");
       if (MODES.some((mode) => mode.key === hash)) {
         setActiveMode(hash as (typeof MODES)[number]["key"]);
+        requestAnimationFrame(() => {
+          document.getElementById(hash)?.scrollIntoView({ block: "start" });
+          window.scrollTo(0, 0);
+        });
       }
     };
     syncHash();
@@ -32,13 +36,18 @@ export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[nu
       </div>
       <div className="flex flex-col gap-0.5">
         {MODES.map((m) => (
-          <a
+          <button
             key={m.key}
-            href={`#${m.key}`}
+            type="button"
             aria-label={`Go to ${m.label} workflow`}
-            onClick={() => setActiveMode(m.key)}
+            onClick={() => {
+              setActiveMode(m.key);
+              document.getElementById(m.key)?.scrollIntoView({ block: "start" });
+              history.replaceState(null, "", `#${m.key}`);
+              window.scrollTo(0, 0);
+            }}
             className={cn(
-              "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
               activeMode === m.key
                 ? "bg-primary text-primary-foreground"
                 : "text-foreground hover:bg-accent",
@@ -46,7 +55,7 @@ export function OutlineRail({ active = "concept" }: { active?: (typeof MODES)[nu
           >
             <span aria-hidden>{m.icon}</span>
             <span>{m.label}</span>
-          </a>
+          </button>
         ))}
       </div>
     </aside>

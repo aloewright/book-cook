@@ -1,6 +1,8 @@
 import { frameworkFor } from "./architect/frameworks";
 import type {
+  ChapterPlanGuidance,
   CharacterArcGuidance,
+  FrameworkChapter,
   FrameworkOutline,
   ProjectKind,
   ScenePlanGuidance,
@@ -16,6 +18,7 @@ export type GenerateOutlineInput = {
   voiceProfile?: unknown;
   characterArcs?: CharacterArcGuidance[];
   scenePlan?: ScenePlanGuidance;
+  chapterPlan?: ChapterPlanGuidance[];
 };
 
 export function generateOutline(input: GenerateOutlineInput): FrameworkOutline {
@@ -28,7 +31,7 @@ export function generateOutline(input: GenerateOutlineInput): FrameworkOutline {
       ? input.voiceProfile.summary
       : undefined;
 
-  return framework.build({
+  const outline = framework.build({
     title: input.title,
     genre: input.genre,
     targetWordCount: input.targetWordCount,
@@ -36,5 +39,59 @@ export function generateOutline(input: GenerateOutlineInput): FrameworkOutline {
     voiceSummary,
     characterArcs: input.characterArcs,
     scenePlan: input.scenePlan,
+    chapterPlan: input.chapterPlan,
   });
+  return applyChapterPlan(outline, input.chapterPlan);
+}
+
+function applyChapterPlan(
+  outline: FrameworkOutline,
+  chapterPlan: ChapterPlanGuidance[] | undefined,
+): FrameworkOutline {
+  const plansByOrdinal = new Map(
+    (chapterPlan ?? [])
+      .filter((plan) => plan.event.trim())
+      .map((plan) => [plan.ordinal, plan] as const),
+  );
+  if (!plansByOrdinal.size) return outline;
+
+  let ordinal = 1;
+  return {
+    ...outline,
+    acts: outline.acts.map((act) => ({
+      ...act,
+      chapters: act.chapters.map((chapter) => {
+        const plan = plansByOrdinal.get(ordinal);
+        ordinal += 1;
+        return plan ? applyPlanToChapter(chapter, plan) : chapter;
+      }),
+    })),
+  };
+}
+
+function applyPlanToChapter(
+  chapter: FrameworkChapter,
+  plan: ChapterPlanGuidance,
+): FrameworkChapter {
+  const plannedContext = chapterPlanContext(plan);
+  return {
+    ...chapter,
+    title: plan.title?.trim() || chapter.title,
+    summary: `${chapter.summary} Chapter decision: ${plannedContext}`,
+    sections: chapter.sections.map((section) => ({
+      ...section,
+      prompt: `${section.prompt} Chapter decision: ${plannedContext}`,
+    })),
+  };
+}
+
+function chapterPlanContext(plan: ChapterPlanGuidance) {
+  return [
+    `event: ${plan.event.trim()}`,
+    plan.purpose?.trim() ? `purpose: ${plan.purpose.trim()}` : "",
+    plan.pov?.trim() ? `POV: ${plan.pov.trim()}` : "",
+    plan.characters?.trim() ? `characters: ${plan.characters.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
 }

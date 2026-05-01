@@ -39,6 +39,22 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
 
   const editor = page.locator('[data-testid="chapter-editor"] [contenteditable="true"]').first();
   await expect(editor).toContainText("concrete moment", { timeout: 10_000 });
+  await page.evaluate(() => document.documentElement.classList.add("dark"));
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const editorSurface = document.querySelector("[data-testid='chapter-editor'] .bn-editor");
+        const editable = document.querySelector("[data-testid='chapter-editor'] [contenteditable]");
+        if (!editorSurface || !editable) return false;
+        const surfaceStyle = getComputedStyle(editorSurface);
+        const editableStyle = getComputedStyle(editable);
+        return (
+          surfaceStyle.backgroundColor !== "rgb(255, 255, 255)" &&
+          editableStyle.color !== "rgb(0, 0, 0)"
+        );
+      }),
+    )
+    .toBe(true);
   await editor.click();
   await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
   await page.keyboard.type("This chapter opens with a concrete operator under pressure.");

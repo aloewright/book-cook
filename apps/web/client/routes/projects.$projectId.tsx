@@ -64,6 +64,15 @@ type CharacterArcDraft = {
   sceneRole: string;
 };
 
+type ChapterPlanDraft = {
+  id: string;
+  title: string;
+  event: string;
+  purpose: string;
+  pov: string;
+  characters: string;
+};
+
 const OUTLINE_FRAMEWORKS = [
   {
     id: "paas",
@@ -563,6 +572,9 @@ function OutlineBuilder({ project }: { project: Project }) {
   const [miniStructure, setMiniStructure] = useState(
     "Setup: scene goal, cast, and conflict. Turn: force a reversal, reveal, or choice. Fallout: end with a consequence that changes the next scene.",
   );
+  const [chapterPlan, setChapterPlan] = useState(() =>
+    createChapterPlanDrafts(project.type === "fiction" ? 12 : 10),
+  );
   const availableFrameworks = OUTLINE_FRAMEWORKS.filter((item) => item.type === project.type);
   const selectedFramework =
     availableFrameworks.find((item) => item.id === framework) ?? availableFrameworks[0];
@@ -575,6 +587,17 @@ function OutlineBuilder({ project }: { project: Project }) {
       api.generateProjectOutline(project.id, {
         framework,
         questionnaire,
+        chapter_plan: chapterPlan
+          .map((chapter, index) => ({ chapter, index }))
+          .filter(({ chapter }) => chapter.event.trim())
+          .map(({ chapter, index }) => ({
+            ordinal: index + 1,
+            title: chapter.title.trim(),
+            event: chapter.event.trim(),
+            purpose: chapter.purpose.trim(),
+            pov: chapter.pov.trim(),
+            characters: chapter.characters.trim(),
+          })),
         ...(project.type === "fiction"
           ? {
               character_arcs: characters
@@ -666,6 +689,117 @@ function OutlineBuilder({ project }: { project: Project }) {
               className="min-h-52 resize-y"
               required
             />
+            <div className="space-y-4 rounded-md border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Decide what happens in each chapter before generating summaries.
+                  </p>
+                </div>
+                <Badge variant="secondary">{chapterPlan.length} planned slots</Badge>
+              </div>
+              <div className="space-y-3">
+                {chapterPlan.map((chapter, index) => (
+                  <div key={chapter.id} className="rounded-md border bg-background p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold">Chapter {index + 1}</h3>
+                      {chapter.event.trim() ? (
+                        <Badge>Decision set</Badge>
+                      ) : (
+                        <Badge variant="secondary">Open</Badge>
+                      )}
+                    </div>
+                    <div className="grid gap-3">
+                      <Input
+                        aria-label={`Chapter ${index + 1} working title`}
+                        value={chapter.title}
+                        onChange={(event) =>
+                          updateChapterPlan(setChapterPlan, chapter.id, {
+                            title: event.target.value,
+                          })
+                        }
+                        placeholder="Working title"
+                      />
+                      <Textarea
+                        aria-label={`Chapter ${index + 1} what happens`}
+                        value={chapter.event}
+                        onChange={(event) =>
+                          updateChapterPlan(setChapterPlan, chapter.id, {
+                            event: event.target.value,
+                          })
+                        }
+                        placeholder={
+                          project.type === "fiction"
+                            ? "What visibly happens in this chapter?"
+                            : "What claim, lesson, story, or exercise happens in this chapter?"
+                        }
+                        className="min-h-20 resize-y"
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input
+                          aria-label={`Chapter ${index + 1} purpose`}
+                          value={chapter.purpose}
+                          onChange={(event) =>
+                            updateChapterPlan(setChapterPlan, chapter.id, {
+                              purpose: event.target.value,
+                            })
+                          }
+                          placeholder="Purpose or turn"
+                        />
+                        <Input
+                          aria-label={`Chapter ${index + 1} POV`}
+                          value={chapter.pov}
+                          onChange={(event) =>
+                            updateChapterPlan(setChapterPlan, chapter.id, {
+                              pov: event.target.value,
+                            })
+                          }
+                          placeholder={project.type === "fiction" ? "POV" : "Reader state"}
+                        />
+                      </div>
+                      <Input
+                        aria-label={`Chapter ${index + 1} characters`}
+                        value={chapter.characters}
+                        onChange={(event) =>
+                          updateChapterPlan(setChapterPlan, chapter.id, {
+                            characters: event.target.value,
+                          })
+                        }
+                        placeholder={
+                          project.type === "fiction"
+                            ? "Characters in play"
+                            : "Examples, experts, or case studies in play"
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={chapterPlan.length >= 40}
+                  onClick={() =>
+                    setChapterPlan((current) => [
+                      ...current,
+                      createChapterPlanDraft(current.length + 1),
+                    ])
+                  }
+                >
+                  Add chapter slot
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={chapterPlan.length <= 1}
+                  onClick={() => setChapterPlan((current) => current.slice(0, -1))}
+                >
+                  Remove slot
+                </Button>
+              </div>
+            </div>
             {project.type === "fiction" ? (
               <div className="space-y-4 rounded-md border bg-muted/20 p-3">
                 <div>
@@ -1388,6 +1522,31 @@ function updateCharacter(
 ) {
   setCharacters((current) =>
     current.map((character) => (character.id === id ? { ...character, ...patch } : character)),
+  );
+}
+
+function createChapterPlanDrafts(count: number) {
+  return Array.from({ length: count }, (_, index) => createChapterPlanDraft(index + 1));
+}
+
+function createChapterPlanDraft(ordinal: number): ChapterPlanDraft {
+  return {
+    id: `chapter-plan-${ordinal}`,
+    title: "",
+    event: "",
+    purpose: "",
+    pov: "",
+    characters: "",
+  };
+}
+
+function updateChapterPlan(
+  setChapterPlan: Dispatch<SetStateAction<ChapterPlanDraft[]>>,
+  id: string,
+  patch: Partial<ChapterPlanDraft>,
+) {
+  setChapterPlan((current) =>
+    current.map((chapter) => (chapter.id === id ? { ...chapter, ...patch } : chapter)),
   );
 }
 

@@ -112,6 +112,32 @@ describe("architect outline generation", () => {
     expect(firstPrompt).toContain("Setup the discovery");
   });
 
+  it("applies chapter decisions before summaries and prompts are created", () => {
+    const outline = generateOutline({
+      title: "Signal Garden",
+      type: "fiction",
+      targetWordCount: 84_000,
+      framework: "sci-fi",
+      questionnaire: "A botanist discovers plants that store memories from future colonists.",
+      chapterPlan: [
+        {
+          ordinal: 1,
+          title: "The Memory Orchard",
+          event: "Mara finds a greenhouse tree replaying a future evacuation.",
+          purpose: "Prove the premise with a visible event.",
+          pov: "Mara",
+          characters: "Mara, Ivo",
+        },
+      ],
+    });
+
+    const firstChapter = outline.acts[0].chapters[0];
+    expect(firstChapter.title).toBe("The Memory Orchard");
+    expect(firstChapter.summary).toContain("future evacuation");
+    expect(firstChapter.summary).toContain("Prove the premise");
+    expect(firstChapter.sections[0].prompt).toContain("Mara, Ivo");
+  });
+
   it("does not apply a framework from the wrong project type", () => {
     const outline = generateOutline({
       title: "Better Systems",

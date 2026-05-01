@@ -117,6 +117,15 @@ export type ScenePlanInput = {
   miniStructure?: string;
 };
 
+export type ChapterPlanInput = {
+  ordinal: number;
+  title?: string;
+  event: string;
+  purpose?: string;
+  pov?: string;
+  characters?: string;
+};
+
 export type PublisherPack = {
   id: string;
   title: string;
@@ -257,6 +266,7 @@ export const api = {
       questionnaire: string;
       character_arcs?: CharacterArcInput[];
       scene_plan?: ScenePlanInput;
+      chapter_plan?: ChapterPlanInput[];
     },
   ) =>
     fetchJson<{ id: string; outline: unknown; chapters_created: number }>(

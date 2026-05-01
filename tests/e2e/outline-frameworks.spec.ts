@@ -22,6 +22,14 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page
     .getByPlaceholder(/Protagonist, want, weakness/i)
     .fill("A botanist discovers plants that store memories from future colonists.");
+  await expect(page.getByRole("heading", { name: /chapter decision board/i })).toBeVisible();
+  await page.getByLabel("Chapter 1 working title").fill("The Memory Orchard");
+  await page
+    .getByLabel("Chapter 1 what happens")
+    .fill("Mara finds a greenhouse tree replaying a future evacuation.");
+  await page.getByLabel("Chapter 1 purpose").fill("Prove the premise with a visible event.");
+  await page.getByLabel("Chapter 1 POV").fill("Mara");
+  await page.getByLabel("Chapter 1 characters").fill("Mara, Ivo");
   await page.getByLabel("Character 1 name").fill("Mara");
   await page.getByRole("combobox", { name: "Character 1 arc", exact: true }).click();
   await page.getByRole("option", { name: "Positive Change", exact: true }).click();
@@ -39,6 +47,8 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByPlaceholder(/Default scene cast/i).fill("Use Mara and Ivo in discovery scenes.");
   await page.getByRole("button", { name: /generate outline/i }).click();
 
-  await expect(page.getByText(/1\. World signal/)).toBeVisible();
+  const plannedChapter = page.getByRole("link", { name: /1\. The Memory Orchard/ });
+  await expect(plannedChapter).toBeVisible();
+  await expect(plannedChapter).toContainText(/future evacuation/);
   await expect(page.getByText(/14 chapters/)).toBeVisible();
 });

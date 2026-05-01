@@ -58,6 +58,19 @@ const outlineSchema = z.object({
       miniStructure: z.string().max(1000).optional(),
     })
     .optional(),
+  chapter_plan: z
+    .array(
+      z.object({
+        ordinal: z.number().int().min(1).max(80),
+        title: z.string().max(160).optional(),
+        event: z.string().min(1).max(1200),
+        purpose: z.string().max(800).optional(),
+        pov: z.string().max(120).optional(),
+        characters: z.string().max(500).optional(),
+      }),
+    )
+    .max(80)
+    .optional(),
 });
 
 const publisherPackSchema = z.object({
@@ -801,6 +814,7 @@ projectsRoute.post("/:id/outlines", async (c) => {
     voiceProfile: voice?.profile_json,
     characterArcs: p.type === "fiction" ? body.character_arcs : undefined,
     scenePlan: p.type === "fiction" ? body.scene_plan : undefined,
+    chapterPlan: body.chapter_plan,
   });
   const [{ versionMax }] = await db
     .select({ versionMax: sql<number>`coalesce(max(${outlines.version}), 0)` })

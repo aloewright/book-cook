@@ -24,6 +24,15 @@ export type ScenePlanGuidance = {
   miniStructure?: string;
 };
 
+export type ChapterPlanGuidance = {
+  ordinal: number;
+  title?: string;
+  event: string;
+  purpose?: string;
+  pov?: string;
+  characters?: string;
+};
+
 export type FrameworkOutline = {
   framework: string;
   acts: {
@@ -45,6 +54,7 @@ export type Framework = {
     voiceSummary?: string;
     characterArcs?: CharacterArcGuidance[];
     scenePlan?: ScenePlanGuidance;
+    chapterPlan?: ChapterPlanGuidance[];
   }): FrameworkOutline;
 };
 

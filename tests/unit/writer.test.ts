@@ -47,6 +47,37 @@ describe("writer section drafting", () => {
     vi.unstubAllGlobals();
   });
 
+  it("tells gateway drafting to continue from existing chapter prose", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "## Continuation\n\nThe next scene continues." } }],
+          usage: { prompt_tokens: 20, completion_tokens: 8 },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await draftSection(
+      {
+        AI_GATEWAY_BASE_URL: "https://gateway.example/compat",
+        AI_GATEWAY_TOKEN: "tok",
+      },
+      {
+        ...input,
+        currentChapterDraft: "Amaya entered NovaTech and met Zeta in orientation.",
+      },
+    );
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.messages[1].content).toContain("Current chapter draft so far");
+    expect(body.messages[1].content).toContain("Continue after this material");
+    expect(body.messages[1].content).toContain("do not restart the chapter");
+    expect(body.messages[1].content).toContain("Amaya entered NovaTech");
+
+    vi.unstubAllGlobals();
+  });
+
   it("returns deterministic inline edits without gateway credentials", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: minimal env stub for unit test
     const result = await reviseInlineText({} as any, {

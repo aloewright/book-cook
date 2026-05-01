@@ -80,6 +80,16 @@ describe("chapters", () => {
     expect(chapter.draft_md).toContain("saved chapter");
     expect(chapter.status).toBe("drafting");
 
+    const additiveDraft = await SELF.fetch(
+      `http://x/api/v1/chapters/${chapterId}/sections/${sections.items[1].id}/draft`,
+      { method: "POST", headers },
+    );
+    expect(additiveDraft.status).toBe(200);
+    // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
+    const additiveSection = (await additiveDraft.json()) as any;
+    expect(additiveSection.section.draft_md).toContain("Continue from the current chapter draft");
+    expect(additiveSection.section.draft_md).toContain("without replaying its opening");
+
     const revise = await SELF.fetch(`http://x/api/v1/chapters/${chapterId}/revise`, {
       method: "POST",
       headers,

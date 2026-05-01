@@ -10,6 +10,7 @@ export type SectionDraftInput = {
   prompt: string;
   voiceProfile?: unknown;
   previousDraft?: string;
+  currentChapterDraft?: string;
 };
 
 export type SectionDraftResult = {
@@ -74,7 +75,12 @@ export async function draftSection(
             ? `Voice profile JSON: ${JSON.stringify(input.voiceProfile).slice(0, 6000)}`
             : "",
           input.previousDraft ? `Existing section draft to improve:\n${input.previousDraft}` : "",
-          "Draft 350-650 words with strong continuity and concrete details.",
+          input.currentChapterDraft
+            ? `Current chapter draft so far. Continue after this material; do not restart the chapter, repeat the opening, rename established companies/characters, or restate already-written beats:\n${input.currentChapterDraft.slice(0, 12000)}`
+            : "",
+          input.currentChapterDraft
+            ? "Draft only the next additive section, 350-650 words, with strong continuity from the current ending."
+            : "Draft 350-650 words with strong continuity and concrete details.",
         ]
           .filter(Boolean)
           .join("\n\n"),
@@ -142,14 +148,17 @@ export async function reviseInlineText(
 
 function deterministicDraft(input: SectionDraftInput): SectionDraftResult {
   const prompt = input.prompt || input.chapterSummary || "Build the next useful section.";
+  const continuation = input.currentChapterDraft?.trim()
+    ? `Continue from the current chapter draft without replaying its opening or changing established names. The next section should add new material for ${titleCase(input.kind)}.`
+    : `${input.chapterTitle} needs a section that turns the promise of the chapter into usable momentum.`;
   const markdown = normalizeDraft(`## ${titleCase(input.kind)}
 
-${input.chapterTitle} needs a section that turns the promise of the chapter into usable momentum. ${prompt}
+${continuation} ${prompt}
 
-Start with a concrete moment: the reader is facing the cost of the old pattern and needs a cleaner way forward. Name the tension plainly, then show the practical shift that resolves it.
+Start with a concrete moment that follows what is already on the page. Name the new tension plainly, then show the practical shift that resolves it.
 
-- Establish the immediate problem in the reader's own language.
-- Show the new move with one specific example.
+- Add the next distinct problem, clue, scene turn, or teaching move.
+- Preserve established names, setting, and continuity.
 - Close by connecting the section back to the chapter promise: ${input.chapterSummary || input.chapterTitle}.`);
 
   return {

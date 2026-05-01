@@ -8,6 +8,20 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByRole("button", { name: /create account/i }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByLabel("Settings").click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await page.getByRole("button", { name: "Dark" }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))
+    .toBe(true);
+  await page.getByRole("button", { name: "Light" }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))
+    .toBe(false);
+  await page.getByRole("button", { name: "System" }).click();
+  await page.getByLabel("Dashboard").click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
   await page.getByPlaceholder("Working title…").fill("Quiet Operator");
   await page.getByRole("button", { name: /new book/i }).click();
 

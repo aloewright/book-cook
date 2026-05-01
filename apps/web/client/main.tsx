@@ -3,8 +3,12 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { queryClient } from "./lib/api";
+import { applyThemePreference, watchSystemTheme } from "./lib/theme";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
+
+applyThemePreference();
+watchSystemTheme();
 
 const router = createRouter({ routeTree });
 declare module "@tanstack/react-router" {

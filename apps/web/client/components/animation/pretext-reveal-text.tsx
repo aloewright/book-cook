@@ -10,6 +10,7 @@ type PretextRevealTextProps = {
   font?: string;
   lineHeight?: number;
   delay?: number;
+  minWidthToAnimate?: number;
   stagger?: number;
   children?: never;
 };
@@ -21,6 +22,7 @@ export function PretextRevealText({
   font = "14px Inter, ui-sans-serif, system-ui, sans-serif",
   lineHeight = 20,
   delay = 0,
+  minWidthToAnimate = 96,
   stagger = 0.045,
 }: PretextRevealTextProps) {
   const ref = useRef<HTMLElement | null>(null);
@@ -38,14 +40,14 @@ export function PretextRevealText({
   }, []);
 
   const lines = useMemo(() => {
-    if (!width || !text.trim()) return null;
+    if (!width || width < minWidthToAnimate || !text.trim()) return null;
     try {
       const prepared = prepareWithSegments(text, font);
       return layoutWithLines(prepared, width, lineHeight).lines.map((line) => line.text);
     } catch {
       return null;
     }
-  }, [font, lineHeight, text, width]);
+  }, [font, lineHeight, minWidthToAnimate, text, width]);
 
   if (reduceMotion || !lines?.length) {
     return (

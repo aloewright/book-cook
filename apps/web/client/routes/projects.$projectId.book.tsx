@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
 import { CheckCircle2, Download, FileText, LibraryBig, Pencil } from "lucide-react";
 import { type ReactNode, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { MotionItem, MotionList } from "../components/animation/motion";
-import { PretextRevealText } from "../components/animation/pretext-reveal-text";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -46,12 +43,7 @@ function FullBookPage() {
   );
 
   return (
-    <motion.section
-      className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
-    >
+    <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
         <div>
           <Button asChild variant="ghost" className="-ml-3 mb-3">
@@ -60,13 +52,7 @@ function FullBookPage() {
             </Link>
           </Button>
           <div className="flex flex-wrap items-center gap-3">
-            <PretextRevealText
-              as="h1"
-              text="Full book"
-              className="text-3xl font-semibold"
-              font="30px Inter, ui-sans-serif, system-ui, sans-serif"
-              lineHeight={36}
-            />
+            <h1 className="text-3xl font-semibold">Full book</h1>
             <Badge variant="secondary">{project.title}</Badge>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -162,51 +148,43 @@ function FullBookPage() {
           <article className="min-w-0 rounded-lg border bg-background px-6 py-8 sm:px-10">
             <header className="border-b pb-8 text-center">
               <p className="text-sm font-semibold uppercase text-muted-foreground">Manuscript</p>
-              <PretextRevealText
-                as="h2"
-                text={manuscript.title}
-                className="mt-3 text-4xl font-semibold"
-                font="36px Inter, ui-sans-serif, system-ui, sans-serif"
-                lineHeight={44}
-              />
+              <h2 className="mt-3 text-4xl font-semibold">{manuscript.title}</h2>
             </header>
-            <MotionList className="mt-8 space-y-10">
+            <div className="mt-8 space-y-10">
               {manuscript.chapters.map((chapter) => (
-                <MotionItem key={chapter.ordinal}>
-                  <section id={`chapter-${chapter.ordinal}`} className="scroll-mt-8">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                      <PretextRevealText
-                        as="h3"
-                        text={`${chapter.ordinal}. ${chapter.title}`}
-                        className="text-2xl font-semibold"
-                        font="24px Inter, ui-sans-serif, system-ui, sans-serif"
-                        lineHeight={32}
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant={chapter.has_draft ? "default" : "secondary"}>
-                          {chapter.has_draft ? "Draft" : "Summary"}
-                        </Badge>
-                        <Badge variant="outline">{chapter.word_count.toLocaleString()} words</Badge>
-                        {chapter.id ? (
-                          <Button asChild size="sm" variant="outline">
-                            <Link
-                              to="/projects/$projectId/chapters/$chapterId"
-                              params={{ projectId, chapterId: chapter.id }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </Link>
-                          </Button>
-                        ) : null}
-                      </div>
+                <section
+                  key={chapter.ordinal}
+                  id={`chapter-${chapter.ordinal}`}
+                  className="scroll-mt-8"
+                >
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                    <h3 className="text-2xl font-semibold">
+                      {chapter.ordinal}. {chapter.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={chapter.has_draft ? "default" : "secondary"}>
+                        {chapter.has_draft ? "Draft" : "Summary"}
+                      </Badge>
+                      <Badge variant="outline">{chapter.word_count.toLocaleString()} words</Badge>
+                      {chapter.id ? (
+                        <Button asChild size="sm" variant="outline">
+                          <Link
+                            to="/projects/$projectId/chapters/$chapterId"
+                            params={{ projectId, chapterId: chapter.id }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                      ) : null}
                     </div>
-                    <div className="prose prose-neutral max-w-none dark:prose-invert">
-                      <ReactMarkdown>{chapter.body_md}</ReactMarkdown>
-                    </div>
-                  </section>
-                </MotionItem>
+                  </div>
+                  <div className="prose prose-neutral max-w-none dark:prose-invert">
+                    <ReactMarkdown>{chapter.body_md}</ReactMarkdown>
+                  </div>
+                </section>
               ))}
-            </MotionList>
+            </div>
           </article>
         ) : (
           <Card className="border-dashed p-8 text-center text-muted-foreground shadow-none">
@@ -214,7 +192,7 @@ function FullBookPage() {
           </Card>
         )}
       </div>
-    </motion.section>
+    </section>
   );
 }
 

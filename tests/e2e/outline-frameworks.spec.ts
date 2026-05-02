@@ -17,6 +17,12 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
   await expect(page.getByTestId("book-flow-preview")).toBeVisible();
+  const frameworkQuestion = page.getByText("Who is the protagonist and what do they want?");
+  await expect(frameworkQuestion).toBeVisible();
+  const frameworkQuestionBox = await frameworkQuestion.boundingBox();
+  expect(frameworkQuestionBox).not.toBeNull();
+  expect(frameworkQuestionBox?.width).toBeGreaterThan(240);
+  expect(frameworkQuestionBox?.height).toBeLessThan(80);
   await page.getByRole("combobox", { name: /outline framework/i }).click();
   await page.getByRole("option", { name: /Sci-Fi World/i }).click();
   await expect(page.getByText(/Speculative premise, world rules/i)).toBeVisible();

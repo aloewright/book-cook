@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CheckCircle2, CircleAlert, Search } from "lucide-react";
 import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
@@ -210,6 +210,7 @@ const WORKFLOW_COPY: Record<WorkflowKey, { title: string; description: string }>
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [workflow, setWorkflow] = useState<WorkflowKey>(() => workflowFromHash());
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
@@ -265,11 +266,11 @@ function ProjectWorkspace() {
           statuses={statuses}
           onSelect={(mode) => {
             if (mode === "book") {
-              window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/book`);
+              void navigate({ to: "/projects/$projectId/book", params: { projectId } });
               return;
             }
             if (mode === "launch") {
-              window.location.assign(`${window.location.pathname.replace(/\/$/, "")}/launch`);
+              void navigate({ to: "/projects/$projectId/launch", params: { projectId } });
               return;
             }
             setWorkflow(mode);

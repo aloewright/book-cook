@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 test("sign-up → create project → open workspace → chat", async ({ page }) => {
+  await page.addInitScript(() => {
+    const target = window as unknown as { __bookCookLoadCount?: number };
+    target.__bookCookLoadCount = (target.__bookCookLoadCount ?? 0) + 1;
+  });
   const email = `u-${Date.now()}@x.test`;
   await page.goto("/sign-up");
   await page.getByPlaceholder("email").fill(email);
@@ -94,6 +98,34 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
       }),
     )
     .toEqual({ overflow: 0, scrollY: 0 });
+
+  const loadCountBeforeRouteSwitch = await page.evaluate(
+    () => (window as unknown as Record<string, number>).__bookCookLoadCount,
+  );
+  await page.getByLabel("Go to Book workflow").click();
+  await expect(page).toHaveURL(/\/book$/);
+  await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeRouteSwitch);
+  await page.getByRole("link", { name: "Back to workspace" }).click();
+  await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PromiseRejectionEvent("unhandledrejection", {
+        promise: Promise.resolve(),
+        reason: new Error("Failed to fetch dynamically imported module"),
+      }),
+    );
+  });
+  await expect(page.getByText("Update ready")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeRouteSwitch);
 
   // Aloysius accepts the message and starts a response turn.
   await page.getByPlaceholder("Ask Aloysius…").fill("hello");

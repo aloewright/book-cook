@@ -13,11 +13,21 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
     .toBe("book-cook-light");
+  const bookCookPrimary = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue("--primary").trim(),
+  );
   await page.getByLabel("Color theme").click();
   await page.getByRole("option", { name: "GitHub" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
     .toBe("github-light");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--primary").trim(),
+      ),
+    )
+    .not.toBe(bookCookPrimary);
   await page.getByRole("button", { name: "Dark" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))

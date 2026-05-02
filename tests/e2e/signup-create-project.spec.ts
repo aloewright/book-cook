@@ -12,11 +12,19 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
-    .toBe("book-cook-tweakcn");
+    .toBe("book-cook-light");
+  await page.getByLabel("Color theme").click();
+  await page.getByRole("option", { name: "GitHub" }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+    .toBe("github-light");
   await page.getByRole("button", { name: "Dark" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))
     .toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+    .toBe("github-dark");
   await page.getByRole("button", { name: "Light" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))

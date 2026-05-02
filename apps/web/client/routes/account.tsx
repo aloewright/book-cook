@@ -5,9 +5,23 @@ import { useEffect, useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { api, queryKeys } from "../lib/api";
 import { authClient } from "../lib/auth-client";
-import { type ThemePreference, getThemePreference, setThemePreference } from "../lib/theme";
+import {
+  type ThemePreference,
+  getColorTheme,
+  getThemePreference,
+  setColorTheme,
+  setThemePreference,
+} from "../lib/theme";
+import { colorThemes } from "../lib/tweakcn-themes";
 
 export const Route = createFileRoute("/account")({ component: SettingsPage });
 
@@ -20,9 +34,11 @@ const THEME_OPTIONS = [
 function SettingsPage() {
   const me = useQuery({ queryKey: queryKeys.me(), queryFn: api.me });
   const [theme, setTheme] = useState<ThemePreference>("system");
+  const [colorTheme, setSelectedColorTheme] = useState("book-cook");
 
   useEffect(() => {
     setTheme(getThemePreference());
+    setSelectedColorTheme(getColorTheme());
   }, []);
 
   return (
@@ -51,6 +67,49 @@ function SettingsPage() {
                   {option.label}
                 </Button>
               ))}
+            </div>
+            <div className="mt-5 grid gap-2">
+              <label htmlFor="color-theme" className="text-sm font-medium">
+                Color theme
+              </label>
+              <Select
+                value={colorTheme}
+                onValueChange={(value) => {
+                  setSelectedColorTheme(value);
+                  setColorTheme(value);
+                }}
+              >
+                <SelectTrigger id="color-theme" aria-label="Color theme">
+                  <SelectValue placeholder="Choose a tweakcn theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {colorThemes.map((item) => (
+                    <SelectItem key={item.name} value={item.name}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {colorThemes
+                .filter((item) => item.name === colorTheme)
+                .map((item) => (
+                  <div
+                    key={item.name}
+                    className="grid gap-3 rounded-md border bg-muted/30 p-3 text-sm sm:grid-cols-[auto_auto_1fr] sm:items-center"
+                  >
+                    <span
+                      aria-hidden
+                      className="h-5 w-5 rounded-full border"
+                      style={{ backgroundColor: item.primaryLight }}
+                    />
+                    <span
+                      aria-hidden
+                      className="h-5 w-5 rounded-full border"
+                      style={{ backgroundColor: item.primaryDark }}
+                    />
+                    <span className="min-w-0 truncate text-muted-foreground">{item.fontSans}</span>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>

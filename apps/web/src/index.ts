@@ -36,6 +36,12 @@ app.onError((err, c) => {
 
 app.route("/api/v1/health", healthRoute);
 
+app.get("/api/v1/session", async (c) => {
+  const auth = createAuth(c.env);
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  return c.json({ user: session?.user ?? null });
+});
+
 // Intercept Better Auth's error endpoint so we can show the error to the user
 app.get("/api/auth/error", (c) => {
   const url = new URL(c.req.url);

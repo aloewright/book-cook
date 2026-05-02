@@ -1,7 +1,7 @@
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useAgent } from "agents/react";
 import { Send, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -14,8 +14,21 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
   const [connected, setConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const smoothScrollReady = useRef(false);
 
   const isStreaming = status === "streaming" || status === "submitted";
+  const messageScrollKey = useMemo(
+    () =>
+      messages
+        .map((message) => {
+          const textLength = message.parts
+            .filter((part): part is { type: "text"; text: string } => part.type === "text")
+            .reduce((sum, part) => sum + part.text.length, 0);
+          return `${message.id}:${textLength}`;
+        })
+        .join("|"),
+    [messages],
+  );
 
   useEffect(() => {
     const sock = agent as unknown as WebSocket;
@@ -31,8 +44,19 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
   }, [agent]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  });
+    void messageScrollKey;
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollTo({
+      top: node.scrollHeight,
+      behavior: smoothScrollReady.current ? "smooth" : "auto",
+    });
+    if (smoothScrollReady.current) return;
+    const id = window.setTimeout(() => {
+      smoothScrollReady.current = true;
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [messageScrollKey]);
 
   function submit() {
     const text = input.trim();
@@ -43,7 +67,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
   }
 
   return (
-    <aside className="flex h-full w-full min-h-0 flex-col overflow-hidden border-l bg-muted/30">
+    <aside className="relative z-20 flex h-full w-full min-h-0 flex-col overflow-hidden border-l bg-muted/30">
       <header className="flex items-center justify-between border-b bg-background px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -108,7 +132,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
         )}
       </div>
 
-      <div className="border-t bg-background p-2">
+      <div className="shrink-0 border-t bg-background p-2">
         <div className="relative">
           <Textarea
             ref={taRef}

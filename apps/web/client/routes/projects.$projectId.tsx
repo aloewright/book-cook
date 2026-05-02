@@ -260,7 +260,7 @@ function ProjectWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden" data-project-workspace>
       <TopBar project={project.data} />
-      <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_360px] overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-[200px_minmax(0,1fr)_360px] overflow-hidden">
         <OutlineRail
           active={workflow}
           statuses={statuses}
@@ -878,6 +878,8 @@ function OutlineBuilder({
 }: { project: Project; view?: "outline" | "chapters" }) {
   const queryClient = useQueryClient();
   const chapterListRef = useRef<HTMLDivElement | null>(null);
+  const chaptersPanelRef = useRef<HTMLDivElement | null>(null);
+  const reduceMotion = useReducedMotion();
   const [framework, setFramework] = useState(project.type === "fiction" ? "hero-journey" : "paas");
   const [questionnaire, setQuestionnaire] = useState("");
   const [characters, setCharacters] = useState<CharacterArcDraft[]>([
@@ -936,11 +938,18 @@ function OutlineBuilder({
             }
           : {}),
       }),
-    onSuccess: () =>
-      Promise.all([
+    onSuccess: async () => {
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.projectOutline(project.id) }),
-      ]),
+      ]);
+      requestAnimationFrame(() => {
+        chaptersPanelRef.current?.scrollIntoView({
+          block: "start",
+          behavior: reduceMotion ? "auto" : "smooth",
+        });
+      });
+    },
   });
   const chapterCount = outline.data?.chapters.length ?? 0;
   useGsapTimeline(
@@ -966,22 +975,14 @@ function OutlineBuilder({
     <section id={view} className="scroll-mt-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div>
-          <PretextRevealText
-            as="h2"
-            text={view === "chapters" ? "Chapter workspace" : "Outline builder"}
-            className="text-xl font-semibold"
-            font="20px Inter, ui-sans-serif, system-ui, sans-serif"
-            lineHeight={28}
-          />
-          <PretextRevealText
-            as="p"
-            text={
-              view === "chapters"
-                ? "Open the next chapter, check draft coverage, and keep manuscript work moving."
-                : "Pick a framework, answer the architect prompt, and generate chapter skeletons for drafting."
-            }
-            className="mt-1 max-w-2xl text-sm text-muted-foreground"
-          />
+          <h2 className="text-xl font-semibold">
+            {view === "chapters" ? "Chapter workspace" : "Outline builder"}
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            {view === "chapters"
+              ? "Open the next chapter, check draft coverage, and keep manuscript work moving."
+              : "Pick a framework, answer the architect prompt, and generate chapter skeletons for drafting."}
+          </p>
           <div className="mt-3">
             {outline.data?.outline ? (
               <Badge>Outline v{outline.data.outline.version}</Badge>
@@ -993,13 +994,7 @@ function OutlineBuilder({
         <BookFlowPreview />
       </div>
 
-      <div
-        className={
-          view === "chapters"
-            ? "mt-6 grid gap-6"
-            : "mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]"
-        }
-      >
+      <div className="mt-6 grid gap-6">
         {view === "outline" ? (
           <form
             className="rounded-lg border bg-background p-4"
@@ -1023,23 +1018,17 @@ function OutlineBuilder({
               </Select>
               {selectedFramework ? (
                 <div className="rounded-md border bg-muted/20 p-3">
-                  <PretextRevealText
-                    as="div"
-                    text={selectedFramework.label}
-                    className="text-sm font-medium"
-                  />
-                  <PretextRevealText
-                    as="p"
-                    text={selectedFramework.description}
-                    className="mt-1 text-sm text-muted-foreground"
-                  />
+                  <div className="text-sm font-medium">{selectedFramework.label}</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {selectedFramework.description}
+                  </p>
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                     {selectedFramework.questions.map((question) => (
                       <li key={question} className="flex gap-2">
                         <span aria-hidden className="text-muted-foreground/60">
                           •
                         </span>
-                        <PretextRevealText as="span" text={question} className="min-w-0 flex-1" />
+                        <span className="min-w-0 flex-1">{question}</span>
                       </li>
                     ))}
                   </ul>
@@ -1278,7 +1267,11 @@ function OutlineBuilder({
           </form>
         ) : null}
 
-        <div id="chapters" className="scroll-mt-6 rounded-lg border bg-background p-4">
+        <div
+          id="chapters"
+          ref={chaptersPanelRef}
+          className="scroll-mt-6 rounded-lg border bg-background p-4"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold">Chapter skeletons</h2>
@@ -1312,13 +1305,9 @@ function OutlineBuilder({
                           data-chapter-card="true"
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <PretextRevealText
-                              as="h3"
-                              text={`${chapter.ordinal}. ${chapter.title}`}
-                              className="font-medium"
-                              font="16px Inter, ui-sans-serif, system-ui, sans-serif"
-                              lineHeight={24}
-                            />
+                            <h3 className="font-medium">
+                              {chapter.ordinal}. {chapter.title}
+                            </h3>
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               <Badge variant={drafted ? "default" : "secondary"}>
                                 {drafted ? "Drafted" : "Planned"}
@@ -1328,11 +1317,9 @@ function OutlineBuilder({
                               </Badge>
                             </div>
                           </div>
-                          <PretextRevealText
-                            as="p"
-                            text={chapter.summary}
-                            className="mt-2 text-sm text-muted-foreground"
-                          />
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                            {chapter.summary}
+                          </p>
                         </Link>
                       </motion.div>
                     </MotionItem>

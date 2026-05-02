@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Check, Scissors, Sparkles, Wand2, X } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
-import { PretextRevealText } from "../components/animation/pretext-reveal-text";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -41,11 +40,11 @@ function ChapterEditorRoute() {
   }
 
   return (
-    <div className="grid h-[calc(100vh-49px)] min-h-0 grid-cols-[1fr_360px] overflow-hidden">
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] overflow-hidden">
       <main className="min-w-0 overflow-y-auto px-6 py-6">
         <div className="mx-auto max-w-4xl">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <Link
                 to="/projects/$projectId"
                 params={{ projectId }}
@@ -53,18 +52,12 @@ function ChapterEditorRoute() {
               >
                 Back to workspace
               </Link>
-              <PretextRevealText
-                as="h1"
-                text={`${chapter.data.ordinal}. ${chapter.data.title}`}
-                className="mt-2 text-2xl font-semibold"
-                font="24px Inter, ui-sans-serif, system-ui, sans-serif"
-                lineHeight={32}
-              />
-              <PretextRevealText
-                as="p"
-                text={chapter.data.summary}
-                className="mt-1 max-w-2xl text-sm text-muted-foreground"
-              />
+              <h1 className="mt-2 text-2xl font-semibold">
+                {chapter.data.ordinal}. {chapter.data.title}
+              </h1>
+              <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                {chapter.data.summary}
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline">

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -913,6 +913,7 @@ projectsRoute.post("/:id/outlines", async (c) => {
     .update(projects)
     .set({ status: "outline", updated_at: new Date() })
     .where(eq(projects.id, id));
+  await replaceProjectChapterSkeletons(db, id);
 
   let ordinal = 1;
   for (const act of outline.acts) {
@@ -941,6 +942,17 @@ projectsRoute.post("/:id/outlines", async (c) => {
 
   return c.json({ id: outlineId, outline, chapters_created: ordinal - 1 }, 201);
 });
+
+async function replaceProjectChapterSkeletons(db: ReturnType<typeof drizzle>, projectId: string) {
+  const existingChapters = await db
+    .select({ id: chapters.id })
+    .from(chapters)
+    .where(eq(chapters.project_id, projectId));
+  const chapterIds = existingChapters.map((chapter) => chapter.id);
+  if (!chapterIds.length) return;
+  await db.delete(sections).where(inArray(sections.chapter_id, chapterIds));
+  await db.delete(chapters).where(eq(chapters.project_id, projectId));
+}
 
 projectsRoute.delete("/:id", async (c) => {
   const user = c.get("user");

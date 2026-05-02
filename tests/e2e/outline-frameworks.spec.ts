@@ -71,10 +71,17 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await expect(plannedChapter).toBeVisible();
   await expect(plannedChapter).toContainText(/future evacuation/);
   await expect(page.getByText(/14 chapters/)).toBeVisible();
+  const chapterLinkColor = await plannedChapter.evaluate(
+    (node) => window.getComputedStyle(node).color,
+  );
   await plannedChapter.click();
   await expect(page).toHaveURL(/\/chapters\//);
   await page.getByRole("link", { name: "Back to workspace" }).click();
   await page.getByLabel("Go to Outline workflow").click();
+  await expect(plannedChapter).toBeVisible();
+  await expect
+    .poll(() => plannedChapter.evaluate((node) => window.getComputedStyle(node).color))
+    .toBe(chapterLinkColor);
   await page.getByRole("link", { name: "Full book" }).click();
   await expect(page).toHaveURL(/\/book$/);
   await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();

@@ -1307,7 +1307,7 @@ function OutlineBuilder({
                         <Link
                           to="/projects/$projectId/chapters/$chapterId"
                           params={{ projectId: project.id, chapterId: chapter.id }}
-                          className="block rounded-md border bg-muted/20 p-3 transition-colors hover:bg-accent"
+                          className="block rounded-md border bg-muted/20 p-3 text-foreground transition-colors visited:text-foreground hover:bg-accent"
                           data-chapter-card="true"
                         >
                           <div className="flex items-center justify-between gap-3">

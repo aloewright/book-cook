@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Check, Scissors, Sparkles, Wand2, X } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { PretextRevealText } from "../components/animation/pretext-reveal-text";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -52,10 +53,18 @@ function ChapterEditorRoute() {
               >
                 Back to workspace
               </Link>
-              <h1 className="mt-2 text-2xl font-semibold">
-                {chapter.data.ordinal}. {chapter.data.title}
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{chapter.data.summary}</p>
+              <PretextRevealText
+                as="h1"
+                text={`${chapter.data.ordinal}. ${chapter.data.title}`}
+                className="mt-2 text-2xl font-semibold"
+                font="24px Inter, ui-sans-serif, system-ui, sans-serif"
+                lineHeight={32}
+              />
+              <PretextRevealText
+                as="p"
+                text={chapter.data.summary}
+                className="mt-1 max-w-2xl text-sm text-muted-foreground"
+              />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button asChild variant="outline">

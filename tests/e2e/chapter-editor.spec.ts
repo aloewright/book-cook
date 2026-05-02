@@ -92,4 +92,8 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
 
   await expect(page.getByText(/Saving|Saved/)).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(/saved words/i)).toBeVisible();
+  await page.getByRole("link", { name: "View full book" }).click();
+  await expect(page).toHaveURL(/\/book$/);
+  await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Edit" }).first()).toBeVisible();
 });

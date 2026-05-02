@@ -16,6 +16,7 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByRole("link", { name: /signal garden/i }).click();
   await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
+  await expect(page.getByTestId("book-flow-preview")).toBeVisible();
   await page.getByRole("combobox", { name: /outline framework/i }).click();
   await page.getByRole("option", { name: /Sci-Fi World/i }).click();
   await expect(page.getByText(/Speculative premise, world rules/i)).toBeVisible();
@@ -52,4 +53,30 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await expect(plannedChapter).toBeVisible();
   await expect(plannedChapter).toContainText(/future evacuation/);
   await expect(page.getByText(/14 chapters/)).toBeVisible();
+  await plannedChapter.click();
+  await expect(page).toHaveURL(/\/chapters\//);
+  await page.getByRole("link", { name: "Back to workspace" }).click();
+  await page.getByLabel("Go to Outline workflow").click();
+  await page.getByRole("link", { name: "Full book" }).click();
+  await expect(page).toHaveURL(/\/book$/);
+  await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+});
+
+test("reduced-motion users see outline text and static book flow immediately", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const email = `outline-reduced-${Date.now()}@x.test`;
+  await page.goto("/sign-up");
+  await page.getByPlaceholder("email").fill(email);
+  await page.getByPlaceholder("password").fill("correct-horse-battery-staple");
+  await page.getByRole("button", { name: /create account/i }).click();
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.getByPlaceholder(/Working title/).fill("Still Map");
+  await page.getByRole("button", { name: /new book/i }).click();
+  await page.getByRole("link", { name: /still map/i }).click();
+  await page.getByLabel("Go to Outline workflow").click();
+
+  await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
+  await expect(page.getByTestId("book-flow-static")).toBeVisible();
+  await expect(page.getByText(/Pick a framework/i)).toBeVisible();
 });

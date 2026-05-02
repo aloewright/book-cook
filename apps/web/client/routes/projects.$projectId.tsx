@@ -1,8 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CheckCircle2, CircleAlert, Search } from "lucide-react";
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { BookFlowPreview } from "../components/animation/book-flow-composition";
+import { MotionItem, MotionList, MotionPanel } from "../components/animation/motion";
+import { PretextRevealText } from "../components/animation/pretext-reveal-text";
+import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
 import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -280,12 +285,14 @@ function ProjectWorkspace() {
               }
               publisherStatus={pack.data?.pack?.status ?? null}
             />
-            {workflow === "concept" ? <ConceptScoutPanel project={project.data} /> : null}
-            {workflow === "voice" ? <VoicePanel project={project.data} /> : null}
-            {workflow === "outline" || workflow === "chapters" ? (
-              <OutlineBuilder project={project.data} view={workflow} />
-            ) : null}
-            {workflow === "publish" ? <PublishPanel project={project.data} /> : null}
+            <MotionPanel motionKey={workflow}>
+              {workflow === "concept" ? <ConceptScoutPanel project={project.data} /> : null}
+              {workflow === "voice" ? <VoicePanel project={project.data} /> : null}
+              {workflow === "outline" || workflow === "chapters" ? (
+                <OutlineBuilder project={project.data} view={workflow} />
+              ) : null}
+              {workflow === "publish" ? <PublishPanel project={project.data} /> : null}
+            </MotionPanel>
           </div>
         </main>
         <AloysiusSidecar projectId={projectId} />
@@ -326,10 +333,20 @@ function WorkflowHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold">{copy.title}</h1>
+            <PretextRevealText
+              as="h1"
+              text={copy.title}
+              className="text-2xl font-semibold"
+              font="24px Inter, ui-sans-serif, system-ui, sans-serif"
+              lineHeight={32}
+            />
             <WorkflowStatusBadge status={status} />
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{copy.description}</p>
+          <PretextRevealText
+            as="p"
+            text={copy.description}
+            className="mt-1 max-w-2xl text-sm text-muted-foreground"
+          />
         </div>
         <Card className="w-full max-w-sm p-3 shadow-none">
           <div className="flex items-start gap-2">
@@ -370,18 +387,25 @@ function WorkflowHeader({
 }
 
 function ReadinessTile({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+  const reduceMotion = useReducedMotion();
   return (
-    <Card className="p-3 shadow-none">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase text-muted-foreground">{label}</p>
-        {ok ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-        ) : (
-          <CircleAlert className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-      <p className="mt-2 text-sm font-medium">{value}</p>
-    </Card>
+    <motion.div
+      layout
+      animate={reduceMotion ? undefined : { scale: ok ? 1.01 : 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+    >
+      <Card className="p-3 shadow-none">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{label}</p>
+          {ok ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          ) : (
+            <CircleAlert className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+        <p className="mt-2 text-sm font-medium">{value}</p>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -833,6 +857,7 @@ function OutlineBuilder({
   view = "outline",
 }: { project: Project; view?: "outline" | "chapters" }) {
   const queryClient = useQueryClient();
+  const chapterListRef = useRef<HTMLDivElement | null>(null);
   const [framework, setFramework] = useState(project.type === "fiction" ? "hero-journey" : "paas");
   const [questionnaire, setQuestionnaire] = useState("");
   const [characters, setCharacters] = useState<CharacterArcDraft[]>([
@@ -897,25 +922,55 @@ function OutlineBuilder({
         queryClient.invalidateQueries({ queryKey: queryKeys.projectOutline(project.id) }),
       ]),
   });
+  const chapterCount = outline.data?.chapters.length ?? 0;
+  useGsapTimeline(
+    chapterListRef,
+    (timeline, node) => {
+      timeline.fromTo(
+        node.querySelectorAll("[data-chapter-card='true']"),
+        {
+          backgroundColor: "rgba(20, 184, 166, 0.16)",
+          boxShadow: "0 0 0 1px rgba(20, 184, 166, 0.4)",
+        },
+        {
+          backgroundColor: "rgba(0, 0, 0, 0)",
+          boxShadow: "0 0 0 0 rgba(20, 184, 166, 0)",
+          stagger: 0.035,
+        },
+      );
+    },
+    [chapterCount],
+  );
 
   return (
     <section id={view} className="scroll-mt-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div>
-          <h2 className="text-xl font-semibold">
-            {view === "chapters" ? "Chapter workspace" : "Outline builder"}
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            {view === "chapters"
-              ? "Open the next chapter, check draft coverage, and keep manuscript work moving."
-              : "Pick a framework, answer the architect prompt, and generate chapter skeletons for drafting."}
-          </p>
+          <PretextRevealText
+            as="h2"
+            text={view === "chapters" ? "Chapter workspace" : "Outline builder"}
+            className="text-xl font-semibold"
+            font="20px Inter, ui-sans-serif, system-ui, sans-serif"
+            lineHeight={28}
+          />
+          <PretextRevealText
+            as="p"
+            text={
+              view === "chapters"
+                ? "Open the next chapter, check draft coverage, and keep manuscript work moving."
+                : "Pick a framework, answer the architect prompt, and generate chapter skeletons for drafting."
+            }
+            className="mt-1 max-w-2xl text-sm text-muted-foreground"
+          />
+          <div className="mt-3">
+            {outline.data?.outline ? (
+              <Badge>Outline v{outline.data.outline.version}</Badge>
+            ) : (
+              <Badge variant="secondary">No outline</Badge>
+            )}
+          </div>
         </div>
-        {outline.data?.outline ? (
-          <Badge>Outline v{outline.data.outline.version}</Badge>
-        ) : (
-          <Badge variant="secondary">No outline</Badge>
-        )}
+        <BookFlowPreview />
       </div>
 
       <div
@@ -948,17 +1003,23 @@ function OutlineBuilder({
               </Select>
               {selectedFramework ? (
                 <div className="rounded-md border bg-muted/20 p-3">
-                  <div className="text-sm font-medium">{selectedFramework.label}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedFramework.description}
-                  </p>
+                  <PretextRevealText
+                    as="div"
+                    text={selectedFramework.label}
+                    className="text-sm font-medium"
+                  />
+                  <PretextRevealText
+                    as="p"
+                    text={selectedFramework.description}
+                    className="mt-1 text-sm text-muted-foreground"
+                  />
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
                     {selectedFramework.questions.map((question) => (
                       <li key={question} className="flex gap-2">
                         <span aria-hidden className="text-muted-foreground/60">
                           •
                         </span>
-                        <span>{question}</span>
+                        <PretextRevealText as="span" text={question} />
                       </li>
                     ))}
                   </ul>
@@ -1189,6 +1250,7 @@ function OutlineBuilder({
               <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
                 {generate.isPending ? "Generating..." : "Generate outline"}
               </Button>
+              {generate.isPending ? <OutlineGenerationProgress /> : null}
               {generate.error ? (
                 <p className="text-sm text-destructive">{generate.error.message}</p>
               ) : null}
@@ -1212,34 +1274,51 @@ function OutlineBuilder({
               </Button>
             ) : null}
           </div>
-          <div className="mt-4 space-y-3">
+          <div ref={chapterListRef} className="mt-4">
             {(outline.data?.chapters ?? []).length ? (
-              outline.data?.chapters.map((chapter) => {
-                const drafted = chapter.draft_md.trim().length > 0;
-                return (
-                  <Link
-                    key={chapter.id}
-                    to="/projects/$projectId/chapters/$chapterId"
-                    params={{ projectId: project.id, chapterId: chapter.id }}
-                    className="block rounded-md border bg-muted/20 p-3 transition-colors hover:bg-accent"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-medium">
-                        {chapter.ordinal}. {chapter.title}
-                      </h3>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Badge variant={drafted ? "default" : "secondary"}>
-                          {drafted ? "Drafted" : "Planned"}
-                        </Badge>
-                        <Badge variant="outline">
-                          {chapter.target_words.toLocaleString()} words
-                        </Badge>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{chapter.summary}</p>
-                  </Link>
-                );
-              })
+              <MotionList className="space-y-3">
+                {outline.data?.chapters.map((chapter) => {
+                  const drafted = chapter.draft_md.trim().length > 0;
+                  return (
+                    <MotionItem key={chapter.id}>
+                      <motion.div
+                        whileHover={{ y: -2 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                      >
+                        <Link
+                          to="/projects/$projectId/chapters/$chapterId"
+                          params={{ projectId: project.id, chapterId: chapter.id }}
+                          className="block rounded-md border bg-muted/20 p-3 transition-colors hover:bg-accent"
+                          data-chapter-card="true"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <PretextRevealText
+                              as="h3"
+                              text={`${chapter.ordinal}. ${chapter.title}`}
+                              className="font-medium"
+                              font="16px Inter, ui-sans-serif, system-ui, sans-serif"
+                              lineHeight={24}
+                            />
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <Badge variant={drafted ? "default" : "secondary"}>
+                                {drafted ? "Drafted" : "Planned"}
+                              </Badge>
+                              <Badge variant="outline">
+                                {chapter.target_words.toLocaleString()} words
+                              </Badge>
+                            </div>
+                          </div>
+                          <PretextRevealText
+                            as="p"
+                            text={chapter.summary}
+                            className="mt-2 text-sm text-muted-foreground"
+                          />
+                        </Link>
+                      </motion.div>
+                    </MotionItem>
+                  );
+                })}
+              </MotionList>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Generated chapters will appear here after the first outline run.
@@ -1249,6 +1328,46 @@ function OutlineBuilder({
         </div>
       </div>
     </section>
+  );
+}
+
+function OutlineGenerationProgress() {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const steps = ["Architecting outline", "Building chapter skeletons", "Preparing manuscript path"];
+
+  useGsapTimeline(
+    ref,
+    (timeline, node) => {
+      timeline
+        .fromTo(
+          node.querySelector("[data-progress-bar]"),
+          { scaleX: 0, transformOrigin: "left center" },
+          { scaleX: 1, duration: 1.2 },
+        )
+        .fromTo(
+          node.querySelectorAll("[data-progress-step]"),
+          { opacity: 0.45, y: 4 },
+          { opacity: 1, y: 0, stagger: 0.12 },
+          0,
+        );
+    },
+    [],
+  );
+
+  return (
+    <div ref={ref} className="rounded-md border bg-muted/20 p-3" aria-live="polite">
+      <div className="h-1 overflow-hidden rounded-full bg-muted">
+        <div data-progress-bar className="h-full rounded-full bg-primary" />
+      </div>
+      <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+        {steps.map((step) => (
+          <div key={step} data-progress-step className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+            {step}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

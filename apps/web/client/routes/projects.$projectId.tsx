@@ -1019,7 +1019,7 @@ function OutlineBuilder({
                         <span aria-hidden className="text-muted-foreground/60">
                           •
                         </span>
-                        <PretextRevealText as="span" text={question} />
+                        <PretextRevealText as="span" text={question} className="min-w-0 flex-1" />
                       </li>
                     ))}
                   </ul>

@@ -14,8 +14,19 @@ export type ScoutEvidence = {
   niche: string;
   type: ScoutType;
   records: MarketDatasetRecord[];
+  source_mix: {
+    kdp: number;
+    trends: number;
+    library: number;
+  };
+  keyword_counts: { keyword: string; count: number }[];
+  opportunity_score: number;
+  confidence: "low" | "medium" | "high";
+  audience_brief: string;
+  positioning_brief: string;
   gaps: string[];
   recommendations: string[];
+  validation_steps: string[];
 };
 
 export type ScoutFindingDraft = {
@@ -96,14 +107,21 @@ function buildEvidence(input: {
 }): ScoutEvidence {
   const records = selectRecords(input.records, input.niche);
   const topKeywords = keywordCounts(records).slice(0, 6);
+  const sourceMix = countSources(records);
   const sourceSet = new Set(records.map((record) => record.source));
+  const opportunityScore = scoreOpportunity(records, topKeywords, sourceMix);
+  const confidence = confidenceFor(records, sourceMix);
+  const leadingKeywords =
+    topKeywords
+      .slice(0, 3)
+      .map(([keyword]) => keyword)
+      .join(", ") || "broad reader outcomes";
+  const readerLanguage =
+    input.type === "fiction"
+      ? "readers want a familiar hook with a distinct emotional payoff"
+      : "readers want a specific outcome with a credible method";
   const gaps = [
-    `${input.type === "fiction" ? "Story" : "Promise"} angles are clustered around ${
-      topKeywords
-        .slice(0, 3)
-        .map(([keyword]) => keyword)
-        .join(", ") || "broad reader outcomes"
-    }, leaving room for a sharper owned mechanism.`,
+    `${input.type === "fiction" ? "Story" : "Promise"} angles are clustered around ${leadingKeywords}, leaving room for a sharper owned mechanism.`,
     sourceSet.has("library")
       ? "Catalog demand is visible, but the current signals do not show a clear fresh hook."
       : "Library/catalog durability is thin in the current dataset, so validate evergreen demand before scaling.",
@@ -116,14 +134,28 @@ function buildEvidence(input: {
     "Use the highest-signal keywords in subtitle, description, and first-chapter promise language.",
     "Differentiate the table of contents with a gap-focused chapter that competitors are not explicitly naming.",
   ];
+  const validationSteps = [
+    "Write three alternate subtitles or loglines that foreground the highest-frequency keyword cluster.",
+    "Compare the first ten customer-visible promises against the top comparable titles before outlining.",
+    sourceMix.trends > 0
+      ? "Test the strongest hook with a search-style headline before drafting."
+      : "Run a small audience interview pass because trend support is currently weak.",
+  ];
 
   return {
     dataset: input.dataset,
     niche: input.niche,
     type: input.type,
     records,
+    source_mix: sourceMix,
+    keyword_counts: topKeywords.map(([keyword, count]) => ({ keyword, count })),
+    opportunity_score: opportunityScore,
+    confidence,
+    audience_brief: `${capitalize(input.niche)}: ${readerLanguage}; current signals lean on ${leadingKeywords}.`,
+    positioning_brief: `Position around a ${input.type === "fiction" ? "distinct story promise" : "named practical mechanism"} that uses ${leadingKeywords} while explicitly resolving one visible gap.`,
     gaps,
     recommendations,
+    validation_steps: validationSteps,
   };
 }
 
@@ -163,7 +195,11 @@ function renderSummary(evidence: ScoutEvidence) {
   return [
     `## Scout read: ${evidence.niche}`,
     "",
-    "The current market evidence shows a usable demand pattern, but the concept needs a sharper promise and a visible gap before moving into outline.",
+    `Opportunity score: **${evidence.opportunity_score}/100** · Confidence: **${evidence.confidence}**`,
+    "",
+    evidence.audience_brief,
+    "",
+    evidence.positioning_brief,
     "",
     "### Trending titles and signals",
     titleList,
@@ -173,6 +209,9 @@ function renderSummary(evidence: ScoutEvidence) {
     "",
     "### Concept moves",
     ...evidence.recommendations.map((item) => `- ${item}`),
+    "",
+    "### Validation steps",
+    ...evidence.validation_steps.map((item) => `- ${item}`),
   ].join("\n");
 }
 
@@ -186,6 +225,38 @@ function tokenize(text: string) {
 function scoreText(text: string, tokens: string[]) {
   const haystack = text.toLowerCase();
   return tokens.reduce((score, token) => score + (haystack.includes(token) ? 1 : 0), 0);
+}
+
+function countSources(records: MarketDatasetRecord[]) {
+  return records.reduce(
+    (mix, record) => {
+      mix[record.source] += 1;
+      return mix;
+    },
+    { kdp: 0, trends: 0, library: 0 },
+  );
+}
+
+function scoreOpportunity(
+  records: MarketDatasetRecord[],
+  topKeywords: [string, number][],
+  sourceMix: ScoutEvidence["source_mix"],
+) {
+  const sourceBreadth = [sourceMix.kdp, sourceMix.trends, sourceMix.library].filter(Boolean).length;
+  const keywordDepth = topKeywords.reduce((sum, [, count]) => sum + Math.min(count, 3), 0);
+  const recordDepth = Math.min(records.length, 12);
+  return Math.max(20, Math.min(95, recordDepth * 4 + sourceBreadth * 12 + keywordDepth * 3));
+}
+
+function confidenceFor(records: MarketDatasetRecord[], sourceMix: ScoutEvidence["source_mix"]) {
+  const sourceBreadth = [sourceMix.kdp, sourceMix.trends, sourceMix.library].filter(Boolean).length;
+  if (records.length >= 9 && sourceBreadth >= 3) return "high";
+  if (records.length >= 5 && sourceBreadth >= 2) return "medium";
+  return "low";
+}
+
+function capitalize(text: string) {
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : text;
 }
 
 function normalizeRecord(record: Partial<MarketDatasetRecord>): MarketDatasetRecord | null {

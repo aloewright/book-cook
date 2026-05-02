@@ -113,6 +113,14 @@ function ScoutPage() {
 export function ScoutResultView({ result }: { result: ScoutResult }) {
   const [tab, setTab] = useState<"summary" | "risks" | "comps" | "actions">("summary");
   const evidence = result.finding.evidence_json;
+  const sourceMix = evidence.source_mix ?? countSources(evidence.records);
+  const keywordCounts = evidence.keyword_counts ?? inferKeywordCounts(evidence.records);
+  const opportunityScore = evidence.opportunity_score ?? inferOpportunityScore(evidence.records);
+  const confidence = evidence.confidence ?? inferConfidence(evidence.records, sourceMix);
+  const validationSteps = evidence.validation_steps ?? [
+    "Validate the strongest hook with readers before moving into outline.",
+    "Compare the promise against comparable titles before drafting.",
+  ];
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <Card className="min-w-0 p-5 shadow-none">
@@ -124,6 +132,27 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
             </p>
           </div>
           <Badge>{result.query.type}</Badge>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <InsightMetric label="Opportunity" value={`${opportunityScore}/100`} />
+          <InsightMetric label="Confidence" value={confidence} />
+          <InsightMetric label="Sources" value={`${coveredSourceCount(sourceMix)}/3 covered`} />
+        </div>
+        <div className="mt-4 grid gap-3 rounded-lg border bg-muted/20 p-4">
+          <div>
+            <h3 className="text-sm font-semibold">Audience read</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {evidence.audience_brief ??
+                `${result.query.niche}: current records show usable reader demand, but the hook needs sharper differentiation.`}
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Positioning brief</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {evidence.positioning_brief ??
+                "Position around the strongest recurring keywords while explicitly resolving one visible market gap."}
+            </p>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 border-b pb-3">
           {[
@@ -157,11 +186,18 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
         ) : null}
         {tab === "comps" ? <ComparableTitleList result={result} /> : null}
         {tab === "actions" ? (
-          <ScoutList
-            items={evidence.recommendations}
-            empty="No action items were generated for this Scout read."
-            label="Recommended next moves"
-          />
+          <div className="grid gap-4">
+            <ScoutList
+              items={evidence.recommendations}
+              empty="No action items were generated for this Scout read."
+              label="Recommended next moves"
+            />
+            <ScoutList
+              items={validationSteps}
+              empty="No validation steps were generated for this Scout read."
+              label="Validation steps"
+            />
+          </div>
         ) : null}
       </Card>
 
@@ -179,6 +215,21 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
             ))}
           </ul>
           <div className="mt-4 border-t pt-4">
+            <h3 className="text-sm font-semibold">Source mix</h3>
+            <div className="mt-3 grid gap-2 text-sm">
+              {[
+                ["KDP", sourceMix.kdp],
+                ["Trends", sourceMix.trends],
+                ["Library", sourceMix.library],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span className="text-muted-foreground">{label}</span>
+                  <Badge variant={Number(value) > 0 ? "secondary" : "outline"}>{value}</Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 border-t pt-4">
             <div className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold">Action items</h3>
@@ -189,6 +240,18 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
               ))}
             </ul>
           </div>
+          {keywordCounts.length ? (
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-semibold">Keyword clusters</h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {keywordCounts.slice(0, 8).map((item) => (
+                  <Badge key={item.keyword} variant="secondary">
+                    {item.keyword} · {item.count}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </Card>
       </aside>
 
@@ -233,6 +296,57 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
       </section>
     </div>
   );
+}
+
+function InsightMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border bg-background p-3">
+      <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-semibold capitalize">{value}</div>
+    </div>
+  );
+}
+
+function countSources(records: ScoutResult["finding"]["evidence_json"]["records"]) {
+  return records.reduce(
+    (mix, record) => {
+      mix[record.source] += 1;
+      return mix;
+    },
+    { kdp: 0, trends: 0, library: 0 },
+  );
+}
+
+function inferKeywordCounts(records: ScoutResult["finding"]["evidence_json"]["records"]) {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    for (const keyword of record.keywords) {
+      const normalized = keyword.trim().toLowerCase();
+      if (normalized.length < 3) continue;
+      counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([keyword, count]) => ({ keyword, count }));
+}
+
+function inferOpportunityScore(records: ScoutResult["finding"]["evidence_json"]["records"]) {
+  return Math.max(20, Math.min(80, records.length * 5));
+}
+
+function inferConfidence(
+  records: ScoutResult["finding"]["evidence_json"]["records"],
+  sourceMix: { kdp: number; trends: number; library: number },
+) {
+  const sourceCount = coveredSourceCount(sourceMix);
+  if (records.length >= 9 && sourceCount >= 3) return "high";
+  if (records.length >= 5 && sourceCount >= 2) return "medium";
+  return "low";
+}
+
+function coveredSourceCount(sourceMix: { kdp: number; trends: number; library: number }) {
+  return [sourceMix.kdp, sourceMix.trends, sourceMix.library].filter(Boolean).length;
 }
 
 function ScoutList({

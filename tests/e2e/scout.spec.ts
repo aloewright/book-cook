@@ -19,7 +19,14 @@ test("scout page runs a niche query and shows evidence", async ({ page }) => {
   await expect(
     page.getByRole("complementary").getByRole("heading", { name: "Gap analysis" }),
   ).toBeVisible();
+  await expect(page.getByText("Opportunity", { exact: true })).toBeVisible();
+  await expect(page.getByText("Positioning brief")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Source mix" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Keyword clusters" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Title" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Action items" }).click();
+  await expect(page.getByText("Validation steps")).toBeVisible();
 });
 
 test("project concept can pull findings from Scout", async ({ page }) => {

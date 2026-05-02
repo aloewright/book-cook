@@ -24,6 +24,19 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -31,48 +44,74 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --background: oklch(0.982 0.008 96.3);
+  --foreground: oklch(0.196 0.021 252.5);
+  --card: oklch(0.998 0.003 96.4);
+  --card-foreground: oklch(0.196 0.021 252.5);
+  --popover: oklch(0.998 0.003 96.4);
+  --popover-foreground: oklch(0.196 0.021 252.5);
+  --primary: oklch(0.447 0.116 179.7);
+  --primary-foreground: oklch(0.985 0.006 180);
+  --secondary: oklch(0.931 0.026 95.8);
+  --secondary-foreground: oklch(0.276 0.031 252.8);
+  --muted: oklch(0.945 0.014 96.2);
+  --muted-foreground: oklch(0.494 0.027 252.1);
+  --accent: oklch(0.892 0.055 77.2);
+  --accent-foreground: oklch(0.237 0.027 65.7);
+  --destructive: oklch(0.577 0.214 25.2);
+  --destructive-foreground: oklch(0.985 0.006 25);
+  --border: oklch(0.869 0.018 96.6);
+  --input: oklch(0.869 0.018 96.6);
+  --ring: oklch(0.447 0.116 179.7);
+  --chart-1: oklch(0.447 0.116 179.7);
+  --chart-2: oklch(0.617 0.137 69.8);
+  --chart-3: oklch(0.502 0.131 267.4);
+  --chart-4: oklch(0.548 0.116 142.3);
+  --chart-5: oklch(0.612 0.167 25.4);
+  --sidebar: oklch(0.962 0.012 96.2);
+  --sidebar-foreground: oklch(0.236 0.023 252.8);
+  --sidebar-primary: oklch(0.447 0.116 179.7);
+  --sidebar-primary-foreground: oklch(0.985 0.006 180);
+  --sidebar-accent: oklch(0.912 0.03 95.9);
+  --sidebar-accent-foreground: oklch(0.276 0.031 252.8);
+  --sidebar-border: oklch(0.869 0.018 96.6);
+  --sidebar-ring: oklch(0.447 0.116 179.7);
+  --radius: 0.5rem;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.18 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.18 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.168 0.018 252.8);
+  --foreground: oklch(0.956 0.008 96.3);
+  --card: oklch(0.208 0.021 252.5);
+  --card-foreground: oklch(0.956 0.008 96.3);
+  --popover: oklch(0.208 0.021 252.5);
+  --popover-foreground: oklch(0.956 0.008 96.3);
+  --primary: oklch(0.691 0.132 178.8);
+  --primary-foreground: oklch(0.144 0.018 252.8);
+  --secondary: oklch(0.263 0.024 253.4);
+  --secondary-foreground: oklch(0.956 0.008 96.3);
+  --muted: oklch(0.263 0.024 253.4);
+  --muted-foreground: oklch(0.726 0.02 252.2);
+  --accent: oklch(0.351 0.047 76.4);
+  --accent-foreground: oklch(0.954 0.032 89.9);
+  --destructive: oklch(0.684 0.178 24.7);
+  --destructive-foreground: oklch(0.985 0.006 25);
+  --border: oklch(0.315 0.026 253 / 0.72);
+  --input: oklch(0.315 0.026 253 / 0.82);
+  --ring: oklch(0.691 0.132 178.8);
+  --chart-1: oklch(0.691 0.132 178.8);
+  --chart-2: oklch(0.758 0.124 73.2);
+  --chart-3: oklch(0.718 0.119 266.6);
+  --chart-4: oklch(0.699 0.111 143.1);
+  --chart-5: oklch(0.712 0.157 24.8);
+  --sidebar: oklch(0.191 0.019 252.7);
+  --sidebar-foreground: oklch(0.934 0.009 96.1);
+  --sidebar-primary: oklch(0.691 0.132 178.8);
+  --sidebar-primary-foreground: oklch(0.144 0.018 252.8);
+  --sidebar-accent: oklch(0.263 0.024 253.4);
+  --sidebar-accent-foreground: oklch(0.956 0.008 96.3);
+  --sidebar-border: oklch(0.315 0.026 253 / 0.72);
+  --sidebar-ring: oklch(0.691 0.132 178.8);
 }
 
 @layer base {
@@ -94,8 +133,8 @@
   }
 
   .bn-container {
-    --bn-colors-editor-text: var(--foreground);
-    --bn-colors-editor-background: var(--background);
+    --bn-colors-editor-text: var(--card-foreground);
+    --bn-colors-editor-background: var(--card);
     --bn-colors-menu-text: var(--popover-foreground);
     --bn-colors-menu-background: var(--popover);
     --bn-colors-tooltip-text: var(--popover-foreground);
@@ -109,19 +148,19 @@
     --bn-colors-shadow: var(--border);
     --bn-colors-border: var(--border);
     --bn-colors-side-menu: var(--muted-foreground);
-    color: var(--foreground);
-    background: var(--background);
+    color: var(--card-foreground);
+    background: var(--card);
   }
 
   .bn-container .bn-editor,
   .bn-container .bn-default-styles {
-    color: var(--foreground);
-    background: var(--background);
+    color: var(--card-foreground);
+    background: var(--card);
   }
 
   .bn-container .bn-block-content,
   .bn-container [contenteditable="true"] {
-    color: var(--foreground);
+    color: var(--card-foreground);
   }
 
   .bn-container .mantine-Menu-dropdown,

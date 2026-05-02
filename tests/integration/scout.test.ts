@@ -44,7 +44,13 @@ describe("scout", () => {
     expect(body.query.project_id).toBe(project.id);
     expect(body.finding.summary_md).toContain("Scout read");
     expect(body.finding.evidence_json.records.length).toBeGreaterThan(0);
+    expect(body.finding.evidence_json.opportunity_score).toBeGreaterThan(0);
+    expect(body.finding.evidence_json.confidence).toMatch(/low|medium|high/);
+    expect(body.finding.evidence_json.source_mix.kdp).toBeGreaterThan(0);
+    expect(body.finding.evidence_json.keyword_counts.length).toBeGreaterThan(0);
+    expect(body.finding.evidence_json.positioning_brief).toContain("Position");
     expect(body.finding.evidence_json.gaps).toHaveLength(3);
+    expect(body.finding.evidence_json.validation_steps).toHaveLength(3);
 
     const list = await SELF.fetch("http://x/api/v1/scout/queries", { headers });
     expect(list.status).toBe(200);

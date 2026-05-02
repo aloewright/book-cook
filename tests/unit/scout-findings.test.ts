@@ -48,7 +48,14 @@ describe("scout findings", () => {
 
     expect(result.summary_md).toContain("Scout read: cozy fantasy mysteries");
     expect(result.evidence_json.records).toHaveLength(2);
+    expect(result.evidence_json.opportunity_score).toBeGreaterThan(20);
+    expect(result.evidence_json.confidence).toBe("low");
+    expect(result.evidence_json.source_mix).toEqual({ kdp: 1, trends: 1, library: 0 });
+    expect(result.evidence_json.keyword_counts[0]).toEqual({ keyword: "bookshop", count: 1 });
+    expect(result.evidence_json.audience_brief).toContain("Cozy fantasy mysteries");
+    expect(result.evidence_json.positioning_brief).toContain("distinct story promise");
     expect(result.evidence_json.gaps).toHaveLength(3);
     expect(result.evidence_json.recommendations[0]).toContain("reader trope");
+    expect(result.evidence_json.validation_steps).toHaveLength(3);
   });
 });

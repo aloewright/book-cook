@@ -57,6 +57,15 @@ export type Voice = {
   samples?: VoiceSample[];
 };
 
+export type PostPilotGuide = {
+  slug: string;
+  author: string;
+  era?: string;
+  kicker?: string;
+  standfirst?: string;
+  copyright_posture?: string;
+};
+
 export type Chapter = {
   id: string;
   project_id: string;
@@ -441,6 +450,8 @@ export const api = {
   restoreProject: (id: string) =>
     fetchJson<{ ok: true }>(`/api/v1/projects/${id}/restore`, { method: "POST" }),
   listVoices: () => fetchJson<{ items: Voice[] }>("/api/v1/voices"),
+  listPostPilotGuides: () =>
+    fetchJson<{ items: PostPilotGuide[] }>("/api/v1/voices/postpilot-guides"),
   getVoice: (id: string) => fetchJson<Voice>(`/api/v1/voices/${id}`),
   createVoice: (input: { name: string; samples?: { source: "paste"; text: string }[] }) =>
     fetchJson<{ id: string }>("/api/v1/voices", {
@@ -478,6 +489,7 @@ export const queryKeys = {
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,
   chapterRevisions: (id: string) => ["chapters", id, "revisions"] as const,
   voices: () => ["voices"] as const,
+  postPilotGuides: () => ["voices", "postpilot-guides"] as const,
   voice: (id: string) => ["voices", id] as const,
   me: () => ["me"] as const,
 };

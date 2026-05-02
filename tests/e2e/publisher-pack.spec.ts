@@ -25,6 +25,19 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await expect(page.getByRole("heading", { name: /^full book$/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /export pdf/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /export epub/i })).toBeVisible();
+  await expect(page.getByTestId("full-book-desktop-menu")).toBeVisible();
+  await expect(page.getByTestId("full-book-menu-toggle")).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId("full-book-desktop-menu")).toBeHidden();
+  await expect(page.getByTestId("full-book-menu-toggle")).toBeVisible();
+  await page.getByTestId("full-book-menu-toggle").click();
+  await expect(page.getByTestId("full-book-mobile-menu")).toBeVisible();
+  await page
+    .getByTestId("full-book-mobile-menu")
+    .getByRole("link", { name: /2\. Why Common Advice Fails/i })
+    .click();
+  await expect(page.getByTestId("full-book-mobile-menu")).toBeHidden();
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page
     .getByRole("link", { name: /^edit$/i })
     .first()

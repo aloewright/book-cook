@@ -1,8 +1,7 @@
-import { Suspense, lazy } from "react";
+import BookFlowPlayer from "./book-flow-player";
 import { usePrefersReducedMotion } from "./use-gsap-timeline";
 
 const STEPS = ["Outline", "Chapters", "Draft", "Full Book"] as const;
-const BookFlowPlayer = lazy(() => import("./book-flow-player"));
 
 export function BookFlowPreview() {
   const reduceMotion = usePrefersReducedMotion();
@@ -27,9 +26,7 @@ export function BookFlowPreview() {
       className="overflow-hidden rounded-lg border bg-background"
       data-testid="book-flow-preview"
     >
-      <Suspense fallback={<BookFlowStatic />}>
-        <BookFlowPlayer />
-      </Suspense>
+      <BookFlowPlayer />
     </div>
   );
 }

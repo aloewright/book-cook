@@ -23,7 +23,7 @@ export function PretextRevealText({
   lineHeight = 20,
   delay = 0,
   minWidthToAnimate = 96,
-  stagger = 0.045,
+  stagger = 0.025,
 }: PretextRevealTextProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -65,9 +65,13 @@ export function PretextRevealText({
           key={`${line}-${index}`}
           className="block"
           aria-hidden="true"
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 3 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: delay + index * stagger, ease: "easeOut" }}
+          transition={{
+            duration: 0.18,
+            delay: delay + index * stagger,
+            ease: [0.22, 1, 0.36, 1],
+          }}
         >
           {line}
         </motion.span>

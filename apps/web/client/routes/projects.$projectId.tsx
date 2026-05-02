@@ -396,8 +396,8 @@ function ReadinessTile({ label, value, ok }: { label: string; value: string; ok:
   return (
     <motion.div
       layout
-      animate={reduceMotion ? undefined : { scale: ok ? 1.01 : 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      animate={reduceMotion ? undefined : { opacity: 1 }}
+      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
     >
       <Card className="p-3 shadow-none">
         <div className="flex items-center justify-between gap-3">
@@ -1425,16 +1425,25 @@ function PublishPanel({ project }: { project: Project }) {
     queryFn: api.getElevenLabsKeyStatus,
   });
   const [draft, setDraft] = useState<PublisherPack | null>(null);
+  const [draftDirty, setDraftDirty] = useState(false);
   const [elevenLabsKey, setElevenLabsKey] = useState("");
   const [voiceIds, setVoiceIds] = useState("");
 
   useEffect(() => {
-    if (pack.data?.pack) setDraft(pack.data.pack);
-  }, [pack.data?.pack]);
+    if (!project.id) return;
+    setDraft(null);
+    setDraftDirty(false);
+  }, [project.id]);
+
+  useEffect(() => {
+    if (!pack.data?.pack || draftDirty) return;
+    setDraft(pack.data.pack);
+  }, [draftDirty, pack.data?.pack]);
 
   const generate = useMutation({
     mutationFn: () => api.generatePublisherSeo(project.id),
     onSuccess: async ({ pack }) => {
+      setDraftDirty(false);
       setDraft(pack);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) }),
@@ -1453,6 +1462,7 @@ function PublishPanel({ project }: { project: Project }) {
         bisac: input.bisac,
       }),
     onSuccess: async ({ pack }) => {
+      setDraftDirty(false);
       setDraft(pack);
       await queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) });
     },
@@ -1460,6 +1470,7 @@ function PublishPanel({ project }: { project: Project }) {
   const approve = useMutation({
     mutationFn: () => api.approvePublisherPack(project.id),
     onSuccess: async ({ pack }) => {
+      setDraftDirty(false);
       setDraft(pack);
       await queryClient.invalidateQueries({ queryKey: queryKeys.publisherPack(project.id) });
     },
@@ -1591,7 +1602,10 @@ function PublishPanel({ project }: { project: Project }) {
                     id="publisher-title"
                     value={draft.title}
                     disabled={locked}
-                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                    onChange={(event) => {
+                      setDraftDirty(true);
+                      setDraft({ ...draft, title: event.target.value });
+                    }}
                   />
                 </label>
                 <label htmlFor="publisher-subtitle" className="space-y-1 text-sm font-medium">
@@ -1600,7 +1614,10 @@ function PublishPanel({ project }: { project: Project }) {
                     id="publisher-subtitle"
                     value={draft.subtitle}
                     disabled={locked}
-                    onChange={(event) => setDraft({ ...draft, subtitle: event.target.value })}
+                    onChange={(event) => {
+                      setDraftDirty(true);
+                      setDraft({ ...draft, subtitle: event.target.value });
+                    }}
                   />
                 </label>
                 <label htmlFor="publisher-series" className="space-y-1 text-sm font-medium">
@@ -1610,7 +1627,10 @@ function PublishPanel({ project }: { project: Project }) {
                     value={draft.series_name}
                     disabled={locked}
                     placeholder="Optional"
-                    onChange={(event) => setDraft({ ...draft, series_name: event.target.value })}
+                    onChange={(event) => {
+                      setDraftDirty(true);
+                      setDraft({ ...draft, series_name: event.target.value });
+                    }}
                   />
                 </label>
                 <label htmlFor="publisher-description" className="space-y-1 text-sm font-medium">
@@ -1620,9 +1640,10 @@ function PublishPanel({ project }: { project: Project }) {
                     value={draft.description_html}
                     disabled={locked}
                     className="min-h-48 resize-y font-mono text-xs"
-                    onChange={(event) =>
-                      setDraft({ ...draft, description_html: event.target.value })
-                    }
+                    onChange={(event) => {
+                      setDraftDirty(true);
+                      setDraft({ ...draft, description_html: event.target.value });
+                    }}
                   />
                 </label>
               </div>
@@ -1794,7 +1815,10 @@ function PublishPanel({ project }: { project: Project }) {
               locked={locked}
               limit={7}
               maxLength={50}
-              onChange={(keywords) => setDraft({ ...draft, keywords })}
+              onChange={(keywords) => {
+                setDraftDirty(true);
+                setDraft({ ...draft, keywords });
+              }}
             />
             <KeywordEditor
               title="BISAC categories"
@@ -1802,7 +1826,10 @@ function PublishPanel({ project }: { project: Project }) {
               locked={locked}
               limit={2}
               maxLength={120}
-              onChange={(bisac) => setDraft({ ...draft, bisac })}
+              onChange={(bisac) => {
+                setDraftDirty(true);
+                setDraft({ ...draft, bisac });
+              }}
             />
           </div>
         ) : (

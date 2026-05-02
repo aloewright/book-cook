@@ -17,7 +17,7 @@ import {
 import type { Env } from "../env";
 import { decryptSecret } from "../lib/keyring";
 import { type AuthVariables, requireUser } from "../middleware/auth";
-import { generateOutline } from "../skills/architect";
+import { generateOutlineWithAi } from "../skills/architect";
 import { buildNarrationScript } from "../skills/publisher/narration";
 import {
   type PublisherSeoPack,
@@ -883,7 +883,7 @@ projectsRoute.post("/:id/outlines", async (c) => {
   const [voice] = p.voice_id
     ? await db.select().from(voices).where(eq(voices.id, p.voice_id)).limit(1)
     : [];
-  const outline = generateOutline({
+  const outline = await generateOutlineWithAi(c.env, {
     title: p.title,
     type: p.type,
     genre: p.genre,

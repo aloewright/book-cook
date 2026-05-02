@@ -10,6 +10,9 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByLabel("Settings").click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+    .toBe("book-cook-tweakcn");
   await page.getByRole("button", { name: "Dark" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))

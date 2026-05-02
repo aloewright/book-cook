@@ -1,6 +1,7 @@
 export type ThemePreference = "light" | "dark" | "system";
 
 const STORAGE_KEY = "book-cook-theme";
+const THEME_NAME = "book-cook-tweakcn";
 
 export function getThemePreference(): ThemePreference {
   if (typeof window === "undefined") return "system";
@@ -17,6 +18,7 @@ export function applyThemePreference(preference = getThemePreference()) {
   if (typeof window === "undefined") return;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const dark = preference === "dark" || (preference === "system" && prefersDark);
+  document.documentElement.dataset.theme = THEME_NAME;
   document.documentElement.classList.toggle("dark", dark);
 }
 

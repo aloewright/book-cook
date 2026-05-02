@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen,
   Boxes,
@@ -47,6 +48,7 @@ export function OutlineRail({
   onSelect?: (mode: WorkflowKey) => void;
 }) {
   const activeMode = active;
+  const reduceMotion = useReducedMotion();
 
   return (
     <aside className="h-full min-h-0 w-full overflow-y-auto border-r bg-muted/30 p-3">
@@ -68,18 +70,26 @@ export function OutlineRail({
               title={`${m.label}: ${STATUS_LABELS[status]}`}
               onClick={() => onSelect?.(m.key)}
               className={cn(
-                "grid w-full grid-cols-[20px_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
+                "relative grid w-full grid-cols-[20px_1fr_auto] items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
                 activeMode === m.key
-                  ? "bg-primary text-primary-foreground"
+                  ? "text-primary-foreground"
                   : "text-foreground hover:bg-accent",
               )}
             >
-              <Icon className="h-4 w-4" aria-hidden />
-              <span className="min-w-0 truncate">{m.label}</span>
+              {activeMode === m.key ? (
+                <motion.span
+                  layoutId="workflow-active-indicator"
+                  className="absolute inset-0 rounded-md bg-primary"
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
+                  aria-hidden
+                />
+              ) : null}
+              <Icon className="relative h-4 w-4" aria-hidden />
+              <span className="relative min-w-0 truncate">{m.label}</span>
               <span
                 aria-label={STATUS_LABELS[status]}
                 className={cn(
-                  "h-2 w-2 rounded-full",
+                  "relative h-2 w-2 rounded-full transition-colors",
                   activeMode === m.key ? "bg-primary-foreground/80" : STATUS_DOTS[status],
                 )}
               />

@@ -126,6 +126,7 @@
   }
   html {
     overflow: hidden;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
@@ -170,5 +171,11 @@
     color: var(--popover-foreground);
     background: var(--popover);
     border-color: var(--border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

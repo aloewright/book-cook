@@ -1,8 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, CheckCircle2, CircleAlert, Search } from "lucide-react";
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  CircleAlert,
+  ClipboardList,
+  Layers3,
+  Search,
+  Settings2,
+} from "lucide-react";
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import { BookFlowPreview } from "../components/animation/book-flow-composition";
 import { MotionItem, MotionList, MotionPanel } from "../components/animation/motion";
@@ -898,6 +915,9 @@ function OutlineBuilder({
   const [chapterPlan, setChapterPlan] = useState(() =>
     createChapterPlanDrafts(project.type === "fiction" ? 12 : 10),
   );
+  const [activeChapterId, setActiveChapterId] = useState(() => chapterPlan[0]?.id ?? "chapter-1");
+  const [frameworkGuideOpen, setFrameworkGuideOpen] = useState(true);
+  const [characterPanelOpen, setCharacterPanelOpen] = useState(project.type === "fiction");
   const availableFrameworks = OUTLINE_FRAMEWORKS.filter((item) => item.type === project.type);
   const selectedFramework =
     availableFrameworks.find((item) => item.id === framework) ?? availableFrameworks[0];
@@ -970,6 +990,35 @@ function OutlineBuilder({
     },
     [chapterCount],
   );
+  const activeChapterIndex = Math.max(
+    0,
+    chapterPlan.findIndex((chapter) => chapter.id === activeChapterId),
+  );
+  const activeChapterFallback = chapterPlan[0] ?? createChapterPlanDraft(1);
+  const activeChapter = chapterPlan[activeChapterIndex] ?? activeChapterFallback;
+  const decisionCount = chapterPlan.filter(
+    (chapter) => chapter.title.trim() || chapter.event.trim() || chapter.purpose.trim(),
+  ).length;
+  const characterCount = characters.filter((character) => character.name.trim()).length;
+
+  function addChapterSlot() {
+    setChapterPlan((current) => {
+      const nextChapter = createChapterPlanDraft(current.length + 1);
+      setActiveChapterId(nextChapter.id);
+      return [...current, nextChapter];
+    });
+  }
+
+  function removeChapterSlot() {
+    setChapterPlan((current) => {
+      if (current.length <= 1) return current;
+      const next = current.slice(0, -1);
+      if (!next.some((chapter) => chapter.id === activeChapterId)) {
+        setActiveChapterId(next.at(-1)?.id ?? next[0]?.id ?? "chapter-1");
+      }
+      return next;
+    });
+  }
 
   return (
     <section id={view} className="scroll-mt-6">
@@ -997,272 +1046,373 @@ function OutlineBuilder({
       <div className="mt-6 grid gap-6">
         {view === "outline" ? (
           <form
-            className="rounded-lg border bg-background p-4"
+            id="outline-generation-form"
+            className="overflow-hidden rounded-xl border bg-background/75 shadow-sm backdrop-blur"
             onSubmit={(event) => {
               event.preventDefault();
               generate.mutate();
             }}
           >
-            <div className="space-y-3">
-              <Select value={framework} onValueChange={setFramework}>
-                <SelectTrigger aria-label="Outline framework">
-                  <SelectValue placeholder="Framework" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableFrameworks.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedFramework ? (
-                <div className="rounded-md border bg-muted/20 p-3">
-                  <div className="text-sm font-medium">{selectedFramework.label}</div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedFramework.description}
-                  </p>
-                  <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                    {selectedFramework.questions.map((question) => (
-                      <li key={question} className="flex gap-2">
-                        <span aria-hidden className="text-muted-foreground/60">
-                          •
-                        </span>
-                        <span className="min-w-0 flex-1">{question}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              <Textarea
-                value={questionnaire}
-                onChange={(event) => setQuestionnaire(event.target.value)}
-                placeholder={
-                  project.type === "fiction"
-                    ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
-                    : "Reader, promise, proof, constraints, must-include stories..."
-                }
-                className="min-h-52 resize-y"
-                required
-              />
-              <div className="space-y-4 rounded-md border bg-muted/20 p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold">Chapter decision board</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Decide what happens in each chapter before generating summaries.
-                    </p>
+            <div className="grid gap-5 p-4">
+              <div className="grid gap-4 2xl:grid-cols-[minmax(22rem,0.8fr)_minmax(0,1.2fr)]">
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="flex items-center gap-2">
+                    <Layers3 className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">Outline setup</h2>
                   </div>
-                  <Badge variant="secondary">{chapterPlan.length} planned slots</Badge>
+                  <div className="mt-4 space-y-3">
+                    <Select value={framework} onValueChange={setFramework}>
+                      <SelectTrigger aria-label="Outline framework">
+                        <SelectValue placeholder="Framework" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFrameworks.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedFramework ? (
+                      <DisclosureSection
+                        title={selectedFramework.label}
+                        description={selectedFramework.description}
+                        open={frameworkGuideOpen}
+                        onOpenChange={setFrameworkGuideOpen}
+                        meta={`${selectedFramework.questions.length} prompts`}
+                      >
+                        <ul className="grid gap-2 text-sm text-muted-foreground">
+                          {selectedFramework.questions.map((question) => (
+                            <li
+                              key={question}
+                              className="flex gap-2 rounded-md bg-background/60 p-2"
+                            >
+                              <span aria-hidden className="text-muted-foreground/60">
+                                •
+                              </span>
+                              <span className="min-w-0 flex-1">{question}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </DisclosureSection>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  {chapterPlan.map((chapter, index) => (
-                    <div key={chapter.id} className="rounded-md border bg-background p-3">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <h3 className="text-sm font-semibold">Chapter {index + 1}</h3>
-                        {chapter.event.trim() ? (
-                          <Badge>Decision set</Badge>
-                        ) : (
-                          <Badge variant="secondary">Open</Badge>
-                        )}
-                      </div>
-                      <div className="grid gap-3">
-                        <Input
-                          aria-label={`Chapter ${index + 1} working title`}
-                          value={chapter.title}
-                          onChange={(event) =>
-                            updateChapterPlan(setChapterPlan, chapter.id, {
-                              title: event.target.value,
-                            })
-                          }
-                          placeholder="Working title"
-                        />
-                        <Textarea
-                          aria-label={`Chapter ${index + 1} what happens`}
-                          value={chapter.event}
-                          onChange={(event) =>
-                            updateChapterPlan(setChapterPlan, chapter.id, {
-                              event: event.target.value,
-                            })
-                          }
-                          placeholder={
-                            project.type === "fiction"
-                              ? "What visibly happens in this chapter?"
-                              : "What claim, lesson, story, or exercise happens in this chapter?"
-                          }
-                          className="min-h-20 resize-y"
-                        />
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <Input
-                            aria-label={`Chapter ${index + 1} purpose`}
-                            value={chapter.purpose}
-                            onChange={(event) =>
-                              updateChapterPlan(setChapterPlan, chapter.id, {
-                                purpose: event.target.value,
-                              })
-                            }
-                            placeholder="Purpose or turn"
-                          />
-                          <Input
-                            aria-label={`Chapter ${index + 1} POV`}
-                            value={chapter.pov}
-                            onChange={(event) =>
-                              updateChapterPlan(setChapterPlan, chapter.id, {
-                                pov: event.target.value,
-                              })
-                            }
-                            placeholder={project.type === "fiction" ? "POV" : "Reader state"}
-                          />
-                        </div>
-                        <Input
-                          aria-label={`Chapter ${index + 1} characters`}
-                          value={chapter.characters}
-                          onChange={(event) =>
-                            updateChapterPlan(setChapterPlan, chapter.id, {
-                              characters: event.target.value,
-                            })
-                          }
-                          placeholder={
-                            project.type === "fiction"
-                              ? "Characters in play"
-                              : "Examples, experts, or case studies in play"
-                          }
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={chapterPlan.length >= 40}
-                    onClick={() =>
-                      setChapterPlan((current) => [
-                        ...current,
-                        createChapterPlanDraft(current.length + 1),
-                      ])
+
+                <div className="rounded-lg border bg-muted/20 p-4">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">Story brief</h2>
+                  </div>
+                  <Textarea
+                    value={questionnaire}
+                    onChange={(event) => setQuestionnaire(event.target.value)}
+                    placeholder={
+                      project.type === "fiction"
+                        ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
+                        : "Reader, promise, proof, constraints, must-include stories..."
                     }
-                  >
-                    Add chapter slot
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={chapterPlan.length <= 1}
-                    onClick={() => setChapterPlan((current) => current.slice(0, -1))}
-                  >
-                    Remove slot
-                  </Button>
+                    className="mt-4 min-h-36 resize-y bg-background/80"
+                    required
+                  />
                 </div>
               </div>
-              {project.type === "fiction" ? (
-                <div className="space-y-4 rounded-md border bg-muted/20 p-3">
+
+              <div className="overflow-hidden rounded-xl border bg-muted/20">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-background/70 p-4">
                   <div>
-                    <h2 className="text-sm font-semibold">Character arcs</h2>
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                      <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                    </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Add each important character and where they should be in their arc for this
-                      outline.
+                      Pick a chapter slot, decide the visible turn, then generate the full skeleton.
                     </p>
                   </div>
-                  <div className="space-y-3">
-                    {characters.map((character, index) => (
-                      <div key={character.id} className="rounded-md border bg-background p-3">
-                        <div className="grid gap-3">
-                          <Input
-                            aria-label={`Character ${index + 1} name`}
-                            value={character.name}
-                            onChange={(event) =>
-                              updateCharacter(setCharacters, character.id, {
-                                name: event.target.value,
-                              })
-                            }
-                            placeholder="Character name"
-                          />
-                          <Select
-                            value={character.arc}
-                            onValueChange={(value) =>
-                              updateCharacter(setCharacters, character.id, { arc: value })
-                            }
-                          >
-                            <SelectTrigger aria-label={`Character ${index + 1} arc`}>
-                              <SelectValue placeholder="Arc" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CHARACTER_ARC_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Textarea
-                            aria-label={`Character ${index + 1} arc position`}
-                            value={character.position}
-                            onChange={(event) =>
-                              updateCharacter(setCharacters, character.id, {
-                                position: event.target.value,
-                              })
-                            }
-                            placeholder="Where this character is in the arc at this point in the story..."
-                            className="min-h-20 resize-y"
-                          />
-                          <Input
-                            aria-label={`Character ${index + 1} scene role`}
-                            value={character.sceneRole}
-                            onChange={(event) =>
-                              updateCharacter(setCharacters, character.id, {
-                                sceneRole: event.target.value,
-                              })
-                            }
-                            placeholder="Scene role, relationship pressure, or conflict function"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={characters.length >= CHARACTER_SLOT_IDS.length}
-                    onClick={() =>
-                      setCharacters((current) => [
-                        ...current,
-                        {
-                          id: CHARACTER_SLOT_IDS[current.length],
-                          name: "",
-                          arc: "positive-change",
-                          position: "",
-                          sceneRole: "",
-                        },
-                      ])
-                    }
-                  >
-                    Add character
-                  </Button>
-                  <div className="space-y-3">
-                    <Textarea
-                      value={defaultCast}
-                      onChange={(event) => setDefaultCast(event.target.value)}
-                      placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
-                      className="min-h-20 resize-y"
-                    />
-                    <Textarea
-                      value={miniStructure}
-                      onChange={(event) => setMiniStructure(event.target.value)}
-                      placeholder="Three-act mini scene structure..."
-                      className="min-h-24 resize-y"
-                    />
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{chapterPlan.length} slots</Badge>
+                    <Badge>{decisionCount} decided</Badge>
                   </div>
                 </div>
+
+                <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+                  <div className="border-b bg-background/40 p-3 lg:border-r lg:border-b-0">
+                    <div className="grid max-h-[30rem] gap-2 overflow-y-auto pr-1">
+                      {chapterPlan.map((chapter, index) => {
+                        const active = chapter.id === activeChapter.id;
+                        const decided = Boolean(chapter.event.trim());
+                        return (
+                          <button
+                            key={chapter.id}
+                            type="button"
+                            aria-pressed={active}
+                            className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                              active
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground"
+                            }`}
+                            onClick={() => setActiveChapterId(chapter.id)}
+                          >
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-foreground">
+                                {index + 1}. {chapter.title.trim() || `Chapter ${index + 1}`}
+                              </span>
+                              <span
+                                className={`h-2 w-2 rounded-full ${
+                                  decided ? "bg-emerald-500" : "bg-muted-foreground/40"
+                                }`}
+                                aria-hidden
+                              />
+                            </span>
+                            <span className="mt-1 block truncate text-xs">
+                              {chapter.event.trim() || "No decision yet"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={chapterPlan.length >= 40}
+                        onClick={addChapterSlot}
+                      >
+                        Add slot
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={chapterPlan.length <= 1}
+                        onClick={removeChapterSlot}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 p-4">
+                    {activeChapter ? (
+                      <motion.div
+                        key={activeChapter.id}
+                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        className="rounded-lg border bg-background/80 p-4"
+                      >
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-semibold">
+                              Chapter {activeChapterIndex + 1}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Fill only what you know. Empty fields let the architect infer.
+                            </p>
+                          </div>
+                          {activeChapter.event.trim() ? (
+                            <Badge>Decision set</Badge>
+                          ) : (
+                            <Badge variant="secondary">Open</Badge>
+                          )}
+                        </div>
+                        <div className="grid gap-3">
+                          <Input
+                            aria-label={`Chapter ${activeChapterIndex + 1} working title`}
+                            value={activeChapter.title}
+                            onChange={(event) =>
+                              updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                title: event.target.value,
+                              })
+                            }
+                            placeholder="Working title"
+                          />
+                          <Textarea
+                            aria-label={`Chapter ${activeChapterIndex + 1} what happens`}
+                            value={activeChapter.event}
+                            onChange={(event) =>
+                              updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                event: event.target.value,
+                              })
+                            }
+                            placeholder={
+                              project.type === "fiction"
+                                ? "What visibly happens in this chapter?"
+                                : "What claim, lesson, story, or exercise happens in this chapter?"
+                            }
+                            className="min-h-24 resize-y"
+                          />
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              aria-label={`Chapter ${activeChapterIndex + 1} purpose`}
+                              value={activeChapter.purpose}
+                              onChange={(event) =>
+                                updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                  purpose: event.target.value,
+                                })
+                              }
+                              placeholder="Purpose or turn"
+                            />
+                            <Input
+                              aria-label={`Chapter ${activeChapterIndex + 1} POV`}
+                              value={activeChapter.pov}
+                              onChange={(event) =>
+                                updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                  pov: event.target.value,
+                                })
+                              }
+                              placeholder={project.type === "fiction" ? "POV" : "Reader state"}
+                            />
+                          </div>
+                          <Input
+                            aria-label={`Chapter ${activeChapterIndex + 1} characters`}
+                            value={activeChapter.characters}
+                            onChange={(event) =>
+                              updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                characters: event.target.value,
+                              })
+                            }
+                            placeholder={
+                              project.type === "fiction"
+                                ? "Characters in play"
+                                : "Examples, experts, or case studies in play"
+                            }
+                          />
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {project.type === "fiction" ? (
+                <DisclosureSection
+                  title="Character arcs and scene context"
+                  description="Optional arc guidance for recurring characters and scene structure."
+                  open={characterPanelOpen}
+                  onOpenChange={setCharacterPanelOpen}
+                  icon={<Settings2 className="h-4 w-4 text-muted-foreground" />}
+                  meta={`${characterCount} characters`}
+                >
+                  <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+                    <div className="space-y-3">
+                      {characters.map((character, index) => (
+                        <div key={character.id} className="rounded-lg border bg-background/80 p-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h3 className="text-sm font-semibold">Character {index + 1}</h3>
+                            {character.name.trim() ? (
+                              <Badge>{characterArcLabel(character.arc)}</Badge>
+                            ) : (
+                              <Badge variant="secondary">Open</Badge>
+                            )}
+                          </div>
+                          <div className="grid gap-3">
+                            <Input
+                              aria-label={`Character ${index + 1} name`}
+                              value={character.name}
+                              onChange={(event) =>
+                                updateCharacter(setCharacters, character.id, {
+                                  name: event.target.value,
+                                })
+                              }
+                              placeholder="Character name"
+                            />
+                            <Select
+                              value={character.arc}
+                              onValueChange={(value) =>
+                                updateCharacter(setCharacters, character.id, { arc: value })
+                              }
+                            >
+                              <SelectTrigger aria-label={`Character ${index + 1} arc`}>
+                                <SelectValue placeholder="Arc" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CHARACTER_ARC_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Textarea
+                              aria-label={`Character ${index + 1} arc position`}
+                              value={character.position}
+                              onChange={(event) =>
+                                updateCharacter(setCharacters, character.id, {
+                                  position: event.target.value,
+                                })
+                              }
+                              placeholder="Where this character is in the arc at this point in the story..."
+                              className="min-h-20 resize-y"
+                            />
+                            <Input
+                              aria-label={`Character ${index + 1} scene role`}
+                              value={character.sceneRole}
+                              onChange={(event) =>
+                                updateCharacter(setCharacters, character.id, {
+                                  sceneRole: event.target.value,
+                                })
+                              }
+                              placeholder="Scene role, relationship pressure, or conflict function"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={characters.length >= CHARACTER_SLOT_IDS.length}
+                        onClick={() =>
+                          setCharacters((current) => [
+                            ...current,
+                            {
+                              id: CHARACTER_SLOT_IDS[current.length],
+                              name: "",
+                              arc: "positive-change",
+                              position: "",
+                              sceneRole: "",
+                            },
+                          ])
+                        }
+                      >
+                        Add character
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      <Textarea
+                        value={defaultCast}
+                        onChange={(event) => setDefaultCast(event.target.value)}
+                        placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
+                        className="min-h-28 resize-y bg-background/80"
+                      />
+                      <Textarea
+                        value={miniStructure}
+                        onChange={(event) => setMiniStructure(event.target.value)}
+                        placeholder="Three-act mini scene structure..."
+                        className="min-h-32 resize-y bg-background/80"
+                      />
+                    </div>
+                  </div>
+                </DisclosureSection>
               ) : null}
-              <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
-                {generate.isPending ? "Generating..." : "Generate outline"}
-              </Button>
-              {generate.isPending ? <OutlineGenerationProgress /> : null}
-              {generate.error ? (
-                <p className="text-sm text-destructive">{generate.error.message}</p>
-              ) : null}
+            </div>
+
+            <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t bg-background/90 p-4 backdrop-blur">
+              <div className="text-sm text-muted-foreground">
+                {decisionCount
+                  ? `${decisionCount} chapter decisions ready`
+                  : "Add chapter decisions when useful"}
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {generate.isPending ? <OutlineGenerationProgress /> : null}
+                {generate.error ? (
+                  <p className="text-sm text-destructive">{generate.error.message}</p>
+                ) : null}
+                <Button type="submit" disabled={!questionnaire.trim() || generate.isPending}>
+                  {generate.isPending ? "Generating..." : "Generate outline"}
+                </Button>
+              </div>
             </div>
           </form>
         ) : null}
@@ -1289,7 +1439,7 @@ function OutlineBuilder({
           </div>
           <div ref={chapterListRef} className="mt-4">
             {(outline.data?.chapters ?? []).length ? (
-              <MotionList className="space-y-3">
+              <MotionList className="grid gap-3 lg:grid-cols-2">
                 {outline.data?.chapters.map((chapter) => {
                   const drafted = chapter.draft_md.trim().length > 0;
                   return (
@@ -1301,10 +1451,10 @@ function OutlineBuilder({
                         <Link
                           to="/projects/$projectId/chapters/$chapterId"
                           params={{ projectId: project.id, chapterId: chapter.id }}
-                          className="block rounded-md border bg-muted/20 p-3 text-foreground transition-colors visited:text-foreground hover:bg-accent"
+                          className="block h-full rounded-lg border bg-muted/20 p-4 text-foreground transition-colors visited:text-foreground hover:bg-accent"
                           data-chapter-card="true"
                         >
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-start justify-between gap-3">
                             <h3 className="font-medium">
                               {chapter.ordinal}. {chapter.title}
                             </h3>
@@ -1317,9 +1467,12 @@ function OutlineBuilder({
                               </Badge>
                             </div>
                           </div>
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                          <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                             {chapter.summary}
                           </p>
+                          <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                            Open chapter
+                          </span>
                         </Link>
                       </motion.div>
                     </MotionItem>
@@ -1334,6 +1487,66 @@ function OutlineBuilder({
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function DisclosureSection({
+  title,
+  description,
+  open,
+  onOpenChange,
+  children,
+  icon,
+  meta,
+}: {
+  title: string;
+  description?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: ReactNode;
+  icon?: ReactNode;
+  meta?: string;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-muted/20">
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-4 bg-background/70 p-4 text-left transition-colors hover:bg-accent/40"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+      >
+        <span className="flex min-w-0 gap-3">
+          {icon}
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">{title}</span>
+            {description ? (
+              <span className="mt-1 block text-sm text-muted-foreground">{description}</span>
+            ) : null}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {meta ? <Badge variant="secondary">{meta}</Badge> : null}
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </span>
+      </button>
+      {open ? (
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          className="border-t p-4"
+        >
+          {children}
+        </motion.div>
+      ) : null}
     </section>
   );
 }

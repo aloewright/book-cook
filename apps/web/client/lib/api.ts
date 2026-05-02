@@ -469,6 +469,19 @@ export const api = {
       body: JSON.stringify(input),
     }),
   me: () => fetchJson<{ user: { id: string; email: string; plan: string } }>("/api/v1/account/me"),
+  maybeMe: async () => {
+    const res = await fetch("/api/v1/session", {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(
+        `${res.status}: ${(body as { error?: { message?: string } }).error?.message ?? res.statusText}`,
+      );
+    }
+    return res.json() as Promise<{ user: { id: string; email: string; plan?: string } | null }>;
+  },
 };
 
 export const queryKeys = {

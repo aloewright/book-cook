@@ -12,6 +12,8 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByRole("button", { name: /create account/i }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/dashboard$/);
   await page.getByLabel("Settings").click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect
@@ -110,7 +112,7 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
       page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
     )
     .toBe(loadCountBeforeRouteSwitch);
-  await page.getByRole("link", { name: "Back to workspace" }).click();
+  await page.getByRole("button", { name: "Back to workspace" }).click();
   await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
   await page.evaluate(() => {
     window.dispatchEvent(
@@ -132,4 +134,14 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByPlaceholder("Ask Aloysius…").press("Enter");
   await expect(page.getByText("hello")).toBeVisible();
   await expect(page.getByPlaceholder("Aloysius is replying…")).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.getByPlaceholder(/Ask Aloysius|Aloysius is replying/).evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        return (
+          box.bottom <= window.innerHeight && box.right <= window.innerWidth && box.width > 200
+        );
+      }),
+    )
+    .toBe(true);
 });

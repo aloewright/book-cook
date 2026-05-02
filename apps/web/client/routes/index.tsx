@@ -1,10 +1,28 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "../components/ui/button";
+import { api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/")({ component: Landing });
 
 function Landing() {
   const nav = useNavigate();
+  const session = useQuery({
+    queryKey: queryKeys.me(),
+    queryFn: api.maybeMe,
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (session.data?.user) void nav({ to: "/dashboard", replace: true });
+  }, [nav, session.data?.user]);
+
+  if (session.data?.user) {
+    return <p className="px-6 py-12 text-muted-foreground">Opening your dashboard...</p>;
+  }
+
   return (
     <section className="mx-auto max-w-3xl px-6 py-24 text-center">
       <h1 className="text-5xl font-bold tracking-tight">Write your book with Aloysius.</h1>

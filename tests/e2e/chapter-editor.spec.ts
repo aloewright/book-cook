@@ -95,5 +95,14 @@ test("sign-up -> outline -> chapter editor autosave", async ({ page }) => {
   await page.getByRole("link", { name: "View full book" }).click();
   await expect(page).toHaveURL(/\/book$/);
   await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+  const backButton = page.getByRole("button", { name: "Back to workspace" });
+  await expect(backButton).toBeVisible();
+  await expect
+    .poll(() =>
+      backButton.evaluate((node) =>
+        node.parentElement ? window.getComputedStyle(node.parentElement).position : "",
+      ),
+    )
+    .toBe("sticky");
   await expect(page.getByRole("link", { name: "Edit" }).first()).toBeVisible();
 });

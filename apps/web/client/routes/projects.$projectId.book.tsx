@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Download, FileText, LibraryBig, Menu, Pencil, X } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  FileText,
+  LibraryBig,
+  Menu,
+  Pencil,
+  X,
+} from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
@@ -13,6 +22,7 @@ export const Route = createFileRoute("/projects/$projectId/book")({ component: F
 
 function FullBookPage() {
   const { projectId } = Route.useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const book = useQuery({
@@ -44,14 +54,19 @@ function FullBookPage() {
   );
 
   return (
-    <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
+    <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 pb-8">
+      <div className="sticky top-0 z-30 -mx-6 border-b bg-background/95 px-6 py-3 backdrop-blur">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => void navigate({ to: "/projects/$projectId", params: { projectId } })}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to workspace
+        </Button>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
         <div>
-          <Button asChild variant="ghost" className="-ml-3 mb-3">
-            <Link to="/projects/$projectId" params={{ projectId }}>
-              Back to workspace
-            </Link>
-          </Button>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold">Full book</h1>
             <Badge variant="secondary">{project.title}</Badge>

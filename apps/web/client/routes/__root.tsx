@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { BookOpen, Compass, LayoutDashboard, Settings } from "lucide-react";
+import { api, queryKeys } from "../lib/api";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -8,18 +10,41 @@ const NAV_ITEMS = [
 ] as const;
 
 export const Route = createRootRoute({
-  component: () => (
+  component: RootLayout,
+});
+
+function RootLayout() {
+  const session = useQuery({
+    queryKey: queryKeys.me(),
+    queryFn: api.maybeMe,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const homeLink = session.data?.user ? (
+    <Link
+      to="/dashboard"
+      aria-label="Book Cook home"
+      title="Book Cook"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent"
+    >
+      <BookOpen className="h-5 w-5" />
+    </Link>
+  ) : (
+    <Link
+      to="/"
+      aria-label="Book Cook home"
+      title="Book Cook"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent"
+    >
+      <BookOpen className="h-5 w-5" />
+    </Link>
+  );
+
+  return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
       <header className="shrink-0 border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
-          <Link
-            to="/"
-            aria-label="Book Cook home"
-            title="Book Cook"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent"
-          >
-            <BookOpen className="h-5 w-5" />
-          </Link>
+          {homeLink}
           <nav className="flex gap-1">
             {NAV_ITEMS.map((item) => (
               <Link
@@ -39,5 +64,5 @@ export const Route = createRootRoute({
         <Outlet />
       </main>
     </div>
-  ),
-});
+  );
+}

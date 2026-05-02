@@ -1,6 +1,18 @@
 import { expect, test } from "@playwright/test";
 
 test("fiction projects can generate a genre-specific outline", async ({ page }) => {
+  const dynamicImportErrors: string[] = [];
+  const dynamicImportErrorPattern =
+    /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+  page.on("pageerror", (error) => {
+    if (dynamicImportErrorPattern.test(error.message)) dynamicImportErrors.push(error.message);
+  });
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (dynamicImportErrorPattern.test(text)) dynamicImportErrors.push(text);
+  });
+
   const email = `outline-style-${Date.now()}@x.test`;
   await page.goto("/sign-up");
   await page.getByPlaceholder("email").fill(email);
@@ -66,6 +78,18 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByRole("link", { name: "Full book" }).click();
   await expect(page).toHaveURL(/\/book$/);
   await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByRole("heading", { name: /outline builder/i })
+        .evaluate((node) => Number.parseFloat(window.getComputedStyle(node).opacity)),
+    )
+    .toBe(1);
+  await page.goForward();
+  await expect(page.getByRole("heading", { name: "Full book" })).toBeVisible();
+  expect(dynamicImportErrors).toEqual([]);
 });
 
 test("reduced-motion users see outline text and static book flow immediately", async ({ page }) => {

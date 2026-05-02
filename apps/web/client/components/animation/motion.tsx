@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 export function MotionPanel({ children, motionKey }: { children: ReactNode; motionKey: string }) {
   const reduceMotion = useReducedMotion();
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="sync" initial={false}>
       <motion.div
         key={motionKey}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
+        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}
       </motion.div>
@@ -28,7 +28,7 @@ export function MotionList({ children, className }: { children: ReactNode; class
       variants={{
         hidden: {},
         show: {
-          transition: reduceMotion ? { staggerChildren: 0 } : { staggerChildren: 0.045 },
+          transition: reduceMotion ? { staggerChildren: 0 } : { staggerChildren: 0.03 },
         },
       }}
     >
@@ -43,10 +43,10 @@ export function MotionItem({ children, className }: { children: ReactNode; class
     <motion.div
       className={className}
       variants={{
-        hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 },
+        hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, y: 4 },
         show: { opacity: 1, y: 0 },
       }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
+      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>

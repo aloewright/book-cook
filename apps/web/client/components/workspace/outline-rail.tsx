@@ -80,7 +80,9 @@ export function OutlineRail({
                 <motion.span
                   layoutId="workflow-active-indicator"
                   className="absolute inset-0 rounded-md bg-primary"
-                  transition={reduceMotion ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
+                  transition={
+                    reduceMotion ? { duration: 0 } : { duration: 0.16, ease: [0.22, 1, 0.36, 1] }
+                  }
                   aria-hidden
                 />
               ) : null}

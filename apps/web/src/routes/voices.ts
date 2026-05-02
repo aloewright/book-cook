@@ -30,6 +30,20 @@ const importPostPilotSchema = z.object({
     .regex(/^[a-z0-9][a-z0-9-_]*$/i),
 });
 
+const postPilotGuideIndexItemSchema = z.object({
+  slug: z.string(),
+  author: z.string(),
+  era: z.string().optional(),
+  kicker: z.string().optional(),
+  standfirst: z.string().optional(),
+  copyright_posture: z.string().optional(),
+});
+
+const postPilotGuideIndexSchema = z.object({
+  items: z.array(postPilotGuideIndexItemSchema),
+  nextOffset: z.number().nullable().optional(),
+});
+
 const addSampleSchema = jsonSampleSchema;
 
 type SampleInput = z.infer<typeof jsonSampleSchema>;
@@ -50,6 +64,11 @@ voicesRoute.get("/", async (c) => {
     .where(eq(voices.user_id, user.id))
     .orderBy(asc(voices.name));
   return c.json({ items });
+});
+
+voicesRoute.get("/postpilot-guides", async (c) => {
+  const guides = await loadPostPilotGuideIndex(c.env);
+  return c.json({ items: guides });
 });
 
 voicesRoute.post("/", async (c) => {
@@ -189,6 +208,36 @@ async function loadPostPilotGuide(env: Env, slug: string) {
   const json = await res.json();
   await env.KV.put(cacheKey, JSON.stringify(json), { expirationTtl: 24 * 60 * 60 });
   return normalizePostPilotGuide(slug, json);
+}
+
+async function loadPostPilotGuideIndex(env: Env) {
+  const cacheKey = "postpilot:guides:index";
+  const cached = await env.KV.get(cacheKey, "json");
+  if (cached) return z.array(postPilotGuideIndexItemSchema).parse(cached);
+
+  const baseUrl = env.POSTPILOT_BASE_URL.replace(/\/$/, "");
+  const items: z.infer<typeof postPilotGuideIndexItemSchema>[] = [];
+  let offset = 0;
+  const limit = 100;
+
+  for (let page = 0; page < 20; page += 1) {
+    const url = new URL(`${baseUrl}/v1/guides`);
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("offset", String(offset));
+    const res = await fetch(url, {
+      headers: { Accept: "application/json", "User-Agent": "BookGenerators/1.0 voice-index" },
+    });
+    if (!res.ok) throw new Error(`postpilot guide index failed: ${res.status}`);
+
+    const json = postPilotGuideIndexSchema.parse(await res.json());
+    items.push(...json.items);
+    if (json.nextOffset == null) break;
+    offset = json.nextOffset;
+  }
+
+  items.sort((a, b) => a.author.localeCompare(b.author));
+  await env.KV.put(cacheKey, JSON.stringify(items), { expirationTtl: 60 * 60 });
+  return items;
 }
 
 async function persistSample(

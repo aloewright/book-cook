@@ -59,6 +59,11 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
   await page.getByLabel("Go to Voice workflow").click();
   await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();
+  await page.getByRole("combobox", { name: /post pilot author/i }).click();
+  await expect(page.getByRole("option", { name: /Zora Neale Hurston/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await page.keyboard.press("Escape");
   await expect
     .poll(async () => {
       return page.evaluate(() => {

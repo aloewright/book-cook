@@ -30,6 +30,7 @@ import { TopBar } from "../components/workspace/top-bar";
 import {
   type NarrationApproval,
   type NarrationAudition,
+  type PostPilotGuide,
   type Project,
   type PublisherPack,
   type RenderJob,
@@ -42,11 +43,15 @@ import {
 export const Route = createFileRoute("/projects/$projectId")({ component: ProjectWorkspace });
 
 const POSTPILOT_SUGGESTIONS = [
-  { slug: "dickens", label: "Dickens" },
-  { slug: "austen", label: "Austen" },
-  { slug: "twain", label: "Twain" },
-  { slug: "hemingway", label: "Hemingway" },
+  { slug: "dickens", author: "Charles Dickens", kicker: "Victorian" },
+  { slug: "austen", author: "Jane Austen", kicker: "Regency" },
+  { slug: "twain", author: "Mark Twain", kicker: "American realism" },
+  { slug: "hemingway", author: "Ernest Hemingway", kicker: "Modernist" },
 ] as const;
+
+function postPilotGuideLabel(guide: Pick<PostPilotGuide, "author" | "kicker">) {
+  return guide.kicker ? `${guide.author} · ${guide.kicker}` : guide.author;
+}
 
 const FIELD_SLOT_IDS = ["one", "two", "three", "four", "five", "six", "seven"] as const;
 const CHARACTER_SLOT_IDS = [
@@ -632,6 +637,10 @@ function VoicePanel({ project }: { project: Project }) {
     queryKey: queryKeys.voices(),
     queryFn: api.listVoices,
   });
+  const postPilotGuides = useQuery({
+    queryKey: queryKeys.postPilotGuides(),
+    queryFn: api.listPostPilotGuides,
+  });
   const selectedVoice = useQuery({
     queryKey: queryKeys.voice(selectedVoiceId),
     queryFn: () => api.getVoice(selectedVoiceId),
@@ -639,6 +648,9 @@ function VoicePanel({ project }: { project: Project }) {
   });
 
   const selected = selectedVoice.data;
+  const postPilotGuideOptions = postPilotGuides.data?.items.length
+    ? postPilotGuides.data.items
+    : POSTPILOT_SUGGESTIONS;
   const totalWords = useMemo(
     () => selected?.samples?.reduce((sum, item) => sum + item.word_count, 0) ?? 0,
     [selected],
@@ -750,18 +762,20 @@ function VoicePanel({ project }: { project: Project }) {
             <div className="space-y-1">
               <h2 className="text-base font-semibold">Import from Post Pilot</h2>
               <p className="text-sm text-muted-foreground">
-                Clone a public-domain style guide into your local voice library.
+                Clone an author style guide into your local voice library.
               </p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
               <Select value={postPilotSlug} onValueChange={setPostPilotSlug}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a guide" />
+                <SelectTrigger aria-label="Post Pilot author">
+                  <SelectValue
+                    placeholder={postPilotGuides.isLoading ? "Loading guides..." : "Choose a guide"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {POSTPILOT_SUGGESTIONS.map((item) => (
+                  {postPilotGuideOptions.map((item) => (
                     <SelectItem key={item.slug} value={item.slug}>
-                      {item.label}
+                      {postPilotGuideLabel(item)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -781,6 +795,11 @@ function VoicePanel({ project }: { project: Project }) {
               placeholder="custom-slug"
               className="mt-3"
             />
+            {postPilotGuides.error ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Could not load the full Post Pilot author list. Use a custom slug to import a guide.
+              </p>
+            ) : null}
             {importPostPilot.error ? (
               <p className="mt-3 text-sm text-destructive">{importPostPilot.error.message}</p>
             ) : null}

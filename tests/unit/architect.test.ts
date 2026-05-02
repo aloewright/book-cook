@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateOutline } from "../../apps/web/src/skills/architect";
+import { generateOutline, generateOutlineWithAi } from "../../apps/web/src/skills/architect";
 
 describe("architect outline generation", () => {
   it("builds nonfiction chapter structure", () => {
@@ -150,5 +150,27 @@ describe("architect outline generation", () => {
     });
 
     expect(outline.framework).toBe("paas");
+  });
+
+  it("enriches framework beats into concrete story-specific chapter events", async () => {
+    const outline = await generateOutlineWithAi(
+      { AI_GATEWAY_BASE_URL: "", AI_GATEWAY_TOKEN: "" },
+      {
+        title: "Dash Return",
+        type: "fiction",
+        targetWordCount: 72_000,
+        framework: "hero-journey",
+        questionnaire:
+          "When a shocking secret is about to be exposed, rapper Dash must confront his past and confess to his family before it's too late. Fifteen years prior Dash faked his own death to escape fame and expectations. Ji-hoon is testing facial recognition software and finds a photo of Dash marked as deceased.",
+      },
+    );
+
+    const [ordinary, call] = outline.acts[0].chapters;
+    expect(ordinary.summary).toContain("Beat purpose:");
+    expect(ordinary.summary).toContain("What might happen:");
+    expect(ordinary.summary).toContain("Dash");
+    expect(ordinary.summary).not.toContain("Use the book premise as source material");
+    expect(call.summary).toContain("immediate story problem");
+    expect(call.summary).toContain("shocking secret");
   });
 });

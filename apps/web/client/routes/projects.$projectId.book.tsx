@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Download, FileText, LibraryBig, Pencil } from "lucide-react";
-import { type ReactNode, useRef } from "react";
+import { CheckCircle2, Download, FileText, LibraryBig, Menu, Pencil, X } from "lucide-react";
+import { type ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
 import { Badge } from "../components/ui/badge";
@@ -14,6 +14,7 @@ export const Route = createFileRoute("/projects/$projectId/book")({ component: F
 function FullBookPage() {
   const { projectId } = Route.useParams();
   const queryClient = useQueryClient();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const book = useQuery({
     queryKey: queryKeys.fullBook(projectId),
     queryFn: () => api.getFullBook(projectId),
@@ -85,63 +86,62 @@ function FullBookPage() {
         <p className="text-sm text-destructive">{startExport.error.message}</p>
       ) : null}
 
+      <div className="lg:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="full-book-mobile-menu"
+          data-testid="full-book-menu-toggle"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          Book menu
+        </Button>
+      </div>
+
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close book menu"
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <aside
+            id="full-book-mobile-menu"
+            aria-label="Book menu"
+            data-testid="full-book-mobile-menu"
+            className="fixed inset-y-0 left-0 w-[min(22rem,calc(100vw-2rem))] overflow-y-auto border-r bg-background p-4 shadow-xl"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">Book menu</h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close book menu"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <BookMenu
+              manuscript={manuscript}
+              jobs={exportableJobs}
+              onNavigate={() => setMobileMenuOpen(false)}
+            />
+          </aside>
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <Card className="p-4 shadow-none">
-            <div className="flex items-center gap-2">
-              <LibraryBig className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Book status</h2>
-            </div>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Chapters</dt>
-                <dd className="font-medium">
-                  {manuscript.drafted_chapters} drafted / {manuscript.chapters.length} planned
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Words</dt>
-                <dd className="font-medium">{manuscript.total_words.toLocaleString()}</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card className="p-4 shadow-none">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Export readiness</h2>
-            </div>
-            <div className="mt-4 space-y-2 text-sm">
-              <ReadinessRow
-                label="Drafted chapters"
-                ready={manuscript.drafted_chapters === manuscript.chapters.length}
-              />
-              <ReadinessRow label="PDF export" ready={manuscript.chapters.length > 0} />
-              <ReadinessRow label="EPUB export" ready={manuscript.chapters.length > 0} />
-            </div>
-          </Card>
-
-          {manuscript.chapters.length ? (
-            <Card className="p-4 shadow-none">
-              <h2 className="text-sm font-semibold">Chapters</h2>
-              <nav className="mt-3 grid gap-1">
-                {manuscript.chapters.map((chapter) => (
-                  <a
-                    key={chapter.ordinal}
-                    href={`#chapter-${chapter.ordinal}`}
-                    className="truncate rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-                  >
-                    {chapter.ordinal}. {chapter.title}
-                  </a>
-                ))}
-              </nav>
-            </Card>
-          ) : null}
-
-          <Card className="p-4 shadow-none">
-            <h2 className="text-sm font-semibold">Downloads</h2>
-            <RenderJobsList jobs={exportableJobs} />
-          </Card>
+        <aside
+          className="hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start"
+          aria-label="Book menu"
+          data-testid="full-book-desktop-menu"
+        >
+          <BookMenu manuscript={manuscript} jobs={exportableJobs} />
         </aside>
 
         {manuscript.chapters.length ? (
@@ -193,6 +193,84 @@ function FullBookPage() {
         )}
       </div>
     </section>
+  );
+}
+
+function BookMenu({
+  manuscript,
+  jobs,
+  onNavigate,
+}: {
+  manuscript: {
+    chapters: {
+      ordinal: number;
+      title: string;
+    }[];
+    drafted_chapters: number;
+    total_words: number;
+  };
+  jobs: RenderJob[];
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Card className="p-4 shadow-none">
+        <div className="flex items-center gap-2">
+          <LibraryBig className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Book status</h2>
+        </div>
+        <dl className="mt-4 space-y-3 text-sm">
+          <div>
+            <dt className="text-muted-foreground">Chapters</dt>
+            <dd className="font-medium">
+              {manuscript.drafted_chapters} drafted / {manuscript.chapters.length} planned
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Words</dt>
+            <dd className="font-medium">{manuscript.total_words.toLocaleString()}</dd>
+          </div>
+        </dl>
+      </Card>
+
+      <Card className="p-4 shadow-none">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Export readiness</h2>
+        </div>
+        <div className="mt-4 space-y-2 text-sm">
+          <ReadinessRow
+            label="Drafted chapters"
+            ready={manuscript.drafted_chapters === manuscript.chapters.length}
+          />
+          <ReadinessRow label="PDF export" ready={manuscript.chapters.length > 0} />
+          <ReadinessRow label="EPUB export" ready={manuscript.chapters.length > 0} />
+        </div>
+      </Card>
+
+      {manuscript.chapters.length ? (
+        <Card className="p-4 shadow-none">
+          <h2 className="text-sm font-semibold">Chapters</h2>
+          <nav className="mt-3 grid gap-1">
+            {manuscript.chapters.map((chapter) => (
+              <a
+                key={chapter.ordinal}
+                href={`#chapter-${chapter.ordinal}`}
+                className="truncate rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={onNavigate}
+              >
+                {chapter.ordinal}. {chapter.title}
+              </a>
+            ))}
+          </nav>
+        </Card>
+      ) : null}
+
+      <Card className="p-4 shadow-none">
+        <h2 className="text-sm font-semibold">Downloads</h2>
+        <RenderJobsList jobs={jobs} />
+      </Card>
+    </div>
   );
 }
 

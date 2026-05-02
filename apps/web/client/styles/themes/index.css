@@ -1,4 +1,5 @@
 /* Theme imports */
+@import "./default.css";
 @import "./modern-minimal.css";
 @import "./t3-chat.css";
 @import "./twitter.css";

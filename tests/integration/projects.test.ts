@@ -49,9 +49,25 @@ describe("projects", () => {
     });
     expect(outline.status).toBe(201);
 
+    const regeneratedOutline = await SELF.fetch(`http://x/api/v1/projects/${id}/outlines`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        framework: "reader-transformation",
+        questionnaire:
+          "Reader needs a clear operating model for focused work. The book should move them from reactive work to calm weekly planning.",
+      }),
+    });
+    expect(regeneratedOutline.status).toBe(201);
+
     const outlineRes = await SELF.fetch(`http://x/api/v1/projects/${id}/outline`, { headers });
     // biome-ignore lint/suspicious/noExplicitAny: response shape from our own API
     const outlineBody = (await outlineRes.json()) as any;
+    expect(outlineBody.chapters).toHaveLength(12);
+    expect(outlineBody.chapters[0].summary).toContain("What might happen:");
+    expect(outlineBody.chapters[0].summary).not.toContain(
+      "Use the book premise as source material",
+    );
     const chapterId = outlineBody.chapters[0].id;
     const patchChapter = await SELF.fetch(`http://x/api/v1/chapters/${chapterId}`, {
       method: "PATCH",

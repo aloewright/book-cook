@@ -1,7 +1,6 @@
-import { layoutWithLines, prepareWithSegments } from "@chenglou/pretext";
+import { measureNaturalWidth, prepareWithSegments } from "@chenglou/pretext";
 import { motion, useReducedMotion } from "framer-motion";
-import { type ElementType, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "../../lib/utils";
+import { type ElementType, useMemo } from "react";
 
 type PretextRevealTextProps = {
   text: string;
@@ -19,63 +18,41 @@ export function PretextRevealText({
   text,
   as: Tag = "span",
   className,
-  font = "14px Inter, ui-sans-serif, system-ui, sans-serif",
-  lineHeight = 20,
+  font = "14px Nunito, ui-sans-serif, system-ui, sans-serif",
   delay = 0,
-  minWidthToAnimate = 96,
-  stagger = 0.025,
 }: PretextRevealTextProps) {
-  const ref = useRef<HTMLElement | null>(null);
-  const [width, setWidth] = useState(0);
   const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const observer = new ResizeObserver(([entry]) => {
-      setWidth(Math.max(0, entry.contentRect.width));
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  const lines = useMemo(() => {
-    if (!width || width < minWidthToAnimate || !text.trim()) return null;
+  const naturalWidth = useMemo(() => {
+    if (!text.trim()) return undefined;
     try {
-      const prepared = prepareWithSegments(text, font);
-      return layoutWithLines(prepared, width, lineHeight).lines.map((line) => line.text);
+      return Math.ceil(measureNaturalWidth(prepareWithSegments(text, font)));
     } catch {
-      return null;
+      return undefined;
     }
-  }, [font, lineHeight, minWidthToAnimate, text, width]);
+  }, [font, text]);
 
-  if (reduceMotion || !lines?.length) {
+  if (reduceMotion || !text.trim()) {
     return (
-      <Tag ref={ref} className={className}>
+      <Tag className={className} data-pretext-natural-width={naturalWidth}>
         {text}
       </Tag>
     );
   }
 
   return (
-    <Tag ref={ref} className={cn("block", className)} aria-label={text}>
-      {lines.map((line, index) => (
-        <motion.span
-          // biome-ignore lint/suspicious/noArrayIndexKey: Line content can repeat in headings.
-          key={`${line}-${index}`}
-          className="block"
-          aria-hidden="true"
-          initial={{ opacity: 0, y: 3 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.18,
-            delay: delay + index * stagger,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-        >
-          {line}
-        </motion.span>
-      ))}
+    <Tag className={className} data-pretext-natural-width={naturalWidth}>
+      <motion.span
+        className="inline"
+        initial={{ opacity: 0, y: 2 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.14,
+          delay,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+      >
+        {text}
+      </motion.span>
     </Tag>
   );
 }

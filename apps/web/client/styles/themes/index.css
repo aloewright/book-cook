@@ -1,4 +1,5 @@
 /* Theme imports */
+@import "./book-cook.css";
 @import "./default.css";
 @import "./modern-minimal.css";
 @import "./t3-chat.css";
@@ -30,6 +31,7 @@
 @import "./midnight-bloom.css";
 @import "./candyland.css";
 @import "./northern-lights.css";
+@import "./my.css";
 @import "./vintage-paper.css";
 @import "./sunset-horizon.css";
 @import "./starry-night.css";

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { ListChecks, Search, Sparkles } from "lucide-react";
+import { ClipboardList, ListChecks, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Badge } from "../components/ui/badge";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
 import { type ScoutResult, api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/scout")({ component: ScoutPage });
@@ -22,10 +23,20 @@ function ScoutPage() {
   const queryClient = useQueryClient();
   const [niche, setNiche] = useState("productivity systems for neurodivergent founders");
   const [type, setType] = useState<"nonfiction" | "fiction">("nonfiction");
+  const [audience, setAudience] = useState("");
+  const [angle, setAngle] = useState("");
   const [active, setActive] = useState<ScoutResult | null>(null);
   const queries = useQuery({ queryKey: queryKeys.scoutQueries(), queryFn: api.listScoutQueries });
   const create = useMutation({
-    mutationFn: () => api.createScoutQuery({ niche, type }),
+    mutationFn: () =>
+      api.createScoutQuery({
+        niche,
+        type,
+        params: {
+          audience,
+          angle,
+        },
+      }),
     onSuccess: async (result) => {
       setActive(result);
       await queryClient.invalidateQueries({ queryKey: queryKeys.scoutQueries() });
@@ -47,33 +58,48 @@ function ScoutPage() {
       </div>
 
       <form
-        className="grid gap-3 rounded-lg border bg-background p-4 md:grid-cols-[1fr_180px_auto]"
+        className="grid gap-4 rounded-lg border bg-background p-4"
         onSubmit={(event) => {
           event.preventDefault();
           if (niche.trim()) create.mutate();
         }}
       >
-        <Input
-          value={niche}
-          onChange={(event) => setNiche(event.target.value)}
-          placeholder="Niche or reader demand"
-        />
-        <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="nonfiction">Nonfiction</SelectItem>
-            <SelectItem value="fiction">Fiction</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button type="submit" disabled={!niche.trim() || create.isPending}>
-          <Search className="h-4 w-4" />
-          {create.isPending ? "Scouting..." : "Run Scout"}
-        </Button>
-        {create.error ? (
-          <p className="text-sm text-destructive md:col-span-3">{create.error.message}</p>
-        ) : null}
+        <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+          <Input
+            value={niche}
+            onChange={(event) => setNiche(event.target.value)}
+            placeholder="Niche or reader demand"
+          />
+          <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nonfiction">Nonfiction</SelectItem>
+              <SelectItem value="fiction">Fiction</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button type="submit" disabled={!niche.trim() || create.isPending}>
+            <Search className="h-4 w-4" />
+            {create.isPending ? "Scouting..." : "Run Scout"}
+          </Button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input
+            value={audience}
+            onChange={(event) => setAudience(event.target.value)}
+            placeholder="Target reader, e.g. burned-out solo founders"
+            aria-label="Target reader"
+          />
+          <Textarea
+            value={angle}
+            onChange={(event) => setAngle(event.target.value)}
+            placeholder="Angle or promise, e.g. a calmer weekly operating system"
+            aria-label="Scout angle"
+            className="min-h-[44px]"
+          />
+        </div>
+        {create.error ? <p className="text-sm text-destructive">{create.error.message}</p> : null}
       </form>
 
       {result ? (
@@ -117,6 +143,15 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
   const keywordCounts = evidence.keyword_counts ?? inferKeywordCounts(evidence.records);
   const opportunityScore = evidence.opportunity_score ?? inferOpportunityScore(evidence.records);
   const confidence = evidence.confidence ?? inferConfidence(evidence.records, sourceMix);
+  const verdict =
+    evidence.verdict ??
+    fallbackVerdict(opportunityScore, confidence, coveredSourceCount(sourceMix));
+  const conceptBrief =
+    evidence.concept_brief ?? fallbackConceptBrief(result.query.niche, result.query.type);
+  const nextQuestions = evidence.next_questions ?? [
+    "What reader promise is most visible from this evidence?",
+    "Which comparable title is closest, and how is this book different?",
+  ];
   const validationSteps = evidence.validation_steps ?? [
     "Validate the strongest hook with readers before moving into outline.",
     "Compare the promise against comparable titles before drafting.",
@@ -138,6 +173,7 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
           <InsightMetric label="Confidence" value={confidence} />
           <InsightMetric label="Sources" value={`${coveredSourceCount(sourceMix)}/3 covered`} />
         </div>
+        <ScoutVerdictCard verdict={verdict} conceptBrief={conceptBrief} />
         <div className="mt-4 grid gap-3 rounded-lg border bg-muted/20 p-4">
           <div>
             <h3 className="text-sm font-semibold">Audience read</h3>
@@ -196,6 +232,11 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
               items={validationSteps}
               empty="No validation steps were generated for this Scout read."
               label="Validation steps"
+            />
+            <ScoutList
+              items={nextQuestions}
+              empty="No next questions were generated for this Scout read."
+              label="Questions before outline"
             />
           </div>
         ) : null}
@@ -298,6 +339,44 @@ export function ScoutResultView({ result }: { result: ScoutResult }) {
   );
 }
 
+function ScoutVerdictCard({
+  verdict,
+  conceptBrief,
+}: {
+  verdict: NonNullable<ScoutResult["finding"]["evidence_json"]["verdict"]>;
+  conceptBrief: NonNullable<ScoutResult["finding"]["evidence_json"]["concept_brief"]>;
+}) {
+  return (
+    <div className="mt-4 rounded-lg border bg-card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold">Scout verdict</h3>
+        </div>
+        <Badge variant={verdict.status === "ready" ? "default" : "secondary"}>
+          {verdict.label}
+        </Badge>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">{verdict.rationale}</p>
+      <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+        <BriefRow label="Audience" value={conceptBrief.audience} />
+        <BriefRow label="Must prove" value={conceptBrief.must_prove} />
+        <BriefRow label="Promise" value={conceptBrief.promise} />
+        <BriefRow label="Differentiator" value={conceptBrief.differentiator} />
+      </div>
+    </div>
+  );
+}
+
+function BriefRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md bg-muted/30 p-3">
+      <div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
+      <p className="mt-1 text-sm">{value}</p>
+    </div>
+  );
+}
+
 function InsightMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border bg-background p-3">
@@ -347,6 +426,47 @@ function inferConfidence(
 
 function coveredSourceCount(sourceMix: { kdp: number; trends: number; library: number }) {
   return [sourceMix.kdp, sourceMix.trends, sourceMix.library].filter(Boolean).length;
+}
+
+function fallbackVerdict(
+  opportunityScore: number,
+  confidence: "low" | "medium" | "high",
+  sourceCount: number,
+): NonNullable<ScoutResult["finding"]["evidence_json"]["verdict"]> {
+  if (opportunityScore >= 72 && confidence !== "low") {
+    return {
+      status: "ready",
+      label: "Ready to shape",
+      rationale: "Demand is broad enough to move into concept shaping.",
+    };
+  }
+  if (opportunityScore >= 55 || sourceCount >= 2) {
+    return {
+      status: "validate",
+      label: "Validate the hook",
+      rationale: "Signals are usable, but the hook needs a sharper proof point.",
+    };
+  }
+  return {
+    status: "reframe",
+    label: "Reframe before outlining",
+    rationale: "Evidence is thin, so broaden or clarify the reader promise.",
+  };
+}
+
+function fallbackConceptBrief(
+  niche: string,
+  type: ScoutResult["query"]["type"],
+): NonNullable<ScoutResult["finding"]["evidence_json"]["concept_brief"]> {
+  return {
+    audience: type === "fiction" ? `readers looking for ${niche}` : `readers solving ${niche}`,
+    promise:
+      type === "fiction"
+        ? `A distinct ${niche} story promise.`
+        : `A practical method for ${niche}.`,
+    differentiator: "Make the promise more specific than the comparable titles.",
+    must_prove: "Show why this hook deserves reader attention now.",
+  };
 }
 
 function ScoutList({

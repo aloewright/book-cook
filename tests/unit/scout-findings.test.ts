@@ -36,6 +36,10 @@ describe("scout findings", () => {
       {
         niche: "cozy fantasy mysteries",
         type: "fiction",
+        context: {
+          audience: "cozy readers who want low-stakes magic",
+          angle: "a magical bookshop mystery with found-family warmth",
+        },
         records,
         dataset: {
           snapshot_id: "snapshot-1",
@@ -53,9 +57,17 @@ describe("scout findings", () => {
     expect(result.evidence_json.source_mix).toEqual({ kdp: 1, trends: 1, library: 0 });
     expect(result.evidence_json.keyword_counts[0]).toEqual({ keyword: "bookshop", count: 1 });
     expect(result.evidence_json.audience_brief).toContain("Cozy fantasy mysteries");
+    expect(result.evidence_json.audience_brief).toContain("cozy readers");
     expect(result.evidence_json.positioning_brief).toContain("distinct story promise");
+    expect(result.evidence_json.positioning_brief).toContain("magical bookshop mystery");
+    expect(result.evidence_json.verdict.label).toBe("Validate the hook");
+    expect(result.evidence_json.concept_brief.audience).toBe(
+      "cozy readers who want low-stakes magic",
+    );
+    expect(result.evidence_json.concept_brief.promise).toContain("magical bookshop mystery");
     expect(result.evidence_json.gaps).toHaveLength(3);
     expect(result.evidence_json.recommendations[0]).toContain("reader trope");
     expect(result.evidence_json.validation_steps).toHaveLength(3);
+    expect(result.evidence_json.next_questions).toHaveLength(3);
   });
 });

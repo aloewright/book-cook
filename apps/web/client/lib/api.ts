@@ -220,6 +220,10 @@ export type ScoutEvidence = {
   };
   niche: string;
   type: "nonfiction" | "fiction";
+  input_context?: {
+    audience?: string;
+    angle?: string;
+  };
   records: MarketRecord[];
   source_mix?: {
     kdp: number;
@@ -231,9 +235,21 @@ export type ScoutEvidence = {
   confidence?: "low" | "medium" | "high";
   audience_brief?: string;
   positioning_brief?: string;
+  verdict?: {
+    status: "ready" | "validate" | "reframe";
+    label: string;
+    rationale: string;
+  };
+  concept_brief?: {
+    audience: string;
+    promise: string;
+    differentiator: string;
+    must_prove: string;
+  };
   gaps: string[];
   recommendations: string[];
   validation_steps?: string[];
+  next_questions?: string[];
 };
 
 export type ScoutQuery = {

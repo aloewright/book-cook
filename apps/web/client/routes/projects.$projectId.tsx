@@ -580,6 +580,8 @@ function nextWorkflowAction({
 function ConceptScoutPanel({ project }: { project: Project }) {
   const queryClient = useQueryClient();
   const [niche, setNiche] = useState(project.title);
+  const [audience, setAudience] = useState("");
+  const [angle, setAngle] = useState("");
   const findings = useQuery({
     queryKey: queryKeys.projectScoutFindings(project.id),
     queryFn: () => api.listProjectScoutFindings(project.id),
@@ -590,7 +592,11 @@ function ConceptScoutPanel({ project }: { project: Project }) {
         niche,
         type: project.type,
         project_id: project.id,
-        params: { source: "project-concept" },
+        params: {
+          source: "project-concept",
+          audience,
+          angle,
+        },
       }),
     onSuccess: async () => {
       await Promise.all([
@@ -634,6 +640,18 @@ function ConceptScoutPanel({ project }: { project: Project }) {
               onChange={(event) => setNiche(event.target.value)}
               placeholder="Niche or reader demand"
             />
+            <Input
+              value={audience}
+              onChange={(event) => setAudience(event.target.value)}
+              placeholder="Target reader"
+              aria-label="Scout target reader"
+            />
+            <Textarea
+              value={angle}
+              onChange={(event) => setAngle(event.target.value)}
+              placeholder="Angle or promise Scout should evaluate"
+              aria-label="Scout angle"
+            />
             <Button type="submit" disabled={!niche.trim() || pull.isPending}>
               <Search className="h-4 w-4" />
               {pull.isPending ? "Pulling..." : "Pull from Scout"}
@@ -664,6 +682,8 @@ function ProjectScoutFinding({
   }
 
   const evidence = result.finding.evidence_json;
+  const verdict = evidence.verdict;
+  const conceptBrief = evidence.concept_brief;
   return (
     <Card className="p-4 shadow-none">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -678,6 +698,32 @@ function ProjectScoutFinding({
       <div className="prose prose-neutral prose-sm mt-4 max-w-none dark:prose-invert">
         <ReactMarkdown>{result.finding.summary_md}</ReactMarkdown>
       </div>
+      {verdict || conceptBrief ? (
+        <div className="mt-4 rounded-md border bg-muted/20 p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              Scout brief
+            </div>
+            {verdict ? (
+              <Badge variant={verdict.status === "ready" ? "default" : "secondary"}>
+                {verdict.label}
+              </Badge>
+            ) : null}
+          </div>
+          {verdict ? <p className="mt-2 text-muted-foreground">{verdict.rationale}</p> : null}
+          {conceptBrief ? (
+            <div className="mt-3 grid gap-2">
+              <p>
+                <span className="font-medium">Promise:</span> {conceptBrief.promise}
+              </p>
+              <p>
+                <span className="font-medium">Must prove:</span> {conceptBrief.must_prove}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="mt-4 grid gap-3">
         {evidence.gaps.slice(0, 3).map((gap) => (
           <div key={gap} className="rounded-md bg-muted/40 p-3 text-sm">

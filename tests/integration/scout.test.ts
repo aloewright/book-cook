@@ -35,7 +35,11 @@ describe("scout", () => {
         niche: "productivity systems for neurodivergent founders",
         type: "nonfiction",
         project_id: project.id,
-        params: { source: "integration-test" },
+        params: {
+          source: "integration-test",
+          audience: "neurodivergent solo founders",
+          angle: "a weekly operating system that lowers context switching",
+        },
       }),
     });
     expect(created.status).toBe(201);
@@ -49,8 +53,12 @@ describe("scout", () => {
     expect(body.finding.evidence_json.source_mix.kdp).toBeGreaterThan(0);
     expect(body.finding.evidence_json.keyword_counts.length).toBeGreaterThan(0);
     expect(body.finding.evidence_json.positioning_brief).toContain("Position");
+    expect(body.finding.evidence_json.input_context.audience).toBe("neurodivergent solo founders");
+    expect(body.finding.evidence_json.verdict.label).toMatch(/Ready|Validate|Reframe/);
+    expect(body.finding.evidence_json.concept_brief.promise).toContain("weekly operating system");
     expect(body.finding.evidence_json.gaps).toHaveLength(3);
     expect(body.finding.evidence_json.validation_steps).toHaveLength(3);
+    expect(body.finding.evidence_json.next_questions).toHaveLength(3);
 
     const list = await SELF.fetch("http://x/api/v1/scout/queries", { headers });
     expect(list.status).toBe(200);

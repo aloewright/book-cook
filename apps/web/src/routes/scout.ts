@@ -6,7 +6,11 @@ import { dataset_snapshots, market_findings, market_queries, projects } from "..
 import type { Env } from "../env";
 import { type AuthVariables, requireUser } from "../middleware/auth";
 import { latestDatasetSnapshot, refreshMarketDataset } from "../skills/scout/dataset";
-import { readMarketRecords, synthesizeMarketFinding } from "../skills/scout/findings";
+import {
+  type ScoutContext,
+  readMarketRecords,
+  synthesizeMarketFinding,
+} from "../skills/scout/findings";
 
 const querySchema = z.object({
   niche: z.string().trim().min(2).max(200),
@@ -82,6 +86,7 @@ scoutRoute.post("/queries", async (c) => {
   const finding = await synthesizeMarketFinding(c.env, {
     niche: body.niche,
     type: body.type,
+    context: scoutContextFromParams(body.params),
     records,
     dataset: {
       snapshot_id: snapshot.id,
@@ -144,6 +149,13 @@ async function ensureDataset(env: Env) {
   const refreshed = await latestDatasetSnapshot(env);
   if (!refreshed) throw new Error("market dataset refresh did not create a snapshot");
   return refreshed;
+}
+
+function scoutContextFromParams(params: Record<string, unknown>): ScoutContext {
+  return {
+    audience: typeof params.audience === "string" ? params.audience : undefined,
+    angle: typeof params.angle === "string" ? params.angle : undefined,
+  };
 }
 
 async function getOwnedProject(db: ReturnType<typeof drizzle>, userId: string, projectId: string) {

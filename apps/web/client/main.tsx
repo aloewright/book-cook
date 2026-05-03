@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { StrictMode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { queryClient } from "./lib/api";
 import { applyThemePreference, watchSystemTheme } from "./lib/theme";
@@ -73,10 +73,8 @@ function ChunkLoadNotice() {
 const root = document.getElementById("root");
 if (!root) throw new Error("missing #root");
 createRoot(root).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <ChunkLoadNotice />
-    </QueryClientProvider>
-  </StrictMode>,
+  <QueryClientProvider client={queryClient}>
+    <RouterProvider router={router} />
+    <ChunkLoadNotice />
+  </QueryClientProvider>,
 );

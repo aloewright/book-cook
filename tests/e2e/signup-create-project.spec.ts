@@ -12,10 +12,32 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByRole("button", { name: /create account/i }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(1);
+  const loadCountBeforeHome = await page.evaluate(
+    () => (window as unknown as Record<string, number>).__bookCookLoadCount,
+  );
   await page.goto("/");
   await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText("Opening your dashboard...")).toBeHidden();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBeLessThanOrEqual(loadCountBeforeHome + 1);
+  const loadCountBeforeTopNav = await page.evaluate(
+    () => (window as unknown as Record<string, number>).__bookCookLoadCount,
+  );
   await page.getByLabel("Settings").click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeTopNav);
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
     .toBe("book-cook-light");
@@ -84,6 +106,11 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await page.getByRole("button", { name: "System" }).click();
   await page.getByLabel("Dashboard").click();
   await expect(page).toHaveURL(/\/dashboard$/);
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeTopNav);
 
   await page.getByPlaceholder("Working title…").fill("Quiet Operator");
   await page.getByRole("button", { name: /new book/i }).click();
@@ -96,9 +123,17 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect(link).toBeHidden();
   await page.getByRole("button", { name: /restore/i }).click();
   await expect(link).toBeVisible();
+  const loadCountBeforeProjectOpen = await page.evaluate(
+    () => (window as unknown as Record<string, number>).__bookCookLoadCount,
+  );
   await link.click();
 
   await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeProjectOpen);
   await expect
     .poll(() =>
       page
@@ -163,7 +198,13 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
     )
     .toBe(loadCountBeforeRouteSwitch);
   await page.getByRole("button", { name: "Back to workspace" }).click();
-  await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/projects\/[^/]+$/);
+  await expect(page.getByRole("heading", { name: "Outline", exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as Record<string, number>).__bookCookLoadCount),
+    )
+    .toBe(loadCountBeforeRouteSwitch);
   await page.evaluate(() => {
     window.dispatchEvent(
       new PromiseRejectionEvent("unhandledrejection", {

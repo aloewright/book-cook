@@ -28,6 +28,9 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByRole("link", { name: /signal garden/i }).click();
   await page.getByLabel("Go to Outline workflow").click();
   await expect(page.getByRole("heading", { name: /outline builder/i })).toBeVisible();
+  await expect(page.getByRole("tree", { name: "Project workflow" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Go to Outline Setup" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Outline workspace sections" })).toBeVisible();
   await expect(page.getByTestId("book-flow-preview")).toBeVisible();
   const frameworkQuestion = page.getByText("Who is the protagonist and what do they want?");
   await expect(frameworkQuestion).toBeVisible();
@@ -42,6 +45,7 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page
     .getByPlaceholder(/Protagonist, want, weakness/i)
     .fill("A botanist discovers plants that store memories from future colonists.");
+  await page.getByRole("tab", { name: /Chapter board/i }).click();
   await expect(page.getByRole("heading", { name: /chapter decision board/i })).toBeVisible();
   await page.getByLabel("Chapter 1 working title").fill("The Memory Orchard");
   await page
@@ -50,6 +54,7 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await page.getByLabel("Chapter 1 purpose").fill("Prove the premise with a visible event.");
   await page.getByLabel("Chapter 1 POV").fill("Mara");
   await page.getByLabel("Chapter 1 characters").fill("Mara, Ivo");
+  await page.getByRole("tab", { name: /Characters/i }).click();
   await page.getByLabel("Character 1 name").fill("Mara");
   await page.getByRole("combobox", { name: "Character 1 arc", exact: true }).click();
   await page.getByRole("option", { name: "Positive Change", exact: true }).click();
@@ -78,6 +83,7 @@ test("fiction projects can generate a genre-specific outline", async ({ page }) 
   await expect(page).toHaveURL(/\/chapters\//);
   await page.getByRole("link", { name: "Back to workspace" }).click();
   await page.getByLabel("Go to Outline workflow").click();
+  await page.getByRole("tab", { name: /Generated/i }).click();
   await expect(plannedChapter).toBeVisible();
   await expect
     .poll(() => plannedChapter.evaluate((node) => window.getComputedStyle(node).color))

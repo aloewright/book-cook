@@ -14,6 +14,7 @@ import {
 import {
   type Dispatch,
   type ReactNode,
+  type RefObject,
   type SetStateAction,
   useEffect,
   useMemo,
@@ -45,6 +46,7 @@ import {
 } from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
 import {
+  type Chapter,
   type NarrationApproval,
   type NarrationAudition,
   type PostPilotGuide,
@@ -224,11 +226,37 @@ const WORKFLOW_COPY: Record<WorkflowKey, { title: string; description: string }>
   },
 };
 
+type OutlineTab = "setup" | "decisions" | "characters" | "chapters";
+
+const OUTLINE_TABS: readonly { key: OutlineTab; label: string; description: string }[] = [
+  {
+    key: "setup",
+    label: "Setup",
+    description: "Framework and story brief.",
+  },
+  {
+    key: "decisions",
+    label: "Chapter board",
+    description: "One chapter slot at a time.",
+  },
+  {
+    key: "characters",
+    label: "Characters",
+    description: "Arc and scene context.",
+  },
+  {
+    key: "chapters",
+    label: "Generated",
+    description: "Clickable skeletons.",
+  },
+];
+
 function ProjectWorkspace() {
   const { projectId } = Route.useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [workflow, setWorkflow] = useState<WorkflowKey>(() => workflowFromHash());
+  const [workflowChild, setWorkflowChild] = useState(() => workflowChildFromHash());
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
@@ -247,7 +275,10 @@ function ProjectWorkspace() {
   });
 
   useEffect(() => {
-    const syncHash = () => setWorkflow(workflowFromHash());
+    const syncHash = () => {
+      setWorkflow(workflowFromHash());
+      setWorkflowChild(workflowChildFromHash());
+    };
     syncHash();
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
@@ -277,11 +308,12 @@ function ProjectWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden" data-project-workspace>
       <TopBar project={project.data} />
-      <div className="grid min-h-0 flex-1 grid-cols-[200px_minmax(0,1fr)_360px] overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)_360px] overflow-hidden">
         <OutlineRail
           active={workflow}
+          activeChild={workflowChild}
           statuses={statuses}
-          onSelect={(mode) => {
+          onSelect={(mode, child) => {
             if (mode === "book") {
               void navigate({ to: "/projects/$projectId/book", params: { projectId } });
               return;
@@ -291,7 +323,8 @@ function ProjectWorkspace() {
               return;
             }
             setWorkflow(mode);
-            history.replaceState(null, "", `#${mode}`);
+            setWorkflowChild(child);
+            replaceWorkspaceHash(child ? `${mode}:${child}` : mode);
           }}
         />
         <main className="overflow-y-auto px-6 py-8">
@@ -312,7 +345,11 @@ function ProjectWorkspace() {
               {workflow === "concept" ? <ConceptScoutPanel project={project.data} /> : null}
               {workflow === "voice" ? <VoicePanel project={project.data} /> : null}
               {workflow === "outline" || workflow === "chapters" ? (
-                <OutlineBuilder project={project.data} view={workflow} />
+                <OutlineBuilder
+                  project={project.data}
+                  view={workflow}
+                  requestedTab={outlineTabFromWorkflowChild(workflowChild)}
+                />
               ) : null}
               {workflow === "publish" ? <PublishPanel project={project.data} /> : null}
             </MotionPanel>
@@ -446,11 +483,39 @@ function WorkflowStatusBadge({ status }: { status: WorkflowStatus }) {
 
 function workflowFromHash(): WorkflowKey {
   if (typeof window === "undefined") return "concept";
-  const hash = window.location.hash.replace("#", "");
+  const hash = window.location.hash.replace("#", "").split(":")[0];
   if (hash === "voice" || hash === "outline" || hash === "chapters" || hash === "publish") {
     return hash;
   }
   return "concept";
+}
+
+function workflowChildFromHash() {
+  if (typeof window === "undefined") return undefined;
+  const [, child] = window.location.hash.replace("#", "").split(":");
+  return child || undefined;
+}
+
+function replaceWorkspaceHash(hash: string) {
+  history.replaceState(null, "", `#${hash}`);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+}
+
+function outlineTabFromWorkflowChild(child?: string): OutlineTab | undefined {
+  if (
+    child === "setup" ||
+    child === "decisions" ||
+    child === "characters" ||
+    child === "chapters"
+  ) {
+    return child;
+  }
+  return undefined;
+}
+
+function normalizeOutlineTab(tab: OutlineTab | undefined, type: Project["type"]): OutlineTab {
+  if (tab === "characters" && type !== "fiction") return "setup";
+  return tab ?? "setup";
 }
 
 function workflowStatuses({
@@ -892,7 +957,8 @@ function VoicePanel({ project }: { project: Project }) {
 function OutlineBuilder({
   project,
   view = "outline",
-}: { project: Project; view?: "outline" | "chapters" }) {
+  requestedTab,
+}: { project: Project; view?: "outline" | "chapters"; requestedTab?: OutlineTab }) {
   const queryClient = useQueryClient();
   const chapterListRef = useRef<HTMLDivElement | null>(null);
   const chaptersPanelRef = useRef<HTMLDivElement | null>(null);
@@ -918,9 +984,15 @@ function OutlineBuilder({
   const [activeChapterId, setActiveChapterId] = useState(() => chapterPlan[0]?.id ?? "chapter-1");
   const [frameworkGuideOpen, setFrameworkGuideOpen] = useState(true);
   const [characterPanelOpen, setCharacterPanelOpen] = useState(project.type === "fiction");
+  const [outlineTab, setOutlineTab] = useState<OutlineTab>(() =>
+    normalizeOutlineTab(requestedTab, project.type),
+  );
   const availableFrameworks = OUTLINE_FRAMEWORKS.filter((item) => item.type === project.type);
   const selectedFramework =
     availableFrameworks.find((item) => item.id === framework) ?? availableFrameworks[0];
+  const visibleTabs = OUTLINE_TABS.filter(
+    (tab) => tab.key !== "characters" || project.type === "fiction",
+  );
   const outline = useQuery({
     queryKey: queryKeys.projectOutline(project.id),
     queryFn: () => api.getProjectOutline(project.id),
@@ -963,12 +1035,14 @@ function OutlineBuilder({
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.projectOutline(project.id) }),
       ]);
-      requestAnimationFrame(() => {
+      setOutlineTab("chapters");
+      replaceWorkspaceHash("outline:chapters");
+      window.setTimeout(() => {
         chaptersPanelRef.current?.scrollIntoView({
           block: "start",
           behavior: reduceMotion ? "auto" : "smooth",
         });
-      });
+      }, 0);
     },
   });
   const chapterCount = outline.data?.chapters.length ?? 0;
@@ -1000,6 +1074,15 @@ function OutlineBuilder({
     (chapter) => chapter.title.trim() || chapter.event.trim() || chapter.purpose.trim(),
   ).length;
   const characterCount = characters.filter((character) => character.name.trim()).length;
+  const activeOutlineTab = view === "chapters" ? "chapters" : outlineTab;
+
+  useEffect(() => {
+    if (view === "chapters") {
+      setOutlineTab("chapters");
+      return;
+    }
+    setOutlineTab(normalizeOutlineTab(requestedTab, project.type));
+  }, [project.type, requestedTab, view]);
 
   function addChapterSlot() {
     setChapterPlan((current) => {
@@ -1007,6 +1090,12 @@ function OutlineBuilder({
       setActiveChapterId(nextChapter.id);
       return [...current, nextChapter];
     });
+  }
+
+  function selectOutlineTab(tab: OutlineTab) {
+    const next = normalizeOutlineTab(tab, project.type);
+    setOutlineTab(next);
+    replaceWorkspaceHash(`outline:${next}`);
   }
 
   function removeChapterSlot() {
@@ -1053,348 +1142,406 @@ function OutlineBuilder({
               generate.mutate();
             }}
           >
-            <div className="grid gap-5 p-4">
-              <div className="grid gap-4 2xl:grid-cols-[minmax(22rem,0.8fr)_minmax(0,1.2fr)]">
-                <div className="rounded-lg border bg-muted/20 p-4">
-                  <div className="flex items-center gap-2">
-                    <Layers3 className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold">Outline setup</h2>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    <Select value={framework} onValueChange={setFramework}>
-                      <SelectTrigger aria-label="Outline framework">
-                        <SelectValue placeholder="Framework" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFrameworks.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedFramework ? (
-                      <DisclosureSection
-                        title={selectedFramework.label}
-                        description={selectedFramework.description}
-                        open={frameworkGuideOpen}
-                        onOpenChange={setFrameworkGuideOpen}
-                        meta={`${selectedFramework.questions.length} prompts`}
-                      >
-                        <ul className="grid gap-2 text-sm text-muted-foreground">
-                          {selectedFramework.questions.map((question) => (
-                            <li
-                              key={question}
-                              className="flex gap-2 rounded-md bg-background/60 p-2"
-                            >
-                              <span aria-hidden className="text-muted-foreground/60">
-                                •
-                              </span>
-                              <span className="min-w-0 flex-1">{question}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </DisclosureSection>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border bg-muted/20 p-4">
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <h2 className="text-sm font-semibold">Story brief</h2>
-                  </div>
-                  <Textarea
-                    value={questionnaire}
-                    onChange={(event) => setQuestionnaire(event.target.value)}
-                    placeholder={
-                      project.type === "fiction"
-                        ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
-                        : "Reader, promise, proof, constraints, must-include stories..."
-                    }
-                    className="mt-4 min-h-36 resize-y bg-background/80"
-                    required
-                  />
-                </div>
+            <div className="border-b bg-background/70 p-2">
+              <div
+                role="tablist"
+                aria-label="Outline workspace sections"
+                className="grid gap-2 md:grid-cols-4"
+              >
+                {visibleTabs.map((tab) => {
+                  const selected = activeOutlineTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      aria-controls={`outline-tab-${tab.key}`}
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                        selected
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "bg-background/60 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      }`}
+                      onClick={() => selectOutlineTab(tab.key)}
+                    >
+                      <span className="block text-sm font-semibold">{tab.label}</span>
+                      <span className="mt-0.5 block text-xs">{tab.description}</span>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+            <div className="grid gap-5 p-4">
+              {activeOutlineTab === "setup" ? (
+                <div
+                  id="outline-tab-setup"
+                  role="tabpanel"
+                  className="grid gap-4 2xl:grid-cols-[minmax(22rem,0.8fr)_minmax(0,1.2fr)]"
+                >
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div className="flex items-center gap-2">
+                      <Layers3 className="h-4 w-4 text-muted-foreground" />
+                      <h2 className="text-sm font-semibold">Outline setup</h2>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      <Select value={framework} onValueChange={setFramework}>
+                        <SelectTrigger aria-label="Outline framework">
+                          <SelectValue placeholder="Framework" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFrameworks.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedFramework ? (
+                        <DisclosureSection
+                          title={selectedFramework.label}
+                          description={selectedFramework.description}
+                          open={frameworkGuideOpen}
+                          onOpenChange={setFrameworkGuideOpen}
+                          meta={`${selectedFramework.questions.length} prompts`}
+                        >
+                          <ul className="grid gap-2 text-sm text-muted-foreground">
+                            {selectedFramework.questions.map((question) => (
+                              <li
+                                key={question}
+                                className="flex gap-2 rounded-md bg-background/60 p-2"
+                              >
+                                <span aria-hidden className="text-muted-foreground/60">
+                                  •
+                                </span>
+                                <span className="min-w-0 flex-1">{question}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </DisclosureSection>
+                      ) : null}
+                    </div>
+                  </div>
 
-              <div className="overflow-hidden rounded-xl border bg-muted/20">
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-background/70 p-4">
-                  <div>
+                  <div className="rounded-lg border bg-muted/20 p-4">
                     <div className="flex items-center gap-2">
                       <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                      <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                      <h2 className="text-sm font-semibold">Story brief</h2>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Pick a chapter slot, decide the visible turn, then generate the full skeleton.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{chapterPlan.length} slots</Badge>
-                    <Badge>{decisionCount} decided</Badge>
+                    <Textarea
+                      value={questionnaire}
+                      onChange={(event) => setQuestionnaire(event.target.value)}
+                      placeholder={
+                        project.type === "fiction"
+                          ? "Protagonist, want, weakness, opponent, world, stakes, ending choice..."
+                          : "Reader, promise, proof, constraints, must-include stories..."
+                      }
+                      className="mt-4 min-h-36 resize-y bg-background/80"
+                      required
+                    />
                   </div>
                 </div>
+              ) : null}
 
-                <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
-                  <div className="border-b bg-background/40 p-3 lg:border-r lg:border-b-0">
-                    <div className="grid max-h-[30rem] gap-2 overflow-y-auto pr-1">
-                      {chapterPlan.map((chapter, index) => {
-                        const active = chapter.id === activeChapter.id;
-                        const decided = Boolean(chapter.event.trim());
-                        return (
-                          <button
-                            key={chapter.id}
-                            type="button"
-                            aria-pressed={active}
-                            className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                              active
-                                ? "border-primary bg-primary/10 text-foreground"
-                                : "bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground"
-                            }`}
-                            onClick={() => setActiveChapterId(chapter.id)}
-                          >
-                            <span className="flex items-center justify-between gap-2">
-                              <span className="font-medium text-foreground">
-                                {index + 1}. {chapter.title.trim() || `Chapter ${index + 1}`}
-                              </span>
-                              <span
-                                className={`h-2 w-2 rounded-full ${
-                                  decided ? "bg-emerald-500" : "bg-muted-foreground/40"
-                                }`}
-                                aria-hidden
-                              />
-                            </span>
-                            <span className="mt-1 block truncate text-xs">
-                              {chapter.event.trim() || "No decision yet"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={chapterPlan.length >= 40}
-                        onClick={addChapterSlot}
-                      >
-                        Add slot
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={chapterPlan.length <= 1}
-                        onClick={removeChapterSlot}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 p-4">
-                    {activeChapter ? (
-                      <motion.div
-                        key={activeChapter.id}
-                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                        className="rounded-lg border bg-background/80 p-4"
-                      >
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <h3 className="text-base font-semibold">
-                              Chapter {activeChapterIndex + 1}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Fill only what you know. Empty fields let the architect infer.
-                            </p>
-                          </div>
-                          {activeChapter.event.trim() ? (
-                            <Badge>Decision set</Badge>
-                          ) : (
-                            <Badge variant="secondary">Open</Badge>
-                          )}
-                        </div>
-                        <div className="grid gap-3">
-                          <Input
-                            aria-label={`Chapter ${activeChapterIndex + 1} working title`}
-                            value={activeChapter.title}
-                            onChange={(event) =>
-                              updateChapterPlan(setChapterPlan, activeChapter.id, {
-                                title: event.target.value,
-                              })
-                            }
-                            placeholder="Working title"
-                          />
-                          <Textarea
-                            aria-label={`Chapter ${activeChapterIndex + 1} what happens`}
-                            value={activeChapter.event}
-                            onChange={(event) =>
-                              updateChapterPlan(setChapterPlan, activeChapter.id, {
-                                event: event.target.value,
-                              })
-                            }
-                            placeholder={
-                              project.type === "fiction"
-                                ? "What visibly happens in this chapter?"
-                                : "What claim, lesson, story, or exercise happens in this chapter?"
-                            }
-                            className="min-h-24 resize-y"
-                          />
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <Input
-                              aria-label={`Chapter ${activeChapterIndex + 1} purpose`}
-                              value={activeChapter.purpose}
-                              onChange={(event) =>
-                                updateChapterPlan(setChapterPlan, activeChapter.id, {
-                                  purpose: event.target.value,
-                                })
-                              }
-                              placeholder="Purpose or turn"
-                            />
-                            <Input
-                              aria-label={`Chapter ${activeChapterIndex + 1} POV`}
-                              value={activeChapter.pov}
-                              onChange={(event) =>
-                                updateChapterPlan(setChapterPlan, activeChapter.id, {
-                                  pov: event.target.value,
-                                })
-                              }
-                              placeholder={project.type === "fiction" ? "POV" : "Reader state"}
-                            />
-                          </div>
-                          <Input
-                            aria-label={`Chapter ${activeChapterIndex + 1} characters`}
-                            value={activeChapter.characters}
-                            onChange={(event) =>
-                              updateChapterPlan(setChapterPlan, activeChapter.id, {
-                                characters: event.target.value,
-                              })
-                            }
-                            placeholder={
-                              project.type === "fiction"
-                                ? "Characters in play"
-                                : "Examples, experts, or case studies in play"
-                            }
-                          />
-                        </div>
-                      </motion.div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              {project.type === "fiction" ? (
-                <DisclosureSection
-                  title="Character arcs and scene context"
-                  description="Optional arc guidance for recurring characters and scene structure."
-                  open={characterPanelOpen}
-                  onOpenChange={setCharacterPanelOpen}
-                  icon={<Settings2 className="h-4 w-4 text-muted-foreground" />}
-                  meta={`${characterCount} characters`}
+              {activeOutlineTab === "decisions" ? (
+                <div
+                  id="outline-tab-decisions"
+                  role="tabpanel"
+                  className="overflow-hidden rounded-xl border bg-muted/20"
                 >
-                  <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
-                    <div className="space-y-3">
-                      {characters.map((character, index) => (
-                        <div key={character.id} className="rounded-lg border bg-background/80 p-3">
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <h3 className="text-sm font-semibold">Character {index + 1}</h3>
-                            {character.name.trim() ? (
-                              <Badge>{characterArcLabel(character.arc)}</Badge>
+                  <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-background/70 p-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                        <h2 className="text-sm font-semibold">Chapter decision board</h2>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Pick a chapter slot, decide the visible turn, then generate the full
+                        skeleton.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">{chapterPlan.length} slots</Badge>
+                      <Badge>{decisionCount} decided</Badge>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+                    <div className="border-b bg-background/40 p-3 lg:border-r lg:border-b-0">
+                      <div className="grid max-h-[30rem] gap-2 overflow-y-auto pr-1">
+                        {chapterPlan.map((chapter, index) => {
+                          const active = chapter.id === activeChapter.id;
+                          const decided = Boolean(chapter.event.trim());
+                          return (
+                            <button
+                              key={chapter.id}
+                              type="button"
+                              aria-pressed={active}
+                              className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                                active
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground"
+                              }`}
+                              onClick={() => setActiveChapterId(chapter.id)}
+                            >
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-foreground">
+                                  {index + 1}. {chapter.title.trim() || `Chapter ${index + 1}`}
+                                </span>
+                                <span
+                                  className={`h-2 w-2 rounded-full ${
+                                    decided ? "bg-emerald-500" : "bg-muted-foreground/40"
+                                  }`}
+                                  aria-hidden
+                                />
+                              </span>
+                              <span className="mt-1 block truncate text-xs">
+                                {chapter.event.trim() || "No decision yet"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={chapterPlan.length >= 40}
+                          onClick={addChapterSlot}
+                        >
+                          Add slot
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={chapterPlan.length <= 1}
+                          onClick={removeChapterSlot}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 p-4">
+                      {activeChapter ? (
+                        <motion.div
+                          key={activeChapter.id}
+                          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                          className="rounded-lg border bg-background/80 p-4"
+                        >
+                          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <h3 className="text-base font-semibold">
+                                Chapter {activeChapterIndex + 1}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Fill only what you know. Empty fields let the architect infer.
+                              </p>
+                            </div>
+                            {activeChapter.event.trim() ? (
+                              <Badge>Decision set</Badge>
                             ) : (
                               <Badge variant="secondary">Open</Badge>
                             )}
                           </div>
                           <div className="grid gap-3">
                             <Input
-                              aria-label={`Character ${index + 1} name`}
-                              value={character.name}
+                              aria-label={`Chapter ${activeChapterIndex + 1} working title`}
+                              value={activeChapter.title}
                               onChange={(event) =>
-                                updateCharacter(setCharacters, character.id, {
-                                  name: event.target.value,
+                                updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                  title: event.target.value,
                                 })
                               }
-                              placeholder="Character name"
+                              placeholder="Working title"
                             />
-                            <Select
-                              value={character.arc}
-                              onValueChange={(value) =>
-                                updateCharacter(setCharacters, character.id, { arc: value })
-                              }
-                            >
-                              <SelectTrigger aria-label={`Character ${index + 1} arc`}>
-                                <SelectValue placeholder="Arc" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {CHARACTER_ARC_OPTIONS.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                             <Textarea
-                              aria-label={`Character ${index + 1} arc position`}
-                              value={character.position}
+                              aria-label={`Chapter ${activeChapterIndex + 1} what happens`}
+                              value={activeChapter.event}
                               onChange={(event) =>
-                                updateCharacter(setCharacters, character.id, {
-                                  position: event.target.value,
+                                updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                  event: event.target.value,
                                 })
                               }
-                              placeholder="Where this character is in the arc at this point in the story..."
-                              className="min-h-20 resize-y"
+                              placeholder={
+                                project.type === "fiction"
+                                  ? "What visibly happens in this chapter?"
+                                  : "What claim, lesson, story, or exercise happens in this chapter?"
+                              }
+                              className="min-h-24 resize-y"
                             />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <Input
+                                aria-label={`Chapter ${activeChapterIndex + 1} purpose`}
+                                value={activeChapter.purpose}
+                                onChange={(event) =>
+                                  updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                    purpose: event.target.value,
+                                  })
+                                }
+                                placeholder="Purpose or turn"
+                              />
+                              <Input
+                                aria-label={`Chapter ${activeChapterIndex + 1} POV`}
+                                value={activeChapter.pov}
+                                onChange={(event) =>
+                                  updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                    pov: event.target.value,
+                                  })
+                                }
+                                placeholder={project.type === "fiction" ? "POV" : "Reader state"}
+                              />
+                            </div>
                             <Input
-                              aria-label={`Character ${index + 1} scene role`}
-                              value={character.sceneRole}
+                              aria-label={`Chapter ${activeChapterIndex + 1} characters`}
+                              value={activeChapter.characters}
                               onChange={(event) =>
-                                updateCharacter(setCharacters, character.id, {
-                                  sceneRole: event.target.value,
+                                updateChapterPlan(setChapterPlan, activeChapter.id, {
+                                  characters: event.target.value,
                                 })
                               }
-                              placeholder="Scene role, relationship pressure, or conflict function"
+                              placeholder={
+                                project.type === "fiction"
+                                  ? "Characters in play"
+                                  : "Examples, experts, or case studies in play"
+                              }
                             />
                           </div>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={characters.length >= CHARACTER_SLOT_IDS.length}
-                        onClick={() =>
-                          setCharacters((current) => [
-                            ...current,
-                            {
-                              id: CHARACTER_SLOT_IDS[current.length],
-                              name: "",
-                              arc: "positive-change",
-                              position: "",
-                              sceneRole: "",
-                            },
-                          ])
-                        }
-                      >
-                        Add character
-                      </Button>
-                    </div>
-                    <div className="space-y-3">
-                      <Textarea
-                        value={defaultCast}
-                        onChange={(event) => setDefaultCast(event.target.value)}
-                        placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
-                        className="min-h-28 resize-y bg-background/80"
-                      />
-                      <Textarea
-                        value={miniStructure}
-                        onChange={(event) => setMiniStructure(event.target.value)}
-                        placeholder="Three-act mini scene structure..."
-                        className="min-h-32 resize-y bg-background/80"
-                      />
+                        </motion.div>
+                      ) : null}
                     </div>
                   </div>
-                </DisclosureSection>
+                </div>
+              ) : null}
+
+              {project.type === "fiction" && activeOutlineTab === "characters" ? (
+                <div id="outline-tab-characters" role="tabpanel">
+                  <DisclosureSection
+                    title="Character arcs and scene context"
+                    description="Optional arc guidance for recurring characters and scene structure."
+                    open={characterPanelOpen}
+                    onOpenChange={setCharacterPanelOpen}
+                    icon={<Settings2 className="h-4 w-4 text-muted-foreground" />}
+                    meta={`${characterCount} characters`}
+                  >
+                    <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+                      <div className="space-y-3">
+                        {characters.map((character, index) => (
+                          <div
+                            key={character.id}
+                            className="rounded-lg border bg-background/80 p-3"
+                          >
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                              <h3 className="text-sm font-semibold">Character {index + 1}</h3>
+                              {character.name.trim() ? (
+                                <Badge>{characterArcLabel(character.arc)}</Badge>
+                              ) : (
+                                <Badge variant="secondary">Open</Badge>
+                              )}
+                            </div>
+                            <div className="grid gap-3">
+                              <Input
+                                aria-label={`Character ${index + 1} name`}
+                                value={character.name}
+                                onChange={(event) =>
+                                  updateCharacter(setCharacters, character.id, {
+                                    name: event.target.value,
+                                  })
+                                }
+                                placeholder="Character name"
+                              />
+                              <Select
+                                value={character.arc}
+                                onValueChange={(value) =>
+                                  updateCharacter(setCharacters, character.id, { arc: value })
+                                }
+                              >
+                                <SelectTrigger aria-label={`Character ${index + 1} arc`}>
+                                  <SelectValue placeholder="Arc" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CHARACTER_ARC_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Textarea
+                                aria-label={`Character ${index + 1} arc position`}
+                                value={character.position}
+                                onChange={(event) =>
+                                  updateCharacter(setCharacters, character.id, {
+                                    position: event.target.value,
+                                  })
+                                }
+                                placeholder="Where this character is in the arc at this point in the story..."
+                                className="min-h-20 resize-y"
+                              />
+                              <Input
+                                aria-label={`Character ${index + 1} scene role`}
+                                value={character.sceneRole}
+                                onChange={(event) =>
+                                  updateCharacter(setCharacters, character.id, {
+                                    sceneRole: event.target.value,
+                                  })
+                                }
+                                placeholder="Scene role, relationship pressure, or conflict function"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={characters.length >= CHARACTER_SLOT_IDS.length}
+                          onClick={() =>
+                            setCharacters((current) => [
+                              ...current,
+                              {
+                                id: CHARACTER_SLOT_IDS[current.length],
+                                name: "",
+                                arc: "positive-change",
+                                position: "",
+                                sceneRole: "",
+                              },
+                            ])
+                          }
+                        >
+                          Add character
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        <Textarea
+                          value={defaultCast}
+                          onChange={(event) => setDefaultCast(event.target.value)}
+                          placeholder="Default scene cast: Mara + Ivo in discovery scenes; Mara + Venn in conflict scenes..."
+                          className="min-h-28 resize-y bg-background/80"
+                        />
+                        <Textarea
+                          value={miniStructure}
+                          onChange={(event) => setMiniStructure(event.target.value)}
+                          placeholder="Three-act mini scene structure..."
+                          className="min-h-32 resize-y bg-background/80"
+                        />
+                      </div>
+                    </div>
+                  </DisclosureSection>
+                </div>
+              ) : null}
+
+              {activeOutlineTab === "chapters" ? (
+                <div id="outline-tab-chapters" role="tabpanel">
+                  <ChapterSkeletonsPanel
+                    project={project}
+                    chapters={outline.data?.chapters ?? []}
+                    panelRef={chaptersPanelRef}
+                    listRef={chapterListRef}
+                  />
+                </div>
               ) : null}
             </div>
 
@@ -1415,79 +1562,96 @@ function OutlineBuilder({
               </div>
             </div>
           </form>
-        ) : null}
-
-        <div
-          id="chapters"
-          ref={chaptersPanelRef}
-          className="scroll-mt-6 rounded-lg border bg-background p-4"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold">Chapter skeletons</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {(outline.data?.chapters.length ?? 0).toLocaleString()} chapters
-              </p>
-            </div>
-            {(outline.data?.chapters ?? []).length ? (
-              <Button asChild size="sm" variant="secondary">
-                <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
-                  Full book
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-          <div ref={chapterListRef} className="mt-4">
-            {(outline.data?.chapters ?? []).length ? (
-              <MotionList className="grid gap-3 lg:grid-cols-2">
-                {outline.data?.chapters.map((chapter) => {
-                  const drafted = chapter.draft_md.trim().length > 0;
-                  return (
-                    <MotionItem key={chapter.id}>
-                      <motion.div
-                        whileHover={{ y: -2 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                      >
-                        <Link
-                          to="/projects/$projectId/chapters/$chapterId"
-                          params={{ projectId: project.id, chapterId: chapter.id }}
-                          className="block h-full rounded-lg border bg-muted/20 p-4 text-foreground transition-colors visited:text-foreground hover:bg-accent"
-                          data-chapter-card="true"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <h3 className="font-medium">
-                              {chapter.ordinal}. {chapter.title}
-                            </h3>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              <Badge variant={drafted ? "default" : "secondary"}>
-                                {drafted ? "Drafted" : "Planned"}
-                              </Badge>
-                              <Badge variant="outline">
-                                {chapter.target_words.toLocaleString()} words
-                              </Badge>
-                            </div>
-                          </div>
-                          <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                            {chapter.summary}
-                          </p>
-                          <span className="mt-4 inline-flex text-sm font-medium text-primary">
-                            Open chapter
-                          </span>
-                        </Link>
-                      </motion.div>
-                    </MotionItem>
-                  );
-                })}
-              </MotionList>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Generated chapters will appear here after the first outline run.
-              </p>
-            )}
-          </div>
-        </div>
+        ) : (
+          <ChapterSkeletonsPanel
+            project={project}
+            chapters={outline.data?.chapters ?? []}
+            panelRef={chaptersPanelRef}
+            listRef={chapterListRef}
+          />
+        )}
       </div>
     </section>
+  );
+}
+
+function ChapterSkeletonsPanel({
+  project,
+  chapters,
+  panelRef,
+  listRef,
+}: {
+  project: Project;
+  chapters: Chapter[];
+  panelRef: RefObject<HTMLDivElement | null>;
+  listRef: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div id="chapters" ref={panelRef} className="scroll-mt-6 rounded-lg border bg-background p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Chapter skeletons</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {chapters.length.toLocaleString()} chapters
+          </p>
+        </div>
+        {chapters.length ? (
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
+              Full book
+            </Link>
+          </Button>
+        ) : null}
+      </div>
+      <div ref={listRef} className="mt-4">
+        {chapters.length ? (
+          <MotionList className="grid gap-3 lg:grid-cols-2">
+            {chapters.map((chapter) => {
+              const drafted = chapter.draft_md.trim().length > 0;
+              return (
+                <MotionItem key={chapter.id}>
+                  <motion.div
+                    whileHover={{ y: -2 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  >
+                    <Link
+                      to="/projects/$projectId/chapters/$chapterId"
+                      params={{ projectId: project.id, chapterId: chapter.id }}
+                      className="block h-full rounded-lg border bg-muted/20 p-4 text-foreground transition-colors visited:text-foreground hover:bg-accent"
+                      data-chapter-card="true"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-medium">
+                          {chapter.ordinal}. {chapter.title}
+                        </h3>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Badge variant={drafted ? "default" : "secondary"}>
+                            {drafted ? "Drafted" : "Planned"}
+                          </Badge>
+                          <Badge variant="outline">
+                            {chapter.target_words.toLocaleString()} words
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                        {chapter.summary}
+                      </p>
+                      <span className="mt-4 inline-flex text-sm font-medium text-primary">
+                        Open chapter
+                      </span>
+                    </Link>
+                  </motion.div>
+                </MotionItem>
+              );
+            })}
+          </MotionList>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Generated chapters will appear here after the first outline run.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 

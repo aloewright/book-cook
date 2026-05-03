@@ -110,10 +110,10 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
           return (
             <Card
               key={m.id}
-              className="max-w-[92%] border-border bg-background px-3 py-2 shadow-none"
+              className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none"
             >
               <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
-              <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-headings:my-2">
+              <div className="chat-markdown prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-headings:my-2">
                 <Streamdown>{text}</Streamdown>
               </div>
             </Card>
@@ -121,7 +121,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
         })}
 
         {status === "submitted" && (
-          <Card className="max-w-[92%] border-border bg-background px-3 py-2 shadow-none">
+          <Card className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none">
             <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
             <div className="flex items-center gap-1 py-1">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />

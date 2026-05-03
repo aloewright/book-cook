@@ -41,6 +41,33 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
     .toBe("github-dark");
+  await page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.setAttribute("data-testid", "chat-theme-probe");
+    probe.className = "text-card-foreground";
+    probe.innerHTML = `
+      <div class="chat-markdown prose">
+        <p data-testid="chat-theme-body">Visible assistant text</p>
+        <strong data-testid="chat-theme-bold">Visible emphasis</strong>
+      </div>
+    `;
+    document.body.append(probe);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const probe = document.querySelector("[data-testid='chat-theme-probe']");
+        const body = document.querySelector("[data-testid='chat-theme-body']");
+        const bold = document.querySelector("[data-testid='chat-theme-bold']");
+        if (!probe || !body || !bold) return false;
+        const expected = getComputedStyle(probe).color;
+        return (
+          getComputedStyle(body).color === expected && getComputedStyle(bold).color === expected
+        );
+      }),
+    )
+    .toBe(true);
+  await page.locator("[data-testid='chat-theme-probe']").evaluate((node) => node.remove());
   await page.getByRole("button", { name: "Light" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.classList.contains("dark")))

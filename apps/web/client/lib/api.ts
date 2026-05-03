@@ -4,6 +4,8 @@ export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5_000, retry: 1 } },
 });
 
+let redirectingToSignIn = false;
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     credentials: "include",
@@ -11,8 +13,13 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (res.status === 401) {
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/sign-")) {
-      window.location.href = "/sign-in";
+    if (
+      typeof window !== "undefined" &&
+      !redirectingToSignIn &&
+      !window.location.pathname.startsWith("/sign-")
+    ) {
+      redirectingToSignIn = true;
+      window.location.assign("/sign-in");
     }
     throw new Error("Unauthorized");
   }

@@ -1,27 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { Button } from "../components/ui/button";
-import { api, queryKeys } from "../lib/api";
 
-export const Route = createFileRoute("/")({ component: Landing });
+type SessionResponse = { user?: { id: string } | null };
+
+export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const session = await fetch("/api/v1/session", {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    })
+      .then((res) => (res.ok ? (res.json() as Promise<SessionResponse>) : null))
+      .catch(() => null);
+
+    if (session?.user) {
+      throw redirect({ to: "/dashboard", replace: true });
+    }
+  },
+  component: Landing,
+});
 
 function Landing() {
   const nav = useNavigate();
-  const session = useQuery({
-    queryKey: queryKeys.me(),
-    queryFn: api.maybeMe,
-    retry: false,
-    staleTime: 30_000,
-  });
-
-  useEffect(() => {
-    if (session.data?.user) void nav({ to: "/dashboard", replace: true });
-  }, [nav, session.data?.user]);
-
-  if (session.data?.user) {
-    return <p className="px-6 py-12 text-muted-foreground">Opening your dashboard...</p>;
-  }
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-24 text-center">

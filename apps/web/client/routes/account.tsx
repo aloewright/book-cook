@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../components/ui/badge";
@@ -32,6 +32,8 @@ const THEME_OPTIONS = [
 ] as const;
 
 function SettingsPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const me = useQuery({ queryKey: queryKeys.me(), queryFn: api.me });
   const [theme, setTheme] = useState<ThemePreference>("system");
   const [colorTheme, setSelectedColorTheme] = useState("book-cook");
@@ -140,7 +142,8 @@ function SettingsPage() {
           variant="outline"
           onClick={() =>
             authClient.signOut().then(() => {
-              window.location.href = "/";
+              queryClient.clear();
+              void navigate({ to: "/", replace: true });
             })
           }
         >

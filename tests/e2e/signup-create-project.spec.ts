@@ -22,7 +22,16 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   const bookCookPrimary = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue("--primary").trim(),
   );
+  expect(bookCookPrimary).toBe("oklch(0.3538 0.0068 286.0445)");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim(),
+      ),
+    )
+    .toContain("Nunito");
   await page.getByLabel("Color theme").click();
+  await expect(page.getByRole("option", { name: "My", exact: true })).toBeVisible();
   await page.getByRole("option", { name: "GitHub" }).click();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
@@ -90,6 +99,20 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
   await link.click();
 
   await expect(page.getByRole("heading", { name: "Concept", exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByRole("heading", { name: "Concept", exact: true })
+        .evaluate((node) => node.textContent?.replace(/\s+/g, " ").trim()),
+    )
+    .toBe("Concept");
+  await expect
+    .poll(() =>
+      page
+        .getByText("Confirm the book promise against market evidence before production work.")
+        .evaluate((node) => node.querySelectorAll("span").length),
+    )
+    .toBeLessThanOrEqual(1);
   await page.getByLabel("Go to Voice workflow").click();
   await expect(page.getByRole("heading", { name: /voice library/i })).toBeVisible();
   await page.getByRole("combobox", { name: /post pilot author/i }).click();

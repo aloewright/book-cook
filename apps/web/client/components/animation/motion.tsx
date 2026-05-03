@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 export function MotionPanel({ children, motionKey }: { children: ReactNode; motionKey: string }) {
   const reduceMotion = useReducedMotion();
   return (
-    <AnimatePresence mode="sync" initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={motionKey}
-        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 2 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -2 }}
-        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -1 }}
+        transition={{ duration: 0.12, ease: [0.22, 1, 0.36, 1] }}
       >
         {children}
       </motion.div>

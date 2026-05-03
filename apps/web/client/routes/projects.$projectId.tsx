@@ -397,7 +397,7 @@ function WorkflowHeader({
               as="h1"
               text={copy.title}
               className="text-2xl font-semibold"
-              font="24px Inter, ui-sans-serif, system-ui, sans-serif"
+              font="600 24px Nunito, ui-sans-serif, system-ui, sans-serif"
               lineHeight={32}
             />
             <WorkflowStatusBadge status={status} />
@@ -1893,7 +1893,10 @@ function PublishPanel({ project }: { project: Project }) {
           </p>
         </div>
         {draft ? (
-          <Badge variant={draft.status === "approved" ? "default" : "secondary"}>
+          <Badge
+            aria-label={`Publisher pack ${draft.status}`}
+            variant={draft.status === "approved" ? "default" : "secondary"}
+          >
             {draft.status === "approved" ? "Approved" : "Draft pack"}
           </Badge>
         ) : (

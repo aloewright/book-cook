@@ -70,7 +70,7 @@ test("sign-up -> outline -> publisher SEO pack -> approve", async ({ page }) => 
   await expect(page.getByText("A calmer system for focused work")).toBeVisible();
 
   await page.getByRole("button", { name: /^approve$/i }).click();
-  await expect(page.getByText("Approved")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByLabel("Publisher pack approved")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: /save edits/i })).toBeDisabled();
   await expect(page.getByRole("heading", { name: /narration audition/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /audition voices/i })).toBeDisabled();

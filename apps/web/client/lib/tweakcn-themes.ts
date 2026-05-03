@@ -137,6 +137,13 @@ export const themes: ThemeConfig[] = [
     fontSans: "DM Sans, sans-serif",
   },
   {
+    name: "my",
+    title: "My",
+    primaryLight: "oklch(0.5539 0.1392 284.3334)",
+    primaryDark: "oklch(0.6397 0.0950 286.9651)",
+    fontSans: "Inter, system-ui, sans-serif",
+  },
+  {
     name: "modern-minimal",
     title: "Modern Minimal",
     primaryLight: "oklch(0.62 0.19 259.81)",
@@ -330,9 +337,9 @@ export const DEFAULT_COLOR_THEME = "book-cook";
 export const bookCookTheme: ThemeConfig = {
   name: "book-cook",
   title: "Book Cook",
-  primaryLight: "oklch(0.447 0.116 179.7)",
-  primaryDark: "oklch(0.691 0.132 178.8)",
-  fontSans: "Inter, sans-serif",
+  primaryLight: "oklch(0.3538 0.0068 286.0445)",
+  primaryDark: "oklch(0.9152 0.0046 258.3255)",
+  fontSans: "Nunito, ui-sans-serif, sans-serif, system-ui",
 };
 
 export const colorThemes = [bookCookTheme, ...themes];

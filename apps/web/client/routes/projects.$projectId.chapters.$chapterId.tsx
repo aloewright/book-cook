@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Check, Scissors, Sparkles, Wand2, X } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
+import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
@@ -72,7 +72,7 @@ function ChapterEditorRoute() {
           <ChapterEditor chapter={chapter.data} sections={sections.data?.items ?? []} />
         </div>
       </main>
-      <AloysiusSidecar projectId={projectId} />
+      <EditorialAssistantSidecar projectId={projectId} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ pnpm install
 cd apps/web && pnpm dev
 ```
 
-Visit http://localhost:5173. Sign up, create a project, chat with Aloysius (echo stub until Phase 2).
+Visit http://localhost:5173. Sign up, create a project, and chat with Book Cook's Editorial Assistant.
 
 ## Tests
 

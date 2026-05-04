@@ -24,7 +24,7 @@ export function Message({
           isUser ? "text-[10px] text-primary-foreground/80" : "text-[10px] text-muted-foreground"
         }
       >
-        {isUser ? "You" : role === "assistant" ? "Aloysius" : "tool"}
+        {isUser ? "You" : role === "assistant" ? "Editorial Assistant" : "tool"}
       </div>
       {isUser ? (
         <div className="whitespace-pre-wrap">{text}</div>

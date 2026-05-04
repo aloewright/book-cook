@@ -1,4 +1,4 @@
-export type AloysiusEvent =
+export type EditorialAssistantEvent =
   | { type: "hello"; from: string }
   | { type: "assistant_message"; text: string }
   | { type: "assistant_chunk"; text: string }
@@ -6,16 +6,16 @@ export type AloysiusEvent =
   | { type: "pong" }
   | { type: "job_status"; job_id: string; kind: string; status: string };
 
-export function connectAloysius(projectId: string): {
+export function connectEditorialAssistant(projectId: string): {
   ws: WebSocket;
   send: (msg: object) => void;
-  onEvent: (cb: (e: AloysiusEvent) => void) => () => void;
+  onEvent: (cb: (e: EditorialAssistantEvent) => void) => () => void;
 } {
   const proto = window.location.protocol === "https:" ? "wss" : "ws";
   const ws = new WebSocket(`${proto}://${window.location.host}/agents/aloysius/${projectId}`);
-  const listeners = new Set<(e: AloysiusEvent) => void>();
+  const listeners = new Set<(e: EditorialAssistantEvent) => void>();
   ws.addEventListener("message", (ev) => {
-    const data = JSON.parse(String(ev.data)) as AloysiusEvent;
+    const data = JSON.parse(String(ev.data)) as EditorialAssistantEvent;
     for (const listener of listeners) listener(data);
   });
   return {

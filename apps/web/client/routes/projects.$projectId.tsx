@@ -26,7 +26,7 @@ import { BookFlowPreview } from "../components/animation/book-flow-composition";
 import { MotionItem, MotionList, MotionPanel } from "../components/animation/motion";
 import { PretextRevealText } from "../components/animation/pretext-reveal-text";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
-import { AloysiusSidecar } from "../components/chat/aloysius-sidecar";
+import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -355,7 +355,7 @@ function ProjectWorkspace() {
             </MotionPanel>
           </div>
         </main>
-        <AloysiusSidecar projectId={projectId} />
+        <EditorialAssistantSidecar projectId={projectId} />
       </div>
     </div>
   );

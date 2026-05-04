@@ -220,19 +220,21 @@ test("sign-up → create project → open workspace → chat", async ({ page }) 
     )
     .toBe(loadCountBeforeRouteSwitch);
 
-  // Aloysius accepts the message and starts a response turn.
-  await page.getByPlaceholder("Ask Aloysius…").fill("hello");
-  await page.getByPlaceholder("Ask Aloysius…").press("Enter");
+  // The Editorial Assistant accepts the message and starts a response turn.
+  await page.getByPlaceholder("Ask Editorial Assistant…").fill("hello");
+  await page.getByPlaceholder("Ask Editorial Assistant…").press("Enter");
   await expect(page.getByText("hello")).toBeVisible();
-  await expect(page.getByPlaceholder("Aloysius is replying…")).toBeVisible();
+  await expect(page.getByPlaceholder("Editorial Assistant is replying…")).toBeVisible();
   await expect
     .poll(async () =>
-      page.getByPlaceholder(/Ask Aloysius|Aloysius is replying/).evaluate((node) => {
-        const box = node.getBoundingClientRect();
-        return (
-          box.bottom <= window.innerHeight && box.right <= window.innerWidth && box.width > 200
-        );
-      }),
+      page
+        .getByPlaceholder(/Ask Editorial Assistant|Editorial Assistant is replying/)
+        .evaluate((node) => {
+          const box = node.getBoundingClientRect();
+          return (
+            box.bottom <= window.innerHeight && box.right <= window.innerWidth && box.width > 200
+          );
+        }),
     )
     .toBe(true);
 });

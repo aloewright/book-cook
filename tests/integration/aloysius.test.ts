@@ -1,7 +1,7 @@
 import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
-describe("aloysius DO", () => {
+describe("Book Cook editorial assistant DO", () => {
   it("WebSocket connects and handles the AI chat protocol", async () => {
     const id = crypto.randomUUID();
     const res = await SELF.fetch(`http://x/agents/aloysius/${id}`, {

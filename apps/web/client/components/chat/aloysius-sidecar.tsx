@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Textarea } from "../ui/textarea";
 
-export function AloysiusSidecar({ projectId }: { projectId: string }) {
+export function EditorialAssistantSidecar({ projectId }: { projectId: string }) {
   const agent = useAgent({ agent: "aloysius", name: projectId });
   const { messages, sendMessage, status, stop } = useAgentChat({ agent });
   const [input, setInput] = useState("");
@@ -71,11 +71,11 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
       <header className="flex items-center justify-between border-b bg-background px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            Al
+            EA
           </span>
           <div className="leading-tight">
-            <div className="text-sm font-semibold">Aloysius</div>
-            <div className="text-xs text-muted-foreground">Editor · always-on</div>
+            <div className="text-sm font-semibold">Editorial Assistant</div>
+            <div className="text-xs text-muted-foreground">Book Cook · always-on</div>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -87,7 +87,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
         {messages.length === 0 && (
           <div className="px-2 py-8 text-center text-sm text-muted-foreground">
-            Say hi to Aloysius — he'll help you shape your book.
+            Ask the Editorial Assistant for help shaping your book.
           </div>
         )}
 
@@ -112,7 +112,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
               key={m.id}
               className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none"
             >
-              <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
+              <div className="mb-1 text-xs text-muted-foreground">Editorial Assistant</div>
               <div className="chat-markdown prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-headings:my-2">
                 <Streamdown>{text}</Streamdown>
               </div>
@@ -122,7 +122,7 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
 
         {status === "submitted" && (
           <Card className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none">
-            <div className="mb-1 text-xs text-muted-foreground">Aloysius</div>
+            <div className="mb-1 text-xs text-muted-foreground">Editorial Assistant</div>
             <div className="flex items-center gap-1 py-1">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
@@ -138,7 +138,9 @@ export function AloysiusSidecar({ projectId }: { projectId: string }) {
             ref={taRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isStreaming ? "Aloysius is replying…" : "Ask Aloysius…"}
+            placeholder={
+              isStreaming ? "Editorial Assistant is replying…" : "Ask Editorial Assistant…"
+            }
             disabled={isStreaming}
             rows={1}
             className="resize-none pr-12"

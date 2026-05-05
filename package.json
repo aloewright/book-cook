@@ -9,6 +9,7 @@
     "deploy": "bash scripts/deploy.sh",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "polar:create-products": "node scripts/create-polar-products.mjs",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run && pnpm -r --if-present test",
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts"

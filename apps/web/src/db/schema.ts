@@ -16,7 +16,7 @@ export const users = sqliteTable("users", {
   emailVerified: integer("emailVerified", { mode: "boolean" }).notNull().default(false),
   image: text("image"),
   // Custom fields:
-  plan: text("plan", { enum: ["free", "pro"] })
+  plan: text("plan", { enum: ["free", "pro", "grow"] })
     .notNull()
     .default("pro"),
   phase: text("phase", {
@@ -28,6 +28,10 @@ export const users = sqliteTable("users", {
   elevenlabs_key_ciphertext: blob("elevenlabs_key_ciphertext"),
   elevenlabs_key_iv: blob("elevenlabs_key_iv"),
   stripe_customer_id: text("stripe_customer_id"),
+  polar_customer_id: text("polar_customer_id"),
+  polar_subscription_id: text("polar_subscription_id"),
+  polar_product_id: text("polar_product_id"),
+  polar_checkout_id: text("polar_checkout_id"),
   createdAt: ts("createdAt").default(sql`(unixepoch())`),
   updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
 });

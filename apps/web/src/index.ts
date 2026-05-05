@@ -6,6 +6,7 @@ import { RenderWorkerContainer } from "./containers/render-worker";
 import type { Env } from "./env";
 import { errorHandler } from "./middleware/error";
 import { accountRoute } from "./routes/account";
+import { billingRoute } from "./routes/billing";
 import { chaptersRoute } from "./routes/chapters";
 import { healthRoute } from "./routes/health";
 import { projectsRoute } from "./routes/projects";
@@ -96,6 +97,7 @@ app.route("/api/v1/projects", projectsRoute);
 app.route("/api/v1/chapters", chaptersRoute);
 app.route("/api/v1/voices", voicesRoute);
 app.route("/api/v1/account", accountRoute);
+app.route("/api/v1/billing", billingRoute);
 app.route("/api/v1/scout", scoutRoute);
 
 app.all("/agents/*", async (c) => {

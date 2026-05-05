@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowRight, LogOut, Monitor, Moon, Sparkles, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -35,8 +35,14 @@ function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const me = useQuery({ queryKey: queryKeys.me(), queryFn: api.me });
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+    retry: false,
+  });
   const [theme, setTheme] = useState<ThemePreference>("system");
   const [colorTheme, setSelectedColorTheme] = useState("book-cook");
+  const showProCallout = billing.data?.publish_launch_unlocked === false;
 
   useEffect(() => {
     setTheme(getThemePreference());
@@ -48,6 +54,30 @@ function SettingsPage() {
       <h1 className="mb-6 text-3xl font-semibold">Settings</h1>
 
       <div className="grid gap-6">
+        {showProCallout ? (
+          <Card className="overflow-hidden border-primary/25 shadow-none">
+            <CardContent className="grid gap-4 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Badge variant="secondary">Book Cook Pro</Badge>
+                </div>
+                <h2 className="mt-3 text-lg font-semibold">Unlock Publish and Launch</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Upgrade to generate publisher metadata, export files, prep narration, and create
+                  launch handoffs.
+                </p>
+              </div>
+              <Button asChild>
+                <Link to="/pricing">
+                  Sign up for Pro
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle>Display</CardTitle>

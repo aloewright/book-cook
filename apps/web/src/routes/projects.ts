@@ -15,6 +15,7 @@ import {
   voices,
 } from "../db/schema";
 import type { Env } from "../env";
+import { publishLaunchPaywallResponse } from "../lib/billing";
 import { decryptSecret } from "../lib/keyring";
 import { type AuthVariables, requireUser } from "../middleware/auth";
 import { generateOutlineWithAi } from "../skills/architect";
@@ -271,6 +272,8 @@ projectsRoute.get("/:id/outline", async (c) => {
 });
 
 projectsRoute.get("/:id/publisher-pack", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -292,6 +295,8 @@ projectsRoute.get("/:id/publisher-pack", async (c) => {
 });
 
 projectsRoute.post("/:id/publisher-pack/seo", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -353,6 +358,8 @@ projectsRoute.post("/:id/publisher-pack/seo", async (c) => {
 });
 
 projectsRoute.patch("/:id/publisher-pack", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -395,6 +402,8 @@ projectsRoute.patch("/:id/publisher-pack", async (c) => {
 });
 
 projectsRoute.post("/:id/publisher-pack/approve", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -427,6 +436,8 @@ projectsRoute.post("/:id/publisher-pack/approve", async (c) => {
 });
 
 projectsRoute.get("/:id/book", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -457,6 +468,8 @@ projectsRoute.get("/:id/book", async (c) => {
 });
 
 projectsRoute.get("/:id/export/jobs", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -476,6 +489,8 @@ projectsRoute.get("/:id/export/jobs", async (c) => {
 });
 
 projectsRoute.post("/:id/export", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const body = exportSchema.parse(await c.req.json().catch(() => ({})));
@@ -500,6 +515,8 @@ projectsRoute.post("/:id/export", async (c) => {
 });
 
 projectsRoute.get("/:id/export/:jobId/download", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const jobId = c.req.param("jobId");
@@ -534,6 +551,8 @@ projectsRoute.get("/:id/export/:jobId/download", async (c) => {
 });
 
 projectsRoute.get("/:id/narration/auditions", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -557,6 +576,8 @@ projectsRoute.get("/:id/narration/auditions", async (c) => {
 });
 
 projectsRoute.post("/:id/narration/audition", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const body = auditionSchema.parse(await c.req.json());
@@ -644,6 +665,8 @@ projectsRoute.post("/:id/narration/audition", async (c) => {
 });
 
 projectsRoute.get("/:id/narration/auditions/:jobId/audio", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const jobId = c.req.param("jobId");
@@ -678,6 +701,8 @@ projectsRoute.get("/:id/narration/auditions/:jobId/audio", async (c) => {
 });
 
 projectsRoute.post("/:id/narration/auditions/:jobId/approve", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const jobId = c.req.param("jobId");
@@ -716,6 +741,8 @@ projectsRoute.post("/:id/narration/auditions/:jobId/approve", async (c) => {
 });
 
 projectsRoute.post("/:id/audiobook", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   if (!c.env.AUDIOBOOK_MASTERING_WORKFLOW) {
@@ -741,6 +768,8 @@ projectsRoute.post("/:id/audiobook", async (c) => {
 });
 
 projectsRoute.get("/:id/audiobook/jobs", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -761,6 +790,8 @@ projectsRoute.get("/:id/audiobook/jobs", async (c) => {
 });
 
 projectsRoute.get("/:id/audiobook/:jobId/download", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const jobId = c.req.param("jobId");
@@ -796,6 +827,8 @@ projectsRoute.get("/:id/audiobook/:jobId/download", async (c) => {
 });
 
 projectsRoute.get("/:id/launch/brief", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);
@@ -816,6 +849,8 @@ projectsRoute.get("/:id/launch/brief", async (c) => {
 });
 
 projectsRoute.post("/:id/launch/brief", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   if (!c.env.GTM_BRIEF_WORKFLOW) {
@@ -843,6 +878,8 @@ projectsRoute.post("/:id/launch/brief", async (c) => {
 });
 
 projectsRoute.get("/:id/launch/brief/download", async (c) => {
+  const paywall = publishLaunchPaywallResponse(c);
+  if (paywall) return paywall;
   const user = c.get("user");
   const id = c.req.param("id");
   const db = drizzle(c.env.DB);

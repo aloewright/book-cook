@@ -1,10 +1,20 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Settings } from "lucide-react";
-import type { Project } from "../../lib/api";
+import { type Project, api, queryKeys } from "../../lib/api";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { BudgetMeter } from "./budget-meter";
 
 export function TopBar({ project }: { project: Project }) {
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const showProCta = billing.data?.publish_launch_unlocked === false;
+
   return (
     <header className="shrink-0 border-b bg-background">
       <div className="flex items-center justify-between px-5 py-2 text-sm">
@@ -22,6 +32,11 @@ export function TopBar({ project }: { project: Project }) {
           <Badge variant="secondary">{project.status}</Badge>
         </div>
         <div className="flex items-center gap-4">
+          {showProCta ? (
+            <Button asChild size="sm">
+              <Link to="/pricing">Sign up for Pro</Link>
+            </Button>
+          ) : null}
           <BudgetMeter spentCents={0} capCents={5000} />
           <Link
             to="/account"

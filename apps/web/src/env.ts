@@ -37,4 +37,10 @@ export type Env = Omit<CloudflareBindings, "ENV"> &
     GOOGLE_CLIENT_SECRET?: string;
     // Sentry DSN for error reporting.
     SENTRY_DSN?: string;
+    // Polar billing configuration for Publish and Launch paywall.
+    PUBLISH_LAUNCH_PAYWALL_ENABLED?: string;
+    POLAR_API_BASE_URL?: string;
+    POLAR_ACCESS_TOKEN?: string;
+    POLAR_PRO_PRODUCT_ID?: string;
+    POLAR_GROW_PRODUCT_ID?: string;
   };

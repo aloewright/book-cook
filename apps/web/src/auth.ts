@@ -42,7 +42,7 @@ export function createAuth(env: Env) {
     },
     user: {
       additionalFields: {
-        plan: { type: "string", required: false, defaultValue: "pro" },
+        plan: { type: "string", required: false, defaultValue: "free" },
         phase: {
           type: "string",
           required: false,

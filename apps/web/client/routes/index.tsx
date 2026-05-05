@@ -9,6 +9,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import { PublicFooter } from "../components/public-footer";
 import { Button } from "../components/ui/button";
 
 type SessionResponse = { user?: { id: string } | null };
@@ -34,16 +35,15 @@ function Landing() {
 
   return (
     <div className="bg-background text-foreground">
-      <section className="relative isolate overflow-hidden border-b">
-        <ProductScene />
-        <div className="relative mx-auto flex min-h-[calc(100vh-9rem)] max-w-6xl flex-col justify-center px-6 py-20">
-          <div className="max-w-3xl">
+      <section className="border-b bg-background">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-12 sm:py-14 lg:min-h-[720px] lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="relative z-10 max-w-xl">
             <div className="mb-5 inline-flex items-center gap-2 rounded-md border bg-background/85 px-3 py-1 text-sm text-muted-foreground backdrop-blur">
               <Sparkles className="h-4 w-4" />
               From market signal to finished manuscript
             </div>
-            <h1 className="max-w-2xl text-5xl font-bold leading-[1.04] md:text-7xl">Book Cook</h1>
-            <p className="mt-6 max-w-2xl text-xl leading-8 text-muted-foreground">
+            <h1 className="text-5xl font-bold leading-[1.04] md:text-7xl">Book Cook</h1>
+            <p className="mt-6 text-lg leading-8 text-muted-foreground md:text-xl">
               Plan, draft, edit, and package a book in one focused workspace, with Scout research,
               structured outlines, chapter drafting, full-book review, and export tools built in.
             </p>
@@ -56,6 +56,8 @@ function Landing() {
               </Button>
             </div>
           </div>
+
+          <ProductScene />
         </div>
       </section>
 
@@ -94,6 +96,8 @@ function Landing() {
           ))}
         </div>
       </section>
+
+      <PublicFooter />
     </div>
   );
 }
@@ -154,8 +158,8 @@ const STEPS = [
 
 function ProductScene() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-[560px] max-w-6xl px-6 opacity-45 md:opacity-55">
-      <div className="h-full rounded-lg border bg-card shadow-xl">
+    <div className="pointer-events-none min-w-0 lg:pl-2">
+      <div className="h-[420px] min-w-0 overflow-hidden rounded-lg border bg-card shadow-xl sm:h-[480px] lg:h-[540px]">
         <div className="flex h-12 items-center gap-2 border-b px-4">
           <BookOpen className="h-5 w-5" />
           <span className="font-semibold">Book Cook</span>
@@ -163,12 +167,12 @@ function ProductScene() {
             outline
           </span>
         </div>
-        <div className="grid h-[calc(100%-3rem)] grid-cols-[180px_1fr_240px]">
-          <div className="border-r p-4">
+        <div className="grid h-[calc(100%-3rem)] min-w-0 grid-cols-[132px_minmax(0,1fr)] sm:grid-cols-[160px_minmax(0,1fr)] xl:grid-cols-[180px_minmax(0,1fr)_220px]">
+          <div className="border-r p-3 sm:p-4">
             {["Concept", "Voice", "Outline", "Chapters", "Book", "Publish"].map((item, index) => (
               <div
                 key={item}
-                className={`mb-2 flex items-center justify-between rounded-md px-3 py-2 text-sm ${
+                className={`mb-2 flex items-center justify-between rounded-md px-2 py-2 text-sm sm:px-3 ${
                   index === 2 ? "bg-primary text-primary-foreground" : "bg-muted/45"
                 }`}
               >
@@ -177,15 +181,15 @@ function ProductScene() {
               </div>
             ))}
           </div>
-          <div className="space-y-4 p-5">
-            <div className="h-8 w-56 rounded-md bg-foreground/15" />
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-lg border bg-background p-4">
-                <div className="h-4 w-28 rounded bg-foreground/15" />
+          <div className="min-w-0 space-y-4 overflow-hidden p-4 sm:p-5">
+            <div className="h-8 w-3/5 max-w-56 rounded-md bg-foreground/15" />
+            <div className="grid min-w-0 gap-3 md:grid-cols-2">
+              <div className="min-w-0 overflow-hidden rounded-lg border bg-background p-4">
+                <div className="h-4 w-3/5 rounded bg-foreground/15" />
                 <div className="mt-4 h-24 rounded bg-muted" />
               </div>
-              <div className="rounded-lg border bg-background p-4">
-                <div className="h-4 w-32 rounded bg-foreground/15" />
+              <div className="min-w-0 overflow-hidden rounded-lg border bg-background p-4">
+                <div className="h-4 w-2/3 rounded bg-foreground/15" />
                 <div className="mt-4 space-y-2">
                   <div className="h-9 rounded bg-muted" />
                   <div className="h-9 rounded bg-muted" />
@@ -195,26 +199,29 @@ function ProductScene() {
             </div>
             <div className="grid gap-3">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="rounded-lg border bg-background p-4">
-                  <div className="h-4 w-40 rounded bg-foreground/15" />
+                <div
+                  key={item}
+                  className="min-w-0 overflow-hidden rounded-lg border bg-background p-4"
+                >
+                  <div className="h-4 w-3/4 max-w-72 rounded bg-foreground/15" />
                   <div className="mt-3 h-10 rounded bg-muted" />
                 </div>
               ))}
             </div>
           </div>
-          <div className="border-l p-4">
+          <div className="hidden min-w-0 overflow-hidden border-l p-4 xl:block">
             <div className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 EA
               </span>
-              <div>
-                <div className="h-3 w-28 rounded bg-foreground/20" />
-                <div className="mt-2 h-2 w-20 rounded bg-muted-foreground/25" />
+              <div className="min-w-0 flex-1">
+                <div className="h-3 w-4/5 rounded bg-foreground/20" />
+                <div className="mt-2 h-2 w-3/5 rounded bg-muted-foreground/25" />
               </div>
             </div>
             <div className="mt-8 space-y-3">
               <div className="h-16 rounded-lg bg-muted" />
-              <div className="ml-auto h-12 w-40 rounded-lg bg-primary/80" />
+              <div className="ml-auto h-12 w-4/5 rounded-lg bg-primary/80" />
               <div className="h-24 rounded-lg bg-muted" />
             </div>
           </div>

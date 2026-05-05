@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { BookOpen, Compass, LayoutDashboard, Settings } from "lucide-react";
+import { Button } from "../components/ui/button";
 import { api, queryKeys } from "../lib/api";
 
 const NAV_ITEMS = [
@@ -20,6 +21,14 @@ function RootLayout() {
     retry: false,
     staleTime: 30_000,
   });
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+    enabled: Boolean(session.data?.user),
+    retry: false,
+    staleTime: 30_000,
+  });
+  const showProCta = Boolean(session.data?.user && billing.data?.publish_launch_unlocked === false);
   const homeLink = session.data?.user ? (
     <Link
       to="/dashboard"
@@ -45,7 +54,12 @@ function RootLayout() {
       <header className="shrink-0 border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
           {homeLink}
-          <nav className="flex gap-1">
+          <nav className="flex items-center gap-1">
+            {showProCta ? (
+              <Button asChild size="sm" className="mr-2 hidden sm:inline-flex">
+                <Link to="/pricing">Sign up for Pro</Link>
+              </Button>
+            ) : null}
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.to}

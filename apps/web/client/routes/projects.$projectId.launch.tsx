@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Download, Rocket } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { PublishLaunchPaywall } from "../components/billing/publish-launch-paywall";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -16,9 +17,15 @@ function LaunchPage() {
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
   });
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+  });
+  const launchUnlocked = billing.data?.publish_launch_unlocked === true;
   const brief = useQuery({
     queryKey: queryKeys.gtmBrief(projectId),
     queryFn: () => api.getGtmBrief(projectId),
+    enabled: launchUnlocked,
     refetchInterval: (query) => (query.state.data?.brief ? false : 3_000),
   });
   const start = useMutation({
@@ -48,46 +55,56 @@ function LaunchPage() {
         </Badge>
       </div>
 
-      <Card className="p-4 shadow-none">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold">Go-to-market handoff</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Uses the approved publisher pack and any project Scout findings.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" disabled={start.isPending} onClick={() => start.mutate()}>
-              <Rocket className="h-4 w-4" />
-              {start.isPending ? "Generating..." : "Generate brief"}
-            </Button>
-            {brief.data?.brief?.download_url ? (
-              <Button asChild variant="outline">
-                <a href={brief.data.brief.download_url}>
-                  <Download className="h-4 w-4" />
-                  Download ZIP
-                </a>
-              </Button>
-            ) : null}
-          </div>
-        </div>
-        {start.error ? (
-          <p className="mt-3 text-sm text-destructive">{start.error.message}</p>
-        ) : null}
-        {start.isSuccess && !brief.data?.brief ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Workflow started. This page will refresh until the handoff is ready.
-          </p>
-        ) : null}
-      </Card>
+      {!billing.data ? (
+        <Card className="p-5 text-sm text-muted-foreground shadow-none">Loading billing...</Card>
+      ) : null}
 
-      {brief.data?.brief ? (
+      {billing.data && !launchUnlocked ? (
+        <PublishLaunchPaywall status={billing.data} returnPath={`/projects/${projectId}/launch`} />
+      ) : null}
+
+      {launchUnlocked ? (
+        <Card className="p-4 shadow-none">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold">Go-to-market handoff</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Uses the approved publisher pack and any project Scout findings.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={start.isPending} onClick={() => start.mutate()}>
+                <Rocket className="h-4 w-4" />
+                {start.isPending ? "Generating..." : "Generate brief"}
+              </Button>
+              {brief.data?.brief?.download_url ? (
+                <Button asChild variant="outline">
+                  <a href={brief.data.brief.download_url}>
+                    <Download className="h-4 w-4" />
+                    Download ZIP
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {start.error ? (
+            <p className="mt-3 text-sm text-destructive">{start.error.message}</p>
+          ) : null}
+          {start.isSuccess && !brief.data?.brief ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Workflow started. This page will refresh until the handoff is ready.
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
+
+      {launchUnlocked && brief.data?.brief ? (
         <LaunchBriefPreview brief={brief.data.brief} />
-      ) : (
+      ) : launchUnlocked ? (
         <Card className="border-dashed p-8 text-center text-muted-foreground shadow-none">
           {brief.isLoading ? "Loading launch handoff..." : "No launch handoff generated yet."}
         </Card>
-      )}
+      ) : null}
     </section>
   );
 }

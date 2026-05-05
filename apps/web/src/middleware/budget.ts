@@ -13,7 +13,7 @@ export const enforceBudget =
   async (c, next) => {
     const user = c.get("user");
     // For now use a fixed cap from env defaults; per-user override comes in a later phase.
-    const cap = user.plan === "pro" ? 5000 : 1000;
+    const cap = user.plan === "pro" || user.plan === "grow" ? 5000 : 1000;
     await assertBudget(c.env.KV, user.id, cap);
     await next();
   };

@@ -3,7 +3,7 @@ import { createAuth } from "../auth";
 import type { Env } from "../env";
 
 export type AuthVariables = {
-  user: { id: string; email: string; plan: "free" | "pro" };
+  user: { id: string; email: string; plan: "free" | "pro" | "grow" };
 };
 
 export const requireUser: MiddlewareHandler<{

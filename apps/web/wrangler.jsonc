@@ -30,7 +30,11 @@
     "R2_BUCKET": "bookgenerators",
     "POSTPILOT_BASE_URL": "https://postpilot.cc",
     "BETTER_AUTH_URL": "https://book-cook.com",
-    "GOOGLE_CLIENT_ID": "28692687396-450mrtd8csaa8rnef13hteq902sb3g8n.apps.googleusercontent.com"
+    "GOOGLE_CLIENT_ID": "28692687396-450mrtd8csaa8rnef13hteq902sb3g8n.apps.googleusercontent.com",
+    "PUBLISH_LAUNCH_PAYWALL_ENABLED": "true",
+    "POLAR_API_BASE_URL": "https://api.polar.sh",
+    "POLAR_PRO_PRODUCT_ID": "a660d2c7-b314-4f92-b781-fa75bd4393a6",
+    "POLAR_GROW_PRODUCT_ID": "9298aa1c-f35c-4898-a3df-0720987216be"
   },
 
   // Secrets (provision via scripts/bootstrap.sh):
@@ -43,6 +47,7 @@
   //   RENDER_WORKER_INTERNAL_TOKEN
   //   KEYRING_MASTER_KEY
   //   GOOGLE_CLIENT_SECRET
+  //   POLAR_ACCESS_TOKEN
 
   "d1_databases": [
     {

@@ -311,6 +311,26 @@ export type GtmBrief = {
   download_url?: string | null;
 };
 
+export type UserPlan = "free" | "pro" | "grow";
+
+export type BillingPlan = {
+  key: "pro" | "grow";
+  name: string;
+  price_cents: number;
+  interval: "month";
+  description: string;
+  product_id: string | null;
+  checkout_enabled: boolean;
+};
+
+export type BillingStatus = {
+  paywall_enabled: boolean;
+  user_plan: UserPlan;
+  publish_launch_unlocked: boolean;
+  checkout_configured: boolean;
+  plans: BillingPlan[];
+};
+
 export const api = {
   listProjects: () => fetchJson<{ items: Project[] }>("/api/v1/projects"),
   listDeletedProjects: () =>
@@ -416,6 +436,17 @@ export const api = {
     fetchJson<{ brief: GtmBrief | null }>(`/api/v1/projects/${id}/launch/brief`),
   startGtmBrief: (id: string) =>
     fetchJson<{ id: string }>(`/api/v1/projects/${id}/launch/brief`, { method: "POST" }),
+  getBillingStatus: () => fetchJson<BillingStatus>("/api/v1/billing/status"),
+  createBillingCheckout: (input: { plan: "pro" | "grow"; return_path: string }) =>
+    fetchJson<{ checkout_url: string; checkout_id: string }>("/api/v1/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  syncBillingCheckout: (checkoutId: string) =>
+    fetchJson<{ status: string; user_plan: UserPlan }>("/api/v1/billing/checkout/sync", {
+      method: "POST",
+      body: JSON.stringify({ checkout_id: checkoutId }),
+    }),
   getChapter: (id: string) => fetchJson<Chapter>(`/api/v1/chapters/${id}`),
   getChapterSections: (id: string) =>
     fetchJson<{ items: Section[] }>(`/api/v1/chapters/${id}/sections`),
@@ -520,6 +551,7 @@ export const queryKeys = {
   scoutQueries: () => ["scout", "queries"] as const,
   projectScoutFindings: (id: string) => ["projects", id, "scout-findings"] as const,
   gtmBrief: (id: string) => ["projects", id, "gtm-brief"] as const,
+  billing: () => ["billing"] as const,
   elevenLabsKey: () => ["account", "elevenlabs-key"] as const,
   chapter: (id: string) => ["chapters", id] as const,
   chapterSections: (id: string) => ["chapters", id, "sections"] as const,

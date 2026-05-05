@@ -26,6 +26,7 @@ import { BookFlowPreview } from "../components/animation/book-flow-composition";
 import { MotionItem, MotionList, MotionPanel } from "../components/animation/motion";
 import { PretextRevealText } from "../components/animation/pretext-reveal-text";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
+import { PublishLaunchPaywall } from "../components/billing/publish-launch-paywall";
 import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -46,6 +47,7 @@ import {
 } from "../components/workspace/outline-rail";
 import { TopBar } from "../components/workspace/top-bar";
 import {
+  type BillingStatus,
   type Chapter,
   type NarrationApproval,
   type NarrationAudition,
@@ -269,9 +271,15 @@ function ProjectWorkspace() {
     queryKey: queryKeys.projectScoutFindings(projectId),
     queryFn: () => api.listProjectScoutFindings(projectId),
   });
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+  });
+  const publishLaunchUnlocked = billing.data?.publish_launch_unlocked === true;
   const pack = useQuery({
     queryKey: queryKeys.publisherPack(projectId),
     queryFn: () => api.getPublisherPack(projectId),
+    enabled: publishLaunchUnlocked,
   });
 
   useEffect(() => {
@@ -351,7 +359,9 @@ function ProjectWorkspace() {
                   requestedTab={outlineTabFromWorkflowChild(workflowChild)}
                 />
               ) : null}
-              {workflow === "publish" ? <PublishPanel project={project.data} /> : null}
+              {workflow === "publish" ? (
+                <PublishPanel project={project.data} billingStatus={billing.data ?? null} />
+              ) : null}
             </MotionPanel>
           </div>
         </main>
@@ -1801,11 +1811,19 @@ function OutlineGenerationProgress() {
   );
 }
 
-function PublishPanel({ project }: { project: Project }) {
+function PublishPanel({
+  project,
+  billingStatus,
+}: {
+  project: Project;
+  billingStatus: BillingStatus | null;
+}) {
   const queryClient = useQueryClient();
+  const publishLaunchUnlocked = billingStatus?.publish_launch_unlocked === true;
   const pack = useQuery({
     queryKey: queryKeys.publisherPack(project.id),
     queryFn: () => api.getPublisherPack(project.id),
+    enabled: publishLaunchUnlocked,
   });
   const outline = useQuery({
     queryKey: queryKeys.projectOutline(project.id),
@@ -1814,6 +1832,7 @@ function PublishPanel({ project }: { project: Project }) {
   const renderJobs = useQuery({
     queryKey: queryKeys.renderJobs(project.id),
     queryFn: () => api.listRenderJobs(project.id),
+    enabled: publishLaunchUnlocked,
     refetchInterval: (query) =>
       query.state.data?.items.some((job) => job.status === "queued" || job.status === "running")
         ? 3_000
@@ -1822,10 +1841,12 @@ function PublishPanel({ project }: { project: Project }) {
   const auditionStatus = useQuery({
     queryKey: queryKeys.narrationAuditions(project.id),
     queryFn: () => api.listNarrationAuditions(project.id),
+    enabled: publishLaunchUnlocked,
   });
   const audiobookJobs = useQuery({
     queryKey: queryKeys.audiobookJobs(project.id),
     queryFn: () => api.listAudiobookJobs(project.id),
+    enabled: publishLaunchUnlocked,
     refetchInterval: (query) =>
       query.state.data?.items.some((job) => job.status === "queued" || job.status === "running")
         ? 5_000
@@ -1927,6 +1948,25 @@ function PublishPanel({ project }: { project: Project }) {
     keyStatus.data?.configured &&
     parseVoiceIds(voiceIds).length > 0 &&
     (outline.data?.chapters.length ?? 0) > 0;
+
+  if (!billingStatus) {
+    return (
+      <section id="publish" className="scroll-mt-6 border-t pt-8">
+        <Card className="p-5 text-sm text-muted-foreground shadow-none">Loading billing...</Card>
+      </section>
+    );
+  }
+
+  if (!publishLaunchUnlocked) {
+    return (
+      <section id="publish" className="scroll-mt-6 border-t pt-8">
+        <PublishLaunchPaywall
+          status={billingStatus}
+          returnPath={`/projects/${project.id}#publish`}
+        />
+      </section>
+    );
+  }
 
   return (
     <section id="publish" className="scroll-mt-6 border-t pt-8">

@@ -13,6 +13,7 @@ import {
 import { type ReactNode, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useGsapTimeline } from "../components/animation/use-gsap-timeline";
+import { PublishLaunchPaywall } from "../components/billing/publish-launch-paywall";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -25,13 +26,20 @@ function FullBookPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const billing = useQuery({
+    queryKey: queryKeys.billing(),
+    queryFn: api.getBillingStatus,
+  });
+  const publishUnlocked = billing.data?.publish_launch_unlocked === true;
   const book = useQuery({
     queryKey: queryKeys.fullBook(projectId),
     queryFn: () => api.getFullBook(projectId),
+    enabled: publishUnlocked,
   });
   const jobs = useQuery({
     queryKey: queryKeys.renderJobs(projectId),
     queryFn: () => api.listRenderJobs(projectId),
+    enabled: publishUnlocked,
     refetchInterval: (query) =>
       query.state.data?.items.some((job) => job.status === "queued" || job.status === "running")
         ? 3_000
@@ -43,6 +51,26 @@ function FullBookPage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.renderJobs(projectId) });
     },
   });
+
+  if (!billing.data) {
+    return <p className="px-6 py-12 text-muted-foreground">Loading billing...</p>;
+  }
+
+  if (!publishUnlocked) {
+    return (
+      <section className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => void navigate({ to: "/projects/$projectId", params: { projectId } })}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to workspace
+        </Button>
+        <PublishLaunchPaywall status={billing.data} returnPath={`/projects/${projectId}/book`} />
+      </section>
+    );
+  }
 
   if (book.isLoading || !book.data) {
     return <p className="px-6 py-12 text-muted-foreground">Loading full book...</p>;

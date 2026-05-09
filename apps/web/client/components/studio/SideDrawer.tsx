@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ChevronsUpDown,
   Gift,
@@ -10,22 +10,15 @@ import {
   Type,
 } from "lucide-react";
 
-export type StudioSection = "canvas" | "outline" | "marketplace" | "voice";
-
 export function SideDrawer({
   open,
   onClose,
   projectId,
-  current,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string;
-  current?: StudioSection;
 }) {
-  const location = useLocation();
-  const active = current ?? sectionFromPathname(location.pathname, projectId);
-
   return (
     <aside
       aria-hidden={!open}
@@ -80,28 +73,16 @@ export function SideDrawer({
         This book
       </div>
       <div className="mt-1 flex flex-col gap-0.5">
-        <RecentLink to="/studio/$projectId" params={{ projectId }} active={active === "canvas"}>
+        <RecentLink to="/studio/$projectId" params={{ projectId }} activeOptions={{ exact: true }}>
           Canvas
         </RecentLink>
-        <RecentLink
-          to="/studio/$projectId/outline"
-          params={{ projectId }}
-          active={active === "outline"}
-        >
+        <RecentLink to="/studio/$projectId/outline" params={{ projectId }}>
           Outline
         </RecentLink>
-        <RecentLink
-          to="/studio/$projectId/marketplace"
-          params={{ projectId }}
-          active={active === "marketplace"}
-        >
+        <RecentLink to="/studio/$projectId/marketplace" params={{ projectId }}>
           Marketplace
         </RecentLink>
-        <RecentLink
-          to="/studio/$projectId/voice"
-          params={{ projectId }}
-          active={active === "voice"}
-        >
+        <RecentLink to="/studio/$projectId/voice" params={{ projectId }}>
           Voice
         </RecentLink>
       </div>
@@ -110,15 +91,6 @@ export function SideDrawer({
       </div>
     </aside>
   );
-}
-
-function sectionFromPathname(pathname: string, projectId: string): StudioSection {
-  const base = `/studio/${projectId}`;
-  if (pathname === `${base}/outline` || pathname.startsWith(`${base}/outline/`)) return "outline";
-  if (pathname === `${base}/marketplace` || pathname.startsWith(`${base}/marketplace/`))
-    return "marketplace";
-  if (pathname === `${base}/voice` || pathname.startsWith(`${base}/voice/`)) return "voice";
-  return "canvas";
 }
 
 function DrawerLink({
@@ -163,20 +135,21 @@ function RecentLink({
   children,
   to,
   params,
-  active,
+  activeOptions,
 }: {
   children: React.ReactNode;
   to: string;
   params: Record<string, string>;
-  active?: boolean;
+  activeOptions?: { exact?: boolean };
 }) {
   return (
     <Link
-      className={`truncate rounded-lg px-3 py-2 text-left text-sm ${
-        active ? "bg-white/10 text-neutral-100" : "text-neutral-400 hover:bg-white/5"
-      }`}
       to={to}
       params={params}
+      activeOptions={activeOptions}
+      className="truncate rounded-lg px-3 py-2 text-left text-sm"
+      activeProps={{ className: "bg-white/10 text-neutral-100" }}
+      inactiveProps={{ className: "text-neutral-400 hover:bg-white/5" }}
     >
       {children}
     </Link>

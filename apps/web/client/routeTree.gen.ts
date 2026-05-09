@@ -20,6 +20,7 @@ import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioComposeRouteImport } from './routes/studio.compose'
 import { Route as StudioProjectIdRouteImport } from './routes/studio.$projectId'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as StudioProjectIdIndexRouteImport } from './routes/studio.$projectId.index'
 import { Route as StudioProjectIdOutlineRouteImport } from './routes/studio.$projectId.outline'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
@@ -80,6 +81,11 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioProjectIdIndexRoute = StudioProjectIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StudioProjectIdRoute,
+} as any)
 const StudioProjectIdOutlineRoute = StudioProjectIdOutlineRouteImport.update({
   id: '/outline',
   path: '/outline',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId/': typeof StudioProjectIdIndexRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesByTo {
@@ -127,12 +134,12 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
-  '/studio/$projectId': typeof StudioProjectIdRouteWithChildren
   '/studio/compose': typeof StudioComposeRoute
   '/studio': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId': typeof StudioProjectIdIndexRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesById {
@@ -151,6 +158,7 @@ export interface FileRoutesById {
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId/': typeof StudioProjectIdIndexRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +178,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId/'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -180,12 +189,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/projects/$projectId'
-    | '/studio/$projectId'
     | '/studio/compose'
     | '/studio'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId'
     | '/projects/$projectId/chapters/$chapterId'
   id:
     | '__root__'
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId/'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
 }
@@ -296,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/$projectId/': {
+      id: '/studio/$projectId/'
+      path: '/'
+      fullPath: '/studio/$projectId/'
+      preLoaderRoute: typeof StudioProjectIdIndexRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/studio/$projectId/outline': {
       id: '/studio/$projectId/outline'
       path: '/outline'
@@ -329,10 +346,12 @@ declare module '@tanstack/react-router' {
 
 interface StudioProjectIdRouteChildren {
   StudioProjectIdOutlineRoute: typeof StudioProjectIdOutlineRoute
+  StudioProjectIdIndexRoute: typeof StudioProjectIdIndexRoute
 }
 
 const StudioProjectIdRouteChildren: StudioProjectIdRouteChildren = {
   StudioProjectIdOutlineRoute: StudioProjectIdOutlineRoute,
+  StudioProjectIdIndexRoute: StudioProjectIdIndexRoute,
 }
 
 const StudioProjectIdRouteWithChildren = StudioProjectIdRoute._addFileChildren(

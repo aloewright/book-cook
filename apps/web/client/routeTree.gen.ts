@@ -9,17 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ScoutRouteImport } from './routes/scout'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioComposeRouteImport } from './routes/studio.compose'
+import { Route as StudioProjectIdRouteImport } from './routes/studio.$projectId'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
 import { Route as ProjectsProjectIdChaptersChapterIdRouteImport } from './routes/projects.$projectId.chapters.$chapterId'
 
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -50,6 +59,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioComposeRoute = StudioComposeRouteImport.update({
+  id: '/compose',
+  path: '/compose',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioProjectIdRoute = StudioProjectIdRouteImport.update({
+  id: '/$projectId',
+  path: '/$projectId',
+  getParentRoute: () => StudioRoute,
+} as any)
 const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
@@ -79,7 +103,11 @@ export interface FileRoutesByFullPath {
   '/scout': typeof ScoutRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/studio': typeof StudioRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/studio/$projectId': typeof StudioProjectIdRoute
+  '/studio/compose': typeof StudioComposeRoute
+  '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
@@ -92,6 +120,9 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/studio/$projectId': typeof StudioProjectIdRoute
+  '/studio/compose': typeof StudioComposeRoute
+  '/studio': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
@@ -104,7 +135,11 @@ export interface FileRoutesById {
   '/scout': typeof ScoutRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/studio': typeof StudioRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRouteWithChildren
+  '/studio/$projectId': typeof StudioProjectIdRoute
+  '/studio/compose': typeof StudioComposeRoute
+  '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
@@ -118,7 +153,11 @@ export interface FileRouteTypes {
     | '/scout'
     | '/sign-in'
     | '/sign-up'
+    | '/studio'
     | '/projects/$projectId'
+    | '/studio/$projectId'
+    | '/studio/compose'
+    | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
@@ -131,6 +170,9 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/projects/$projectId'
+    | '/studio/$projectId'
+    | '/studio/compose'
+    | '/studio'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
@@ -142,7 +184,11 @@ export interface FileRouteTypes {
     | '/scout'
     | '/sign-in'
     | '/sign-up'
+    | '/studio'
     | '/projects/$projectId'
+    | '/studio/$projectId'
+    | '/studio/compose'
+    | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
     | '/projects/$projectId/chapters/$chapterId'
@@ -155,11 +201,19 @@ export interface RootRouteChildren {
   ScoutRoute: typeof ScoutRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  StudioRoute: typeof StudioRouteWithChildren
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -202,6 +256,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/': {
+      id: '/studio/'
+      path: '/'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/compose': {
+      id: '/studio/compose'
+      path: '/compose'
+      fullPath: '/studio/compose'
+      preLoaderRoute: typeof StudioComposeRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/$projectId': {
+      id: '/studio/$projectId'
+      path: '/$projectId'
+      fullPath: '/studio/$projectId'
+      preLoaderRoute: typeof StudioProjectIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
     '/projects/$projectId': {
       id: '/projects/$projectId'
       path: '/projects/$projectId'
@@ -233,6 +308,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface StudioRouteChildren {
+  StudioProjectIdRoute: typeof StudioProjectIdRoute
+  StudioComposeRoute: typeof StudioComposeRoute
+  StudioIndexRoute: typeof StudioIndexRoute
+}
+
+const StudioRouteChildren: StudioRouteChildren = {
+  StudioProjectIdRoute: StudioProjectIdRoute,
+  StudioComposeRoute: StudioComposeRoute,
+  StudioIndexRoute: StudioIndexRoute,
+}
+
+const StudioRouteWithChildren =
+  StudioRoute._addFileChildren(StudioRouteChildren)
+
 interface ProjectsProjectIdRouteChildren {
   ProjectsProjectIdBookRoute: typeof ProjectsProjectIdBookRoute
   ProjectsProjectIdLaunchRoute: typeof ProjectsProjectIdLaunchRoute
@@ -256,6 +346,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScoutRoute: ScoutRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  StudioRoute: StudioRouteWithChildren,
   ProjectsProjectIdRoute: ProjectsProjectIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport

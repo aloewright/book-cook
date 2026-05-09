@@ -320,6 +320,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  generateLogline: (input: {
+    protagonist?: string;
+    conflict?: string;
+    stakes?: string;
+    type?: "fiction" | "nonfiction";
+  }) =>
+    fetchJson<{ logline: string }>("/api/v1/compose/logline", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   getProject: (id: string) => fetchJson<Project>(`/api/v1/projects/${id}`),
   getProjectOutline: (id: string) =>
     fetchJson<{ outline: ProjectOutline | null; chapters: Chapter[] }>(

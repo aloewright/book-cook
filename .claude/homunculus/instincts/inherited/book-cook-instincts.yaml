@@ -1,0 +1,319 @@
+# Instincts generated from https://github.com/aloewright/book-cook
+# Generated: 2026-05-09T14:38:28.548Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: book-cook-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: refactor
+
+## Evidence
+
+- 1 commits analyzed
+- Detected conventional commit pattern
+- Examples: refactor: extract panels from projects route
+
+---
+id: book-cook-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Commit Length
+
+## Action
+
+Keep commit messages concise (~44 characters)
+
+## Evidence
+
+- Average commit message length: 44 chars
+- Based on 1 commits
+
+---
+id: book-cook-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Naming Files
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: PascalCase
+
+---
+id: book-cook-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: book-cook-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: book-cook-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/aloewright/book-cook
+---
+
+# Book Cook Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: book-cook-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct File Naming
+
+## Action
+
+Name the file using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.files: PascalCase
+
+---
+id: book-cook-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Function Naming
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions: camelCase
+
+---
+id: book-cook-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes: PascalCase
+
+---
+id: book-cook-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in namingConventions.constants: SCREAMING_SNAKE_CASE
+
+---
+id: book-cook-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- Pattern in importStyle: relative
+
+---
+id: book-cook-instinct-export-style
+trigger: "When exporting modules or functions"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Export Style
+
+## Action
+
+Use either named or default exports as appropriate (mixed export style)
+
+## Evidence
+
+- Pattern in exportStyle: mixed
+
+---
+id: book-cook-instinct-git-commit-prefix
+trigger: "When making a refactor commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Git Commit Prefix
+
+## Action
+
+Prefix the commit message with 'refactor:'
+
+## Evidence
+
+- Seen in commit: 'refactor: extract panels from projects route'
+- Pattern in commits.prefixes: refactor
+
+---
+id: book-cook-instinct-git-commit-format
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Git Commit Format
+
+## Action
+
+Follow the conventional commit format: <type>: <description>
+
+## Evidence
+
+- Pattern in commits.type: conventional
+- Seen in commit: 'refactor: extract panels from projects route'
+
+---
+id: book-cook-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise, around 44 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength: 44
+
+---
+id: book-cook-instinct-test-location
+trigger: "When adding new tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: aloewright/book-cook
+---
+
+# Book Cook Instinct Test Location
+
+## Action
+
+Place test files in a separate location from source files
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: separate
+

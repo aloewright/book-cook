@@ -1,21 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  ChevronsUpDown,
-  Download,
-  Gift,
-  Home,
-  LayoutTemplate,
-  PanelLeft,
-  PanelLeftClose,
-  Plus,
-  Settings2,
-  Share2,
-  Sparkles,
-  Type,
-  Wand2,
-} from "lucide-react";
+import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
 import { useState } from "react";
+import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
+import { SideDrawer } from "../components/studio/SideDrawer";
+import { TopLeftPill } from "../components/studio/TopLeftPill";
+import { TopRightPill } from "../components/studio/TopRightPill";
 import { api, queryKeys } from "../lib/api";
 
 type CanvasSearch = { logline?: string };
@@ -47,12 +37,17 @@ const placeholderScenes: Scene[] = [
 function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
+  const location = useLocation();
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
   });
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [scenes, setScenes] = useState<Scene[]>(placeholderScenes);
+
+  if (location.pathname !== `/studio/${projectId}`) {
+    return <Outlet />;
+  }
 
   const insertAfter = (idx: number, kind: "blank" | "template" | "ai") => {
     const newScene: Scene = {
@@ -72,9 +67,14 @@ function StudioProject() {
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
-      <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} projectId={projectId} />
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        projectId={projectId}
+        current="canvas"
+      />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} current={1} total={scenes.length} />
+      <BreadcrumbPill title={title} subtitle={`Scene 1 of ${scenes.length}`} />
       <TopRightPill />
 
       <main
@@ -100,193 +100,6 @@ function StudioProject() {
 
       <BottomToolbar />
       <AiOrb />
-    </div>
-  );
-}
-
-function SideDrawer({
-  open,
-  onClose,
-  projectId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-}) {
-  return (
-    <aside
-      aria-hidden={!open}
-      className={`fixed top-4 bottom-4 left-4 z-30 w-64 rounded-3xl bg-neutral-950/95 p-3 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-transform ${
-        open ? "translate-x-0" : "-translate-x-[110%]"
-      }`}
-    >
-      <div className="flex items-center justify-between px-2 py-1">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4" />
-          <span className="font-medium text-sm">Book Cook · Studio</span>
-        </div>
-        <button
-          aria-label="Close drawer"
-          className="rounded-md p-1 hover:bg-white/10"
-          onClick={onClose}
-          type="button"
-        >
-          <PanelLeftClose className="size-4" />
-        </button>
-      </div>
-
-      <button
-        className="mt-3 flex w-full items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-left hover:bg-white/10"
-        type="button"
-      >
-        <span className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-md bg-emerald-500/20 font-semibold text-emerald-300 text-xs">
-            H
-          </span>
-          <span className="flex flex-col">
-            <span className="font-medium text-sm">Hello</span>
-            <span className="text-[11px] text-neutral-400">Pro plan</span>
-          </span>
-        </span>
-        <ChevronsUpDown className="size-3.5 text-neutral-400" />
-      </button>
-
-      <nav className="mt-4 flex flex-col gap-0.5">
-        <DrawerLink icon={<Home className="size-4" />} to="/studio">
-          Home
-        </DrawerLink>
-        <DrawerLink icon={<Plus className="size-4" />} to="/studio/compose">
-          New book
-        </DrawerLink>
-        <DrawerLinkPlain icon={<LayoutTemplate className="size-4" />}>Templates</DrawerLinkPlain>
-        <DrawerLinkPlain icon={<Type className="size-4" />}>Voices</DrawerLinkPlain>
-        <DrawerLinkPlain icon={<Gift className="size-4" />}>Refer & earn</DrawerLinkPlain>
-      </nav>
-
-      <div className="mt-5 px-3 text-[11px] text-neutral-500 uppercase tracking-wide">
-        This book
-      </div>
-      <div className="mt-1 flex flex-col gap-0.5">
-        <RecentLink active>Canvas</RecentLink>
-        <RecentLink>Outline</RecentLink>
-        <RecentLink>Launch</RecentLink>
-      </div>
-      <div className="mt-3 px-3 text-[11px] text-neutral-500">
-        project: {projectId.slice(0, 6)}…
-      </div>
-    </aside>
-  );
-}
-
-function DrawerLink({
-  icon,
-  children,
-  to,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  to: string;
-}) {
-  return (
-    <Link
-      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
-      to={to}
-    >
-      {icon}
-      <span>{children}</span>
-    </Link>
-  );
-}
-
-function DrawerLinkPlain({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
-      type="button"
-    >
-      {icon}
-      <span>{children}</span>
-    </button>
-  );
-}
-
-function RecentLink({ children, active }: { children: React.ReactNode; active?: boolean }) {
-  return (
-    <button
-      className={`truncate rounded-lg px-3 py-2 text-left text-sm ${
-        active ? "bg-white/10" : "text-neutral-400 hover:bg-white/5"
-      }`}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
-
-function TopLeftPill({
-  drawerOpen,
-  onToggleDrawer,
-}: {
-  drawerOpen: boolean;
-  onToggleDrawer: () => void;
-}) {
-  if (drawerOpen) return null;
-  return (
-    <div className="fixed top-4 left-4 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 px-2 py-1.5 text-neutral-200 shadow-lg ring-1 ring-white/5 backdrop-blur">
-      <button
-        aria-label="Open drawer"
-        className="grid size-8 place-items-center rounded-full hover:bg-white/10"
-        onClick={onToggleDrawer}
-        type="button"
-      >
-        <PanelLeft className="size-4" />
-      </button>
-    </div>
-  );
-}
-
-function BreadcrumbPill({
-  title,
-  current,
-  total,
-}: {
-  title: string;
-  current: number;
-  total: number;
-}) {
-  return (
-    <div className="-translate-x-1/2 fixed top-4 left-1/2 z-20 flex items-center gap-2 rounded-full bg-neutral-950/90 px-4 py-2 text-neutral-200 text-sm shadow-lg ring-1 ring-white/5 backdrop-blur">
-      <span className="font-medium">{title}</span>
-      <span className="text-neutral-500">/</span>
-      <span className="text-neutral-400">
-        Scene {current} of {total}
-      </span>
-    </div>
-  );
-}
-
-function TopRightPill() {
-  return (
-    <div className="fixed top-4 right-4 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 px-2 py-1.5 text-neutral-200 shadow-lg ring-1 ring-white/5 backdrop-blur">
-      <span className="grid size-7 place-items-center rounded-full bg-emerald-500/20 font-semibold text-[11px] text-emerald-300">
-        H
-      </span>
-      <PillButton icon={<Share2 className="size-3.5" />}>Share</PillButton>
-      <PillButton icon={<Download className="size-3.5" />}>Export</PillButton>
-      <PillButton icon={<Sparkles className="size-3.5" />}>Read aloud</PillButton>
-      <button
-        aria-label="More"
-        className="grid size-8 place-items-center rounded-full hover:bg-white/10"
-        type="button"
-      >
-        <Settings2 className="size-3.5" />
-      </button>
     </div>
   );
 }

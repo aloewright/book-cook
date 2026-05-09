@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "../ui/badge";
@@ -48,17 +48,19 @@ export default function DisclosureSection({
           />
         </span>
       </button>
-      {open ? (
-        <motion.div
-          initial={reduceMotion ? false : { opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          className="border-t p-4"
-        >
-          {children}
-        </motion.div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="border-t p-4"
+          >
+            {children}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

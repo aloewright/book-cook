@@ -14,7 +14,12 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { FIELD_SLOT_IDS, parseVoiceIds, validateDraftPack } from "./_shared";
+import {
+  FIELD_SLOT_IDS,
+  parseVoiceIds,
+  sanitizePublisherDescription,
+  validateDraftPack,
+} from "./_shared";
 
 export default function PublishPanel({ project }: { project: Project }) {
   const queryClient = useQueryClient();
@@ -392,7 +397,10 @@ export default function PublishPanel({ project }: { project: Project }) {
               {startAudiobook.error ? (
                 <p className="mt-3 text-sm text-destructive">{startAudiobook.error.message}</p>
               ) : null}
-              <RenderJobsList jobs={audiobookJobs.data?.items ?? []} />
+              <RenderJobsList
+                jobs={audiobookJobs.data?.items ?? []}
+                emptyMessage="No audiobook masters yet."
+              />
             </div>
           </div>
 
@@ -432,8 +440,10 @@ export default function PublishPanel({ project }: { project: Project }) {
                 ) : null}
                 <div
                   className="prose prose-sm mt-4 max-w-none dark:prose-invert"
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: server sanitizes description tags.
-                  dangerouslySetInnerHTML={{ __html: draft.description_html }}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized via sanitizePublisherDescription before render.
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizePublisherDescription(draft.description_html),
+                  }}
                 />
               </div>
             </div>
@@ -471,9 +481,15 @@ export default function PublishPanel({ project }: { project: Project }) {
   );
 }
 
-function RenderJobsList({ jobs }: { jobs: RenderJob[] }) {
+function RenderJobsList({
+  jobs,
+  emptyMessage = "No exports yet.",
+}: {
+  jobs: RenderJob[];
+  emptyMessage?: string;
+}) {
   if (!jobs.length) {
-    return <p className="mt-4 text-sm text-muted-foreground">No exports yet.</p>;
+    return <p className="mt-4 text-sm text-muted-foreground">{emptyMessage}</p>;
   }
   return (
     <div className="mt-4 divide-y rounded-md border">

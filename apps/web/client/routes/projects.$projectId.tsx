@@ -111,7 +111,7 @@ function ProjectWorkspace() {
               }
               publisherStatus={pack.data?.pack?.status ?? null}
             />
-            <MotionPanel motionKey={workflow}>
+            <MotionPanel motionKey={`${projectId}:${workflow}`}>
               {workflow === "concept" ? <ConceptScoutPanel project={project.data} /> : null}
               {workflow === "voice" ? <VoicePanel project={project.data} /> : null}
               {workflow === "outline" || workflow === "chapters" ? (

@@ -299,6 +299,12 @@ export function parseVoiceIds(value: string) {
     .slice(0, 3);
 }
 
+export function sanitizePublisherDescription(value: string) {
+  return value
+    .replace(/<(?!\/?(p|strong|em|ul|li|br)\b)[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+}
+
 export function validateDraftPack(pack: PublisherPack) {
   const errors: string[] = [];
   if (!pack.title.trim()) errors.push("Title is required.");

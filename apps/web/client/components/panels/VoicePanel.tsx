@@ -39,16 +39,18 @@ export default function VoicePanel({ project }: { project: Project }) {
   );
 
   const createVoice = useMutation({
-    mutationFn: () =>
-      api.createVoice({
+    mutationFn: async () => {
+      const voice = await api.createVoice({
         name,
         samples: sample.trim() ? [{ source: "paste", text: sample }] : [],
-      }),
+      });
+      await api.updateProject(project.id, { voice_id: voice.id });
+      return voice;
+    },
     onSuccess: async ({ id }) => {
       setName("");
       setSample("");
       setSelectedVoiceId(id);
-      await api.updateProject(project.id, { voice_id: id });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.voices() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
@@ -62,10 +64,13 @@ export default function VoicePanel({ project }: { project: Project }) {
   });
 
   const importPostPilot = useMutation({
-    mutationFn: () => api.importPostPilotVoice({ slug: postPilotSlug }),
+    mutationFn: async () => {
+      const voice = await api.importPostPilotVoice({ slug: postPilotSlug });
+      await api.updateProject(project.id, { voice_id: voice.id });
+      return voice;
+    },
     onSuccess: async ({ id }) => {
       setSelectedVoiceId(id);
-      await api.updateProject(project.id, { voice_id: id });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.voices() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
@@ -197,9 +202,11 @@ export default function VoicePanel({ project }: { project: Project }) {
             <div className="mt-4 flex gap-3">
               <Select
                 value={selectedVoiceId}
+                disabled={assignVoice.isPending}
                 onValueChange={(value) => {
-                  setSelectedVoiceId(value);
-                  assignVoice.mutate(value);
+                  assignVoice.mutate(value, {
+                    onSuccess: () => setSelectedVoiceId(value),
+                  });
                 }}
               >
                 <SelectTrigger>
@@ -214,6 +221,9 @@ export default function VoicePanel({ project }: { project: Project }) {
                 </SelectContent>
               </Select>
             </div>
+            {assignVoice.error ? (
+              <p className="mt-3 text-sm text-destructive">{assignVoice.error.message}</p>
+            ) : null}
           </div>
 
           <VoiceProfile voice={selected} totalWords={totalWords} />

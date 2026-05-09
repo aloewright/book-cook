@@ -92,7 +92,11 @@ export default function ConceptScoutPanel({ project }: { project: Project }) {
           </div>
         </form>
 
-        <ProjectScoutFinding result={latest} loading={findings.isLoading} />
+        <ProjectScoutFinding
+          result={latest}
+          loading={findings.isLoading}
+          error={findings.error as Error | null}
+        />
       </div>
     </section>
   );
@@ -101,10 +105,19 @@ export default function ConceptScoutPanel({ project }: { project: Project }) {
 function ProjectScoutFinding({
   result,
   loading,
+  error,
 }: {
   result: ScoutResult | null;
   loading: boolean;
+  error: Error | null;
 }) {
+  if (error) {
+    return (
+      <Card className="border-dashed p-4 text-sm text-destructive shadow-none">
+        Failed to load Scout findings. {error.message}
+      </Card>
+    );
+  }
   if (!result) {
     return (
       <Card className="border-dashed p-4 text-sm text-muted-foreground shadow-none">

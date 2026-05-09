@@ -1,12 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
 import { TopRightPill } from "../components/studio/TopRightPill";
-import { api, queryKeys } from "../lib/api";
+import { type Chapter, type Section, api, queryKeys } from "../lib/api";
 
 type CanvasSearch = { logline?: string };
 
@@ -17,22 +17,8 @@ export const Route = createFileRoute("/studio/$projectId")({
   }),
 });
 
-type Scene = { id: string; title: string; body: string; rubric?: number };
-
-const placeholderScenes: Scene[] = [
-  {
-    id: "s1",
-    title: "Opening — A Quiet Morning",
-    body: "The kettle complained before she did. Mira sat at the kitchen table with her hands wrapped around an idea she hadn't yet earned the right to call a plan.",
-    rubric: 0.86,
-  },
-  {
-    id: "s2",
-    title: "Inciting Incident",
-    body: "The letter arrived without ceremony — a folded thing in a stack of bills, but it changed the shape of the week before she'd even opened it.",
-    rubric: 0.78,
-  },
-];
+const TEMPLATE_INSTRUCTION =
+  "Use a classic three-beat scene structure: a clear setup, an escalating turn, and a payoff that lands the chapter's promise.";
 
 function StudioProject() {
   const { projectId } = Route.useParams();
@@ -42,28 +28,22 @@ function StudioProject() {
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
   });
+  const outline = useQuery({
+    queryKey: queryKeys.projectOutline(projectId),
+    queryFn: () => api.getProjectOutline(projectId),
+  });
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const [scenes, setScenes] = useState<Scene[]>(placeholderScenes);
 
   if (location.pathname !== `/studio/${projectId}`) {
     return <Outlet />;
   }
 
-  const insertAfter = (idx: number, kind: "blank" | "template" | "ai") => {
-    const newScene: Scene = {
-      id: `s${Date.now()}`,
-      title:
-        kind === "ai"
-          ? "Generating…"
-          : kind === "template"
-            ? "New scene from template"
-            : "New scene",
-      body: kind === "ai" ? "✦ The agent is drafting this scene in your selected voice…" : "",
-    };
-    setScenes((prev) => [...prev.slice(0, idx + 1), newScene, ...prev.slice(idx + 1)]);
-  };
-
   const title = project.data?.title ?? "Untitled book";
+  const chapters = outline.data?.chapters ?? [];
+  const subtitle =
+    chapters.length === 0
+      ? "No chapters yet"
+      : `${chapters.length} chapter${chapters.length === 1 ? "" : "s"}`;
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
@@ -74,7 +54,7 @@ function StudioProject() {
         current="canvas"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle={`Scene 1 of ${scenes.length}`} />
+      <BreadcrumbPill title={title} subtitle={subtitle} />
       <TopRightPill />
 
       <main
@@ -90,11 +70,15 @@ function StudioProject() {
             </div>
           </div>
         )}
-        {scenes.map((scene, i) => (
-          <div className="w-full max-w-3xl group" key={scene.id}>
-            <SceneCard scene={scene} index={i + 1} />
-            <InsertBar onInsert={(kind) => insertAfter(i, kind)} />
-          </div>
+
+        {outline.isLoading && (
+          <p className="font-serif text-neutral-500 text-sm">Loading scenes…</p>
+        )}
+
+        {!outline.isLoading && chapters.length === 0 && <EmptyOutline projectId={projectId} />}
+
+        {chapters.map((chapter) => (
+          <ChapterCanvas key={chapter.id} chapter={chapter} />
         ))}
       </main>
 
@@ -104,51 +88,246 @@ function StudioProject() {
   );
 }
 
-function PillButton({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+function ChapterCanvas({ chapter }: { chapter: Chapter }) {
+  const queryClient = useQueryClient();
+  const sections = useQuery({
+    queryKey: queryKeys.chapterSections(chapter.id),
+    queryFn: () => api.getChapterSections(chapter.id),
+  });
+
+  const draftMutation = useMutation({
+    mutationFn: (input: { sectionId: string; instruction?: string }) =>
+      api.draftSection(chapter.id, input.sectionId, { instruction: input.instruction }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
+    },
+  });
+
+  const items = sections.data?.items ?? [];
+  const pendingSectionId = draftMutation.isPending ? draftMutation.variables?.sectionId : undefined;
+
   return (
-    <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
-      type="button"
-    >
-      {icon}
-      {children}
-    </button>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
+      <ChapterHeading chapter={chapter} />
+      {items.length === 0 ? (
+        <p className="rounded-2xl bg-white/60 px-5 py-4 font-serif text-neutral-600 text-sm dark:bg-neutral-900/60 dark:text-neutral-400">
+          No sections in this chapter yet.
+        </p>
+      ) : (
+        items.map((section, i) => (
+          <div className="group" key={section.id}>
+            <SceneCard
+              section={section}
+              chapterId={chapter.id}
+              index={i + 1}
+              isGenerating={pendingSectionId === section.id}
+            />
+            <InsertBar
+              disabled={draftMutation.isPending}
+              onAction={(kind) =>
+                draftMutation.mutate({
+                  sectionId: section.id,
+                  instruction: kind === "template" ? TEMPLATE_INSTRUCTION : undefined,
+                })
+              }
+            />
+          </div>
+        ))
+      )}
+    </div>
   );
 }
 
-function SceneCard({ scene, index }: { scene: Scene; index: number }) {
+function ChapterHeading({ chapter }: { chapter: Chapter }) {
+  return (
+    <div className="px-1">
+      <div className="text-[11px] text-neutral-500 uppercase tracking-wide">
+        Chapter {chapter.ordinal}
+      </div>
+      <h2 className="mt-1 font-serif text-2xl tracking-tight">{chapter.title}</h2>
+      {chapter.summary && (
+        <p className="mt-1 font-serif text-[14px] text-neutral-600 leading-relaxed dark:text-neutral-400">
+          {chapter.summary}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function EmptyOutline({ projectId }: { projectId: string }) {
+  return (
+    <div className="w-full max-w-3xl rounded-2xl bg-white/80 p-10 text-center shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:bg-neutral-900/80 dark:ring-white/5">
+      <div className="mx-auto grid size-12 place-items-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+        <Sparkles className="size-5" />
+      </div>
+      <h2 className="mt-4 font-serif text-2xl tracking-tight">No outline yet</h2>
+      <p className="mx-auto mt-2 max-w-md font-serif text-[15px] text-neutral-600 leading-relaxed dark:text-neutral-400">
+        Generate an outline first — then chapters and scenes will appear here as cards you can edit
+        and remix.
+      </p>
+      <a
+        className="mt-5 inline-flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 font-medium text-neutral-100 text-sm shadow-lg ring-1 ring-white/10 hover:bg-neutral-800"
+        href={`/studio/${projectId}/outline`}
+      >
+        <Wand2 className="size-3.5" />
+        Generate outline
+      </a>
+    </div>
+  );
+}
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+function SceneCard({
+  section,
+  chapterId,
+  index,
+  isGenerating,
+}: {
+  section: Section;
+  chapterId: string;
+  index: number;
+  isGenerating: boolean;
+}) {
+  const [draft, setDraft] = useState(section.draft_md);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const lastSavedRef = useRef(section.draft_md);
+  const timerRef = useRef<number | undefined>(undefined);
+  const sectionId = section.id;
+
+  useEffect(() => {
+    setDraft(section.draft_md);
+    lastSavedRef.current = section.draft_md;
+    setSaveState("idle");
+  }, [section.draft_md]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function scheduleSave(next: string) {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (next === lastSavedRef.current) {
+      setSaveState("idle");
+      return;
+    }
+    setSaveState("saving");
+    timerRef.current = window.setTimeout(async () => {
+      try {
+        await api.updateSection(chapterId, sectionId, { draft_md: next });
+        lastSavedRef.current = next;
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
+    }, 800);
+  }
+
+  const heading = sectionTitle(section);
+
   return (
     <article className="relative rounded-2xl bg-white/80 p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:bg-neutral-900/80 dark:ring-white/5">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-neutral-500 text-xs">Scene {index}</span>
-        {scene.rubric !== undefined && (
-          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-[11px] text-emerald-700 dark:text-emerald-300">
-            ✦ {Math.round(scene.rubric * 100)}
-          </span>
-        )}
+        <SaveIndicator saveState={saveState} status={section.status} />
       </div>
-      <h2 className="mb-4 font-serif text-2xl tracking-tight">{scene.title}</h2>
-      <p className="font-serif text-[17px] text-neutral-700 leading-relaxed dark:text-neutral-300">
-        {scene.body || <span className="text-neutral-400 italic">Empty scene…</span>}
-      </p>
+      <h2 className="mb-4 font-serif text-2xl tracking-tight">{heading}</h2>
+      {isGenerating ? (
+        <SceneSkeleton />
+      ) : (
+        <textarea
+          aria-label={`Scene ${index} body`}
+          className="w-full resize-y bg-transparent font-serif text-[17px] text-neutral-700 leading-relaxed outline-none placeholder:text-neutral-400 placeholder:italic focus:bg-neutral-50/60 focus:rounded-lg focus:px-2 focus:-mx-2 dark:text-neutral-300 dark:focus:bg-neutral-800/40"
+          onChange={(e) => {
+            setDraft(e.target.value);
+            scheduleSave(e.target.value);
+          }}
+          placeholder="Empty scene…"
+          rows={Math.min(20, Math.max(4, draft.split("\n").length + 1))}
+          value={draft}
+        />
+      )}
     </article>
   );
 }
 
-function InsertBar({ onInsert }: { onInsert: (kind: "blank" | "template" | "ai") => void }) {
+function SaveIndicator({ saveState, status }: { saveState: SaveState; status: Section["status"] }) {
+  if (saveState === "saving") {
+    return <span className="text-[11px] text-neutral-500">Saving…</span>;
+  }
+  if (saveState === "saved") {
+    return <span className="text-[11px] text-emerald-600 dark:text-emerald-400">Saved</span>;
+  }
+  if (saveState === "error") {
+    return <span className="text-[11px] text-red-600 dark:text-red-400">Save failed</span>;
+  }
+  return (
+    <span className="rounded-full bg-neutral-200/60 px-2 py-0.5 font-medium text-[11px] text-neutral-700 dark:bg-white/5 dark:text-neutral-300">
+      {status}
+    </span>
+  );
+}
+
+function SceneSkeleton() {
+  return (
+    <div className="animate-pulse space-y-2 py-1">
+      <div className="h-4 w-11/12 rounded bg-neutral-200 dark:bg-neutral-700" />
+      <div className="h-4 w-10/12 rounded bg-neutral-200 dark:bg-neutral-700" />
+      <div className="h-4 w-9/12 rounded bg-neutral-200 dark:bg-neutral-700" />
+      <div className="h-4 w-8/12 rounded bg-neutral-200 dark:bg-neutral-700" />
+    </div>
+  );
+}
+
+function sectionTitle(section: Section) {
+  if (section.prompt.trim()) {
+    const firstLine = section.prompt.split(/\n|\.|;/)[0]?.trim();
+    if (firstLine) return truncate(firstLine, 80);
+  }
+  return `${humanKind(section.kind)} ${section.ordinal}`;
+}
+
+function humanKind(kind: string) {
+  if (!kind) return "Scene";
+  const cleaned = kind.replace(/[-_]+/g, " ").trim();
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function truncate(value: string, max: number) {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+function InsertBar({
+  disabled,
+  onAction,
+}: {
+  disabled: boolean;
+  onAction: (kind: "blank" | "template" | "ai") => void;
+}) {
   return (
     <div className="my-3 flex justify-center opacity-0 transition group-hover:opacity-100 hover:opacity-100 has-[button:focus-visible]:opacity-100">
       <div className="flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 text-sm shadow-lg ring-1 ring-white/5 backdrop-blur">
-        <InsertButton icon={<Plus className="size-3.5" />} onClick={() => onInsert("blank")}>
+        <InsertButton
+          disabled={disabled}
+          icon={<Plus className="size-3.5" />}
+          onClick={() => onAction("blank")}
+        >
           Blank scene
         </InsertButton>
         <InsertButton
+          disabled={disabled}
           icon={<LayoutTemplate className="size-3.5" />}
-          onClick={() => onInsert("template")}
+          onClick={() => onAction("template")}
         >
           Start with template
         </InsertButton>
-        <InsertButton icon={<Wand2 className="size-3.5" />} onClick={() => onInsert("ai")}>
+        <InsertButton
+          disabled={disabled}
+          icon={<Wand2 className="size-3.5" />}
+          onClick={() => onAction("ai")}
+        >
           Generate with AI
         </InsertButton>
       </div>
@@ -159,15 +338,18 @@ function InsertBar({ onInsert }: { onInsert: (kind: "blank" | "template" | "ai")
 function InsertButton({
   icon,
   onClick,
+  disabled,
   children,
 }: {
   icon: React.ReactNode;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 hover:bg-white/10"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={disabled}
       onClick={onClick}
       type="button"
     >
@@ -192,6 +374,18 @@ function BottomToolbar() {
         <Settings2 className="size-4" />
       </button>
     </div>
+  );
+}
+
+function PillButton({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <button
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+      type="button"
+    >
+      {icon}
+      {children}
+    </button>
   );
 }
 

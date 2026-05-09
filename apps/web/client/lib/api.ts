@@ -441,10 +441,12 @@ export const api = {
     chapterId: string,
     sectionId: string,
     input: { status?: Section["status"]; draft_md?: string },
+    options?: { signal?: AbortSignal },
   ) =>
     fetchJson<{ ok: true }>(`/api/v1/chapters/${chapterId}/sections/${sectionId}`, {
       method: "PATCH",
       body: JSON.stringify(input),
+      signal: options?.signal,
     }),
   getChapterRevisions: (id: string) =>
     fetchJson<{ items: Revision[] }>(`/api/v1/chapters/${id}/revisions`),

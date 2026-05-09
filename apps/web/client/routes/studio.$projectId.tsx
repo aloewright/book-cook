@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
@@ -103,13 +103,26 @@ function ChapterCanvas({ chapter }: { chapter: Chapter }) {
     },
   });
 
+  const blankMutation = useMutation({
+    mutationFn: (sectionId: string) =>
+      api.updateSection(chapter.id, sectionId, { draft_md: "", status: "drafted" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
+    },
+  });
+
   const items = sections.data?.items ?? [];
   const pendingSectionId = draftMutation.isPending ? draftMutation.variables?.sectionId : undefined;
+  const insertBusy = draftMutation.isPending || blankMutation.isPending;
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-6">
       <ChapterHeading chapter={chapter} />
-      {items.length === 0 ? (
+      {sections.isLoading ? (
+        <p className="rounded-2xl bg-white/60 px-5 py-4 font-serif text-neutral-600 text-sm dark:bg-neutral-900/60 dark:text-neutral-400">
+          Loading scenes…
+        </p>
+      ) : items.length === 0 ? (
         <p className="rounded-2xl bg-white/60 px-5 py-4 font-serif text-neutral-600 text-sm dark:bg-neutral-900/60 dark:text-neutral-400">
           No sections in this chapter yet.
         </p>
@@ -123,13 +136,17 @@ function ChapterCanvas({ chapter }: { chapter: Chapter }) {
               isGenerating={pendingSectionId === section.id}
             />
             <InsertBar
-              disabled={draftMutation.isPending}
-              onAction={(kind) =>
+              disabled={insertBusy}
+              onAction={(kind) => {
+                if (kind === "blank") {
+                  blankMutation.mutate(section.id);
+                  return;
+                }
                 draftMutation.mutate({
                   sectionId: section.id,
                   instruction: kind === "template" ? TEMPLATE_INSTRUCTION : undefined,
-                })
-              }
+                });
+              }}
             />
           </div>
         ))
@@ -165,13 +182,14 @@ function EmptyOutline({ projectId }: { projectId: string }) {
         Generate an outline first — then chapters and scenes will appear here as cards you can edit
         and remix.
       </p>
-      <a
+      <Link
         className="mt-5 inline-flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 font-medium text-neutral-100 text-sm shadow-lg ring-1 ring-white/10 hover:bg-neutral-800"
-        href={`/studio/${projectId}/outline`}
+        params={{ projectId }}
+        to="/projects/$projectId"
       >
         <Wand2 className="size-3.5" />
         Generate outline
-      </a>
+      </Link>
     </div>
   );
 }
@@ -192,22 +210,33 @@ function SceneCard({
   const [draft, setDraft] = useState(section.draft_md);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const lastSavedRef = useRef(section.draft_md);
+  const draftRef = useRef(section.draft_md);
   const timerRef = useRef<number | undefined>(undefined);
+  const inFlightRef = useRef<AbortController | null>(null);
+  const saveGenRef = useRef(0);
   const sectionId = section.id;
 
+  // Re-sync from the server only when the user has no unsaved local edits and
+  // we're not mid-save — otherwise a background refetch would overwrite typing.
   useEffect(() => {
-    setDraft(section.draft_md);
+    if (draftRef.current !== lastSavedRef.current) return;
+    if (saveState === "saving") return;
+    if (section.draft_md === lastSavedRef.current) return;
+    draftRef.current = section.draft_md;
     lastSavedRef.current = section.draft_md;
+    setDraft(section.draft_md);
     setSaveState("idle");
-  }, [section.draft_md]);
+  }, [section.draft_md, saveState]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
+      inFlightRef.current?.abort();
     };
   }, []);
 
   function scheduleSave(next: string) {
+    draftRef.current = next;
     if (timerRef.current) window.clearTimeout(timerRef.current);
     if (next === lastSavedRef.current) {
       setSaveState("idle");
@@ -215,11 +244,24 @@ function SceneCard({
     }
     setSaveState("saving");
     timerRef.current = window.setTimeout(async () => {
+      // Cancel any in-flight save so its response can't clobber a newer one.
+      inFlightRef.current?.abort();
+      const controller = new AbortController();
+      inFlightRef.current = controller;
+      const gen = ++saveGenRef.current;
       try {
-        await api.updateSection(chapterId, sectionId, { draft_md: next });
+        await api.updateSection(
+          chapterId,
+          sectionId,
+          { draft_md: next },
+          { signal: controller.signal },
+        );
+        if (gen !== saveGenRef.current) return;
         lastSavedRef.current = next;
         setSaveState("saved");
       } catch {
+        if (controller.signal.aborted) return;
+        if (gen !== saveGenRef.current) return;
         setSaveState("error");
       }
     }, 800);

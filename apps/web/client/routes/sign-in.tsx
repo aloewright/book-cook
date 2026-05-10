@@ -20,7 +20,7 @@ function SignIn() {
     e.preventDefault();
     const { error } = await authClient.signIn.email({ email, password });
     if (error) setError(error.message ?? "sign-in failed");
-    else nav({ to: "/dashboard" });
+    else nav({ to: "/studio" });
   }
 
   async function signInWithGoogle() {
@@ -29,7 +29,7 @@ function SignIn() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
+      body: JSON.stringify({ provider: "google", callbackURL: "/studio" }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       url?: string;

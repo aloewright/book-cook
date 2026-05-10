@@ -161,7 +161,7 @@ export default function FullBookPanel({ projectId }: { projectId: string }) {
                       {chapter.id ? (
                         <Button asChild size="sm" variant="outline">
                           <Link
-                            to="/projects/$projectId/chapters/$chapterId"
+                            to="/studio/$projectId/chapters/$chapterId"
                             params={{ projectId, chapterId: chapter.id }}
                           >
                             <Pencil className="h-4 w-4" />

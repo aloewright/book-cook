@@ -28,7 +28,7 @@ export default function ChapterSkeletonsPanel({
         </div>
         {chapters.length ? (
           <Button asChild size="sm" variant="secondary">
-            <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
+            <Link to="/studio/$projectId/book" params={{ projectId: project.id }}>
               Full book
             </Link>
           </Button>
@@ -46,7 +46,7 @@ export default function ChapterSkeletonsPanel({
                     transition={{ duration: 0.18, ease: "easeOut" }}
                   >
                     <Link
-                      to="/projects/$projectId/chapters/$chapterId"
+                      to="/studio/$projectId/chapters/$chapterId"
                       params={{ projectId: project.id, chapterId: chapter.id }}
                       className="block h-full rounded-lg border bg-muted/20 p-4 text-foreground transition-colors visited:text-foreground hover:bg-accent"
                       data-chapter-card="true"

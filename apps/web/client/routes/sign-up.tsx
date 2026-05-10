@@ -19,7 +19,7 @@ function SignUp() {
     setError(undefined);
     const { error } = await authClient.signUp.email({ email, password, name: email.split("@")[0] });
     if (error) setError(error.message ?? "sign-up failed");
-    else nav({ to: "/dashboard" });
+    else nav({ to: "/studio" });
   }
 
   async function signUpWithGoogle() {
@@ -28,7 +28,7 @@ function SignUp() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
+      body: JSON.stringify({ provider: "google", callbackURL: "/studio" }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       url?: string;

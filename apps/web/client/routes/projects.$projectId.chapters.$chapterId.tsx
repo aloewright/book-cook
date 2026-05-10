@@ -1,18 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
-import ChapterEditorPanel from "../components/panels/ChapterEditorPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/projects/$projectId/chapters/$chapterId")({
-  component: ChapterEditorRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/studio/$projectId/chapters/$chapterId",
+      params: { projectId: params.projectId, chapterId: params.chapterId },
+      replace: true,
+    });
+  },
+  component: () => null,
 });
-
-function ChapterEditorRoute() {
-  const { projectId, chapterId } = Route.useParams();
-
-  return (
-    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_360px] overflow-hidden">
-      <ChapterEditorPanel projectId={projectId} chapterId={chapterId} />
-      <EditorialAssistantSidecar projectId={projectId} />
-    </div>
-  );
-}

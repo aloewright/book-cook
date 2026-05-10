@@ -4,7 +4,7 @@ import { BookOpen, Compass, LayoutDashboard, Settings } from "lucide-react";
 import { api, queryKeys } from "../lib/api";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/studio", label: "Studio", icon: LayoutDashboard },
   { to: "/scout", label: "Scout", icon: Compass },
   { to: "/account", label: "Settings", icon: Settings },
 ] as const;
@@ -22,7 +22,7 @@ function RootLayout() {
   });
   const homeLink = session.data?.user ? (
     <Link
-      to="/dashboard"
+      to="/studio"
       aria-label="Book Cook home"
       title="Book Cook"
       className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent"

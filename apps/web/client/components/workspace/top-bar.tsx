@@ -10,7 +10,7 @@ export function TopBar({ project }: { project: Project }) {
       <div className="flex items-center justify-between px-5 py-2 text-sm">
         <div className="flex items-center gap-3">
           <Link
-            to="/dashboard"
+            to="/studio"
             aria-label="Books"
             title="Books"
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"

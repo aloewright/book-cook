@@ -25,6 +25,7 @@ function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
@@ -35,17 +36,71 @@ function StudioProject() {
   });
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [remixMessage, setRemixMessage] = useState<string | null>(null);
+
+  const chapters = outline.data?.chapters ?? [];
+  const lastChapter = chapters[chapters.length - 1];
+  const firstChapter = chapters[0];
+
+  const lastChapterSections = useQuery({
+    queryKey: queryKeys.chapterSections(lastChapter?.id ?? ""),
+    queryFn: () => {
+      if (!lastChapter) throw new Error("No chapters yet.");
+      return api.getChapterSections(lastChapter.id);
+    },
+    enabled: !!lastChapter,
+  });
+  const lastSection = lastChapterSections.data?.items.at(-1);
+
+  const globalInsert = useMutation({
+    mutationFn: async () => {
+      if (!lastChapter) throw new Error("No chapters yet.");
+      if (!lastSection) throw new Error("No sections in last chapter.");
+      return api.draftSection(lastChapter.id, lastSection.id, {
+        instruction: TEMPLATE_INSTRUCTION,
+      });
+    },
+    onSuccess: async () => {
+      if (!lastChapter) return;
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.chapterSections(lastChapter.id),
+      });
+      setRemixMessage("Drafted.");
+    },
+    onError: (err: Error) => setRemixMessage(err.message),
+  });
+
+  const globalRemix = useMutation({
+    mutationFn: async () => {
+      const sel = window.getSelection()?.toString().trim() ?? "";
+      if (!sel) throw new Error("Select text first.");
+      if (!firstChapter) throw new Error("No chapters yet.");
+      return api.reviseChapterSelection(firstChapter.id, {
+        action: "rewrite",
+        text: sel,
+      });
+    },
+    onSuccess: () => setRemixMessage("Remix saved."),
+    onError: (err: Error) => setRemixMessage(err.message),
+  });
+
+  useEffect(() => {
+    if (!remixMessage) return;
+    const id = window.setTimeout(() => setRemixMessage(null), 3000);
+    return () => window.clearTimeout(id);
+  }, [remixMessage]);
 
   if (location.pathname !== `/studio/${projectId}`) {
     return <Outlet />;
   }
 
   const title = project.data?.title ?? "Untitled book";
-  const chapters = outline.data?.chapters ?? [];
   const subtitle =
     chapters.length === 0
       ? "No chapters yet"
       : `${chapters.length} chapter${chapters.length === 1 ? "" : "s"}`;
+  const insertDisabled = !lastChapter || !lastSection || globalInsert.isPending;
+  const remixDisabled = !firstChapter || globalRemix.isPending;
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
@@ -84,7 +139,14 @@ function StudioProject() {
         ))}
       </main>
 
-      <BottomToolbar />
+      <BottomToolbar
+        projectId={projectId}
+        onInsert={() => globalInsert.mutate()}
+        onRemix={() => globalRemix.mutate()}
+        insertDisabled={insertDisabled}
+        remixDisabled={remixDisabled}
+        remixMessage={remixMessage}
+      />
       <AiOrb active={assistantOpen} onClick={() => setAssistantOpen((v) => !v)} />
 
       {assistantOpen && (
@@ -440,13 +502,39 @@ function InsertButton({
   );
 }
 
-function BottomToolbar() {
+function BottomToolbar({
+  projectId,
+  onInsert,
+  onRemix,
+  insertDisabled,
+  remixDisabled,
+  remixMessage,
+}: {
+  projectId: string;
+  onInsert: () => void;
+  onRemix: () => void;
+  insertDisabled: boolean;
+  remixDisabled: boolean;
+  remixMessage: string | null;
+}) {
   return (
     <div className="-translate-x-1/2 fixed bottom-6 left-1/2 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur">
-      <PillButton icon={<Plus className="size-4" />}>Insert</PillButton>
-      <PillButton icon={<Wand2 className="size-4" />}>Remix</PillButton>
-      <PillButton icon={<Type className="size-4" />}>Voice</PillButton>
-      <PillButton icon={<LayoutTemplate className="size-4" />}>Background</PillButton>
+      <PillButton icon={<Plus className="size-4" />} onClick={onInsert} disabled={insertDisabled}>
+        Insert
+      </PillButton>
+      <PillButton icon={<Wand2 className="size-4" />} onClick={onRemix} disabled={remixDisabled}>
+        Remix
+      </PillButton>
+      <Link
+        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+        params={{ projectId }}
+        to="/studio/$projectId/voice"
+      >
+        <Type className="size-4" /> Voice
+      </Link>
+      {remixMessage ? (
+        <span className="px-3 py-1.5 text-[11px] text-emerald-300">{remixMessage}</span>
+      ) : null}
       <button
         aria-label="More"
         className="grid size-9 place-items-center rounded-full hover:bg-white/10"
@@ -458,10 +546,22 @@ function BottomToolbar() {
   );
 }
 
-function PillButton({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+function PillButton({
+  icon,
+  children,
+  onClick,
+  disabled,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={disabled}
+      onClick={onClick}
       type="button"
     >
       {icon}

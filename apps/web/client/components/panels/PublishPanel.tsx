@@ -293,7 +293,7 @@ export default function PublishPanel({ project }: { project: Project }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
               <Button asChild variant="outline" disabled={!canGenerate}>
-                <Link to="/projects/$projectId/book" params={{ projectId: project.id }}>
+                <Link to="/studio/$projectId/book" params={{ projectId: project.id }}>
                   Open full book
                 </Link>
               </Button>
@@ -413,7 +413,11 @@ export default function PublishPanel({ project }: { project: Project }) {
                 </p>
               </div>
               <Button asChild variant="secondary" disabled={!locked}>
-                <Link to="/projects/$projectId/launch" params={{ projectId: project.id }}>
+                <Link
+                  to="/studio/$projectId/marketplace"
+                  params={{ projectId: project.id }}
+                  search={{ tab: "launch" }}
+                >
                   Open Launch
                 </Link>
               </Button>

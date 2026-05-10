@@ -45,7 +45,7 @@ export default function ChapterEditorPanel({
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
           <div className="min-w-0 flex-1">
             <Link
-              to="/projects/$projectId"
+              to="/studio/$projectId"
               params={{ projectId }}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
@@ -60,7 +60,7 @@ export default function ChapterEditorPanel({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline">
-              <Link to="/projects/$projectId/book" params={{ projectId }}>
+              <Link to="/studio/$projectId/book" params={{ projectId }}>
                 View full book
               </Link>
             </Button>

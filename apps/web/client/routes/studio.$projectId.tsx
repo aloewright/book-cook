@@ -185,7 +185,7 @@ function EmptyOutline({ projectId }: { projectId: string }) {
       <Link
         className="mt-5 inline-flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 font-medium text-neutral-100 text-sm shadow-lg ring-1 ring-white/10 hover:bg-neutral-800"
         params={{ projectId }}
-        to="/projects/$projectId"
+        to="/studio/$projectId/outline"
       >
         <Wand2 className="size-3.5" />
         Generate outline

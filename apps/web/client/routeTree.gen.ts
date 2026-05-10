@@ -20,7 +20,9 @@ import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioComposeRouteImport } from './routes/studio.compose'
 import { Route as StudioProjectIdRouteImport } from './routes/studio.$projectId'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
+import { Route as StudioProjectIdVoiceRouteImport } from './routes/studio.$projectId.voice'
 import { Route as StudioProjectIdOutlineRouteImport } from './routes/studio.$projectId.outline'
+import { Route as StudioProjectIdMarketplaceRouteImport } from './routes/studio.$projectId.marketplace'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
 import { Route as ProjectsProjectIdChaptersChapterIdRouteImport } from './routes/projects.$projectId.chapters.$chapterId'
@@ -80,11 +82,22 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioProjectIdVoiceRoute = StudioProjectIdVoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => StudioProjectIdRoute,
+} as any)
 const StudioProjectIdOutlineRoute = StudioProjectIdOutlineRouteImport.update({
   id: '/outline',
   path: '/outline',
   getParentRoute: () => StudioProjectIdRoute,
 } as any)
+const StudioProjectIdMarketplaceRoute =
+  StudioProjectIdMarketplaceRouteImport.update({
+    id: '/marketplace',
+    path: '/marketplace',
+    getParentRoute: () => StudioProjectIdRoute,
+  } as any)
 const ProjectsProjectIdLaunchRoute = ProjectsProjectIdLaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
@@ -116,7 +129,9 @@ export interface FileRoutesByFullPath {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesByTo {
@@ -132,7 +147,9 @@ export interface FileRoutesByTo {
   '/studio': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesById {
@@ -150,7 +167,9 @@ export interface FileRoutesById {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
+  '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
 }
 export interface FileRouteTypes {
@@ -169,7 +188,9 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,7 +206,9 @@ export interface FileRouteTypes {
     | '/studio'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
   id:
     | '__root__'
@@ -202,7 +225,9 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
+    | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
 }
@@ -296,11 +321,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/$projectId/voice': {
+      id: '/studio/$projectId/voice'
+      path: '/voice'
+      fullPath: '/studio/$projectId/voice'
+      preLoaderRoute: typeof StudioProjectIdVoiceRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/studio/$projectId/outline': {
       id: '/studio/$projectId/outline'
       path: '/outline'
       fullPath: '/studio/$projectId/outline'
       preLoaderRoute: typeof StudioProjectIdOutlineRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
+    '/studio/$projectId/marketplace': {
+      id: '/studio/$projectId/marketplace'
+      path: '/marketplace'
+      fullPath: '/studio/$projectId/marketplace'
+      preLoaderRoute: typeof StudioProjectIdMarketplaceRouteImport
       parentRoute: typeof StudioProjectIdRoute
     }
     '/projects/$projectId/launch': {
@@ -328,11 +367,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface StudioProjectIdRouteChildren {
+  StudioProjectIdMarketplaceRoute: typeof StudioProjectIdMarketplaceRoute
   StudioProjectIdOutlineRoute: typeof StudioProjectIdOutlineRoute
+  StudioProjectIdVoiceRoute: typeof StudioProjectIdVoiceRoute
 }
 
 const StudioProjectIdRouteChildren: StudioProjectIdRouteChildren = {
+  StudioProjectIdMarketplaceRoute: StudioProjectIdMarketplaceRoute,
   StudioProjectIdOutlineRoute: StudioProjectIdOutlineRoute,
+  StudioProjectIdVoiceRoute: StudioProjectIdVoiceRoute,
 }
 
 const StudioProjectIdRouteWithChildren = StudioProjectIdRoute._addFileChildren(

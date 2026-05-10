@@ -1,14 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  ChevronsUpDown,
-  Gift,
-  Home,
-  LayoutTemplate,
-  PanelLeftClose,
-  Plus,
-  Sparkles,
-  Type,
-} from "lucide-react";
+import { ChevronsUpDown, Home, PanelLeftClose, Plus, Sparkles, Type } from "lucide-react";
+import { api, queryKeys } from "../../lib/api";
 
 export type StudioSection = "canvas" | "outline" | "marketplace" | "voice";
 
@@ -25,6 +18,11 @@ export function SideDrawer({
 }) {
   const location = useLocation();
   const active = current ?? sectionFromPathname(location.pathname, projectId);
+  const session = useQuery({ queryKey: queryKeys.me(), queryFn: api.maybeMe });
+  const user = session.data?.user;
+  const email = user?.email ?? "";
+  const initial = email ? email.charAt(0).toUpperCase() : "·";
+  const plan = user?.plan ? `${user.plan} plan` : "Signed in";
 
   return (
     <aside
@@ -48,21 +46,23 @@ export function SideDrawer({
         </button>
       </div>
 
-      <button
+      <Link
         className="mt-3 flex w-full items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-left hover:bg-white/10"
-        type="button"
+        to="/account"
       >
-        <span className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-md bg-emerald-500/20 font-semibold text-emerald-300 text-xs">
-            H
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-emerald-500/20 font-semibold text-emerald-300 text-xs">
+            {initial}
           </span>
-          <span className="flex flex-col">
-            <span className="font-medium text-sm">Hello</span>
-            <span className="text-[11px] text-neutral-400">Pro plan</span>
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate font-medium text-sm">
+              {user ? email : session.isLoading ? "Loading…" : "Sign in"}
+            </span>
+            <span className="text-[11px] text-neutral-400">{plan}</span>
           </span>
         </span>
-        <ChevronsUpDown className="size-3.5 text-neutral-400" />
-      </button>
+        <ChevronsUpDown className="size-3.5 shrink-0 text-neutral-400" />
+      </Link>
 
       <nav className="mt-4 flex flex-col gap-0.5">
         <DrawerLink icon={<Home className="size-4" />} to="/studio">
@@ -71,9 +71,14 @@ export function SideDrawer({
         <DrawerLink icon={<Plus className="size-4" />} to="/studio/compose">
           New book
         </DrawerLink>
-        <DrawerLinkPlain icon={<LayoutTemplate className="size-4" />}>Templates</DrawerLinkPlain>
-        <DrawerLinkPlain icon={<Type className="size-4" />}>Voices</DrawerLinkPlain>
-        <DrawerLinkPlain icon={<Gift className="size-4" />}>Refer & earn</DrawerLinkPlain>
+        <Link
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
+          params={{ projectId }}
+          to="/studio/$projectId/voice"
+        >
+          <Type className="size-4" />
+          <span>Voices</span>
+        </Link>
       </nav>
 
       <div className="mt-5 px-3 text-[11px] text-neutral-500 uppercase tracking-wide">
@@ -138,24 +143,6 @@ function DrawerLink({
       {icon}
       <span>{children}</span>
     </Link>
-  );
-}
-
-function DrawerLinkPlain({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
-      type="button"
-    >
-      {icon}
-      <span>{children}</span>
-    </button>
   );
 }
 

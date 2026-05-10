@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
       .catch(() => null);
 
     if (session?.user) {
-      throw redirect({ to: "/dashboard", replace: true });
+      throw redirect({ to: "/studio", replace: true });
     }
   },
   component: Landing,

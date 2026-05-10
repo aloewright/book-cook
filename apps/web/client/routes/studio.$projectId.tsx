@@ -78,7 +78,7 @@ function StudioProject() {
         {!outline.isLoading && chapters.length === 0 && <EmptyOutline projectId={projectId} />}
 
         {chapters.map((chapter) => (
-          <ChapterCanvas key={chapter.id} chapter={chapter} />
+          <ChapterCanvas key={chapter.id} chapter={chapter} projectId={projectId} />
         ))}
       </main>
 
@@ -88,7 +88,7 @@ function StudioProject() {
   );
 }
 
-function ChapterCanvas({ chapter }: { chapter: Chapter }) {
+function ChapterCanvas({ chapter, projectId }: { chapter: Chapter; projectId: string }) {
   const queryClient = useQueryClient();
   const sections = useQuery({
     queryKey: queryKeys.chapterSections(chapter.id),
@@ -132,6 +132,7 @@ function ChapterCanvas({ chapter }: { chapter: Chapter }) {
             <SceneCard
               section={section}
               chapterId={chapter.id}
+              projectId={projectId}
               index={i + 1}
               isGenerating={pendingSectionId === section.id}
             />
@@ -199,11 +200,13 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 function SceneCard({
   section,
   chapterId,
+  projectId,
   index,
   isGenerating,
 }: {
   section: Section;
   chapterId: string;
+  projectId: string;
   index: number;
   isGenerating: boolean;
 }) {
@@ -272,7 +275,16 @@ function SceneCard({
   return (
     <article className="relative rounded-2xl bg-white/80 p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:bg-neutral-900/80 dark:ring-white/5">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-neutral-500 text-xs">Scene {index}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-neutral-500 text-xs">Scene {index}</span>
+          <Link
+            className="text-neutral-500 text-xs hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
+            params={{ projectId, chapterId }}
+            to="/studio/$projectId/chapters/$chapterId"
+          >
+            Open chapter →
+          </Link>
+        </div>
         <SaveIndicator saveState={saveState} status={section.status} />
       </div>
       <h2 className="mb-4 font-serif text-2xl tracking-tight">{heading}</h2>

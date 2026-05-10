@@ -25,6 +25,7 @@ import { Route as StudioProjectIdOutlineRouteImport } from './routes/studio.$pro
 import { Route as StudioProjectIdMarketplaceRouteImport } from './routes/studio.$projectId.marketplace'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
+import { Route as StudioProjectIdChaptersChapterIdRouteImport } from './routes/studio.$projectId.chapters.$chapterId'
 import { Route as ProjectsProjectIdChaptersChapterIdRouteImport } from './routes/projects.$projectId.chapters.$chapterId'
 
 const StudioRoute = StudioRouteImport.update({
@@ -108,6 +109,12 @@ const ProjectsProjectIdBookRoute = ProjectsProjectIdBookRouteImport.update({
   path: '/book',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const StudioProjectIdChaptersChapterIdRoute =
+  StudioProjectIdChaptersChapterIdRouteImport.update({
+    id: '/chapters/$chapterId',
+    path: '/chapters/$chapterId',
+    getParentRoute: () => StudioProjectIdRoute,
+  } as any)
 const ProjectsProjectIdChaptersChapterIdRoute =
   ProjectsProjectIdChaptersChapterIdRouteImport.update({
     id: '/chapters/$chapterId',
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,6 +180,7 @@ export interface FileRoutesById {
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   id:
     | '__root__'
     | '/'
@@ -229,6 +241,7 @@ export interface FileRouteTypes {
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -356,6 +369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdBookRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/studio/$projectId/chapters/$chapterId': {
+      id: '/studio/$projectId/chapters/$chapterId'
+      path: '/chapters/$chapterId'
+      fullPath: '/studio/$projectId/chapters/$chapterId'
+      preLoaderRoute: typeof StudioProjectIdChaptersChapterIdRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/projects/$projectId/chapters/$chapterId': {
       id: '/projects/$projectId/chapters/$chapterId'
       path: '/chapters/$chapterId'
@@ -370,12 +390,14 @@ interface StudioProjectIdRouteChildren {
   StudioProjectIdMarketplaceRoute: typeof StudioProjectIdMarketplaceRoute
   StudioProjectIdOutlineRoute: typeof StudioProjectIdOutlineRoute
   StudioProjectIdVoiceRoute: typeof StudioProjectIdVoiceRoute
+  StudioProjectIdChaptersChapterIdRoute: typeof StudioProjectIdChaptersChapterIdRoute
 }
 
 const StudioProjectIdRouteChildren: StudioProjectIdRouteChildren = {
   StudioProjectIdMarketplaceRoute: StudioProjectIdMarketplaceRoute,
   StudioProjectIdOutlineRoute: StudioProjectIdOutlineRoute,
   StudioProjectIdVoiceRoute: StudioProjectIdVoiceRoute,
+  StudioProjectIdChaptersChapterIdRoute: StudioProjectIdChaptersChapterIdRoute,
 }
 
 const StudioProjectIdRouteWithChildren = StudioProjectIdRoute._addFileChildren(

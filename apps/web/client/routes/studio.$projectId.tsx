@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
+import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
@@ -33,6 +34,7 @@ function StudioProject() {
     queryFn: () => api.getProjectOutline(projectId),
   });
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   if (location.pathname !== `/studio/${projectId}`) {
     return <Outlet />;
@@ -83,7 +85,32 @@ function StudioProject() {
       </main>
 
       <BottomToolbar />
-      <AiOrb />
+      <AiOrb active={assistantOpen} onClick={() => setAssistantOpen((v) => !v)} />
+
+      {assistantOpen && (
+        <div
+          className="fixed right-4 bottom-20 z-40 flex w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur"
+          style={{ height: "min(640px, 70vh)" }}
+        >
+          <div className="flex items-center justify-between border-white/10 border-b px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4" />
+              Book Cook assistant
+            </div>
+            <button
+              aria-label="Close assistant"
+              className="rounded p-1 hover:bg-white/10"
+              onClick={() => setAssistantOpen(false)}
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <EditorialAssistantSidecar projectId={projectId} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -443,14 +470,18 @@ function PillButton({ icon, children }: { icon?: React.ReactNode; children: Reac
   );
 }
 
-function AiOrb() {
+function AiOrb({ active, onClick }: { active: boolean; onClick: () => void }) {
   return (
     <button
-      aria-label="Open AI assistant"
-      className="fixed right-5 bottom-5 z-20 grid size-11 place-items-center rounded-2xl bg-neutral-950 text-white shadow-xl ring-1 ring-white/10 hover:scale-105"
+      aria-expanded={active}
+      aria-label={active ? "Close AI assistant" : "Open AI assistant"}
+      className={`fixed right-5 bottom-5 z-50 grid size-11 place-items-center rounded-2xl text-white shadow-xl ring-1 transition hover:scale-105 ${
+        active ? "bg-emerald-600 ring-emerald-300/40" : "bg-neutral-950 ring-white/10"
+      }`}
+      onClick={onClick}
       type="button"
     >
-      <Sparkles className="size-5" />
+      {active ? <X className="size-5" /> : <Sparkles className="size-5" />}
     </button>
   );
 }

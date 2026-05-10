@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
@@ -25,6 +25,7 @@ function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
@@ -37,6 +38,31 @@ function StudioProject() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
+  const [shareLabel, setShareLabel] = useState<string | undefined>();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const exportMutation = useMutation({
+    mutationFn: () => api.startBookExport(projectId, { formats: ["epub", "pdf"] }),
+    onSuccess: () => navigate({ to: "/studio/$projectId/book", params: { projectId } }),
+  });
+  const readAloudMutation = useMutation({
+    mutationFn: () => api.readAloud(projectId),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        void audioRef.current.play();
+      }
+    },
+  });
+
+  function handleShare() {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
+    }
+    setShareLabel("Copied!");
+    window.setTimeout(() => setShareLabel(undefined), 2000);
+  }
 
   const chapters = outline.data?.chapters ?? [];
   const lastChapter = chapters[chapters.length - 1];
@@ -112,7 +138,16 @@ function StudioProject() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} subtitle={subtitle} />
-      <TopRightPill />
+      <TopRightPill
+        exportPending={exportMutation.isPending}
+        onExport={() => exportMutation.mutate()}
+        onReadAloud={() => readAloudMutation.mutate()}
+        onShare={handleShare}
+        readAloudPending={readAloudMutation.isPending}
+        shareLabel={shareLabel}
+      />
+      {/** biome-ignore lint/a11y/useMediaCaption: TTS playback has no caption track */}
+      <audio className="hidden" ref={audioRef} />
 
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${

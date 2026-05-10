@@ -504,6 +504,19 @@ export const api = {
       body: JSON.stringify(input),
     }),
   me: () => fetchJson<{ user: { id: string; email: string; plan: string } }>("/api/v1/account/me"),
+  readAloud: async (id: string): Promise<Blob> => {
+    const res = await fetch(`/api/v1/projects/${id}/tts`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(
+        `${res.status}: ${(body as { error?: { message?: string } }).error?.message ?? res.statusText}`,
+      );
+    }
+    return res.blob();
+  },
   maybeMe: async () => {
     const res = await fetch("/api/v1/session", {
       credentials: "include",

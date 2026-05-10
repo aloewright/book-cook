@@ -23,6 +23,7 @@ import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projec
 import { Route as StudioProjectIdVoiceRouteImport } from './routes/studio.$projectId.voice'
 import { Route as StudioProjectIdOutlineRouteImport } from './routes/studio.$projectId.outline'
 import { Route as StudioProjectIdMarketplaceRouteImport } from './routes/studio.$projectId.marketplace'
+import { Route as StudioProjectIdBookRouteImport } from './routes/studio.$projectId.book'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
 import { Route as StudioProjectIdChaptersChapterIdRouteImport } from './routes/studio.$projectId.chapters.$chapterId'
@@ -99,6 +100,11 @@ const StudioProjectIdMarketplaceRoute =
     path: '/marketplace',
     getParentRoute: () => StudioProjectIdRoute,
   } as any)
+const StudioProjectIdBookRoute = StudioProjectIdBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => StudioProjectIdRoute,
+} as any)
 const ProjectsProjectIdLaunchRoute = ProjectsProjectIdLaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/studio': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
@@ -355,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioProjectIdMarketplaceRouteImport
       parentRoute: typeof StudioProjectIdRoute
     }
+    '/studio/$projectId/book': {
+      id: '/studio/$projectId/book'
+      path: '/book'
+      fullPath: '/studio/$projectId/book'
+      preLoaderRoute: typeof StudioProjectIdBookRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/projects/$projectId/launch': {
       id: '/projects/$projectId/launch'
       path: '/launch'
@@ -387,6 +406,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface StudioProjectIdRouteChildren {
+  StudioProjectIdBookRoute: typeof StudioProjectIdBookRoute
   StudioProjectIdMarketplaceRoute: typeof StudioProjectIdMarketplaceRoute
   StudioProjectIdOutlineRoute: typeof StudioProjectIdOutlineRoute
   StudioProjectIdVoiceRoute: typeof StudioProjectIdVoiceRoute
@@ -394,6 +414,7 @@ interface StudioProjectIdRouteChildren {
 }
 
 const StudioProjectIdRouteChildren: StudioProjectIdRouteChildren = {
+  StudioProjectIdBookRoute: StudioProjectIdBookRoute,
   StudioProjectIdMarketplaceRoute: StudioProjectIdMarketplaceRoute,
   StudioProjectIdOutlineRoute: StudioProjectIdOutlineRoute,
   StudioProjectIdVoiceRoute: StudioProjectIdVoiceRoute,

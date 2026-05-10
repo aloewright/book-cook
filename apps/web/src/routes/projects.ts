@@ -15,6 +15,7 @@ import {
   voices,
 } from "../db/schema";
 import type { Env } from "../env";
+import { gateway } from "../lib/gateway";
 import { decryptSecret } from "../lib/keyring";
 import { type AuthVariables, requireUser } from "../middleware/auth";
 import { generateOutlineWithAi } from "../skills/architect";
@@ -453,6 +454,39 @@ projectsRoute.get("/:id/book", async (c) => {
     project: p,
     book: fullBookView(p.title, chapterRows),
     export_formats: downloadableBookKinds,
+  });
+});
+
+projectsRoute.post("/:id/tts", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const db = drizzle(c.env.DB);
+  const [p] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.user_id, user.id), isNull(projects.deleted_at)))
+    .limit(1);
+  if (!p) return c.json({ error: "not found" }, 404);
+
+  const chapterRows = await db
+    .select({ id: chapters.id, draft_md: chapters.draft_md })
+    .from(chapters)
+    .where(eq(chapters.project_id, id))
+    .orderBy(asc(chapters.ordinal));
+
+  const drafted = chapterRows.find((row) => row.draft_md.trim().length > 0);
+  if (!drafted) {
+    return c.json({ error: { message: "No drafted content to read." } }, 400);
+  }
+
+  const text = drafted.draft_md.slice(0, 4000);
+  const audio = await gateway.audioGen(c.env, {
+    input: text,
+    voice: "alloy",
+    format: "mp3",
+  });
+  return new Response(audio, {
+    headers: { "Content-Type": "audio/mpeg" },
   });
 });
 

@@ -23,8 +23,10 @@ import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projec
 import { Route as StudioProjectIdVoiceRouteImport } from './routes/studio.$projectId.voice'
 import { Route as StudioProjectIdOutlineRouteImport } from './routes/studio.$projectId.outline'
 import { Route as StudioProjectIdMarketplaceRouteImport } from './routes/studio.$projectId.marketplace'
+import { Route as StudioProjectIdBookRouteImport } from './routes/studio.$projectId.book'
 import { Route as ProjectsProjectIdLaunchRouteImport } from './routes/projects.$projectId.launch'
 import { Route as ProjectsProjectIdBookRouteImport } from './routes/projects.$projectId.book'
+import { Route as StudioProjectIdChaptersChapterIdRouteImport } from './routes/studio.$projectId.chapters.$chapterId'
 import { Route as ProjectsProjectIdChaptersChapterIdRouteImport } from './routes/projects.$projectId.chapters.$chapterId'
 
 const StudioRoute = StudioRouteImport.update({
@@ -98,6 +100,11 @@ const StudioProjectIdMarketplaceRoute =
     path: '/marketplace',
     getParentRoute: () => StudioProjectIdRoute,
   } as any)
+const StudioProjectIdBookRoute = StudioProjectIdBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => StudioProjectIdRoute,
+} as any)
 const ProjectsProjectIdLaunchRoute = ProjectsProjectIdLaunchRouteImport.update({
   id: '/launch',
   path: '/launch',
@@ -108,6 +115,12 @@ const ProjectsProjectIdBookRoute = ProjectsProjectIdBookRouteImport.update({
   path: '/book',
   getParentRoute: () => ProjectsProjectIdRoute,
 } as any)
+const StudioProjectIdChaptersChapterIdRoute =
+  StudioProjectIdChaptersChapterIdRouteImport.update({
+    id: '/chapters/$chapterId',
+    path: '/chapters/$chapterId',
+    getParentRoute: () => StudioProjectIdRoute,
+  } as any)
 const ProjectsProjectIdChaptersChapterIdRoute =
   ProjectsProjectIdChaptersChapterIdRouteImport.update({
     id: '/chapters/$chapterId',
@@ -129,10 +142,12 @@ export interface FileRoutesByFullPath {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -147,10 +162,12 @@ export interface FileRoutesByTo {
   '/studio': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,10 +184,12 @@ export interface FileRoutesById {
   '/studio/': typeof StudioIndexRoute
   '/projects/$projectId/book': typeof ProjectsProjectIdBookRoute
   '/projects/$projectId/launch': typeof ProjectsProjectIdLaunchRoute
+  '/studio/$projectId/book': typeof StudioProjectIdBookRoute
   '/studio/$projectId/marketplace': typeof StudioProjectIdMarketplaceRoute
   '/studio/$projectId/outline': typeof StudioProjectIdOutlineRoute
   '/studio/$projectId/voice': typeof StudioProjectIdVoiceRoute
   '/projects/$projectId/chapters/$chapterId': typeof ProjectsProjectIdChaptersChapterIdRoute
+  '/studio/$projectId/chapters/$chapterId': typeof StudioProjectIdChaptersChapterIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -188,10 +207,12 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -206,10 +227,12 @@ export interface FileRouteTypes {
     | '/studio'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   id:
     | '__root__'
     | '/'
@@ -225,10 +248,12 @@ export interface FileRouteTypes {
     | '/studio/'
     | '/projects/$projectId/book'
     | '/projects/$projectId/launch'
+    | '/studio/$projectId/book'
     | '/studio/$projectId/marketplace'
     | '/studio/$projectId/outline'
     | '/studio/$projectId/voice'
     | '/projects/$projectId/chapters/$chapterId'
+    | '/studio/$projectId/chapters/$chapterId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -342,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioProjectIdMarketplaceRouteImport
       parentRoute: typeof StudioProjectIdRoute
     }
+    '/studio/$projectId/book': {
+      id: '/studio/$projectId/book'
+      path: '/book'
+      fullPath: '/studio/$projectId/book'
+      preLoaderRoute: typeof StudioProjectIdBookRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/projects/$projectId/launch': {
       id: '/projects/$projectId/launch'
       path: '/launch'
@@ -356,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdBookRouteImport
       parentRoute: typeof ProjectsProjectIdRoute
     }
+    '/studio/$projectId/chapters/$chapterId': {
+      id: '/studio/$projectId/chapters/$chapterId'
+      path: '/chapters/$chapterId'
+      fullPath: '/studio/$projectId/chapters/$chapterId'
+      preLoaderRoute: typeof StudioProjectIdChaptersChapterIdRouteImport
+      parentRoute: typeof StudioProjectIdRoute
+    }
     '/projects/$projectId/chapters/$chapterId': {
       id: '/projects/$projectId/chapters/$chapterId'
       path: '/chapters/$chapterId'
@@ -367,15 +406,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface StudioProjectIdRouteChildren {
+  StudioProjectIdBookRoute: typeof StudioProjectIdBookRoute
   StudioProjectIdMarketplaceRoute: typeof StudioProjectIdMarketplaceRoute
   StudioProjectIdOutlineRoute: typeof StudioProjectIdOutlineRoute
   StudioProjectIdVoiceRoute: typeof StudioProjectIdVoiceRoute
+  StudioProjectIdChaptersChapterIdRoute: typeof StudioProjectIdChaptersChapterIdRoute
 }
 
 const StudioProjectIdRouteChildren: StudioProjectIdRouteChildren = {
+  StudioProjectIdBookRoute: StudioProjectIdBookRoute,
   StudioProjectIdMarketplaceRoute: StudioProjectIdMarketplaceRoute,
   StudioProjectIdOutlineRoute: StudioProjectIdOutlineRoute,
   StudioProjectIdVoiceRoute: StudioProjectIdVoiceRoute,
+  StudioProjectIdChaptersChapterIdRoute: StudioProjectIdChaptersChapterIdRoute,
 }
 
 const StudioProjectIdRouteWithChildren = StudioProjectIdRoute._addFileChildren(

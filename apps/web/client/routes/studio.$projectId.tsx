@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
+import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
+import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
@@ -24,6 +25,8 @@ function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
   const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
@@ -33,17 +36,97 @@ function StudioProject() {
     queryFn: () => api.getProjectOutline(projectId),
   });
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [remixMessage, setRemixMessage] = useState<string | null>(null);
+  const [shareLabel, setShareLabel] = useState<string | undefined>();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const exportMutation = useMutation({
+    mutationFn: () => api.startBookExport(projectId, { formats: ["epub", "pdf"] }),
+    onSuccess: () => navigate({ to: "/studio/$projectId/book", params: { projectId } }),
+  });
+  const readAloudMutation = useMutation({
+    mutationFn: () => api.readAloud(projectId),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        void audioRef.current.play();
+      }
+    },
+  });
+
+  function handleShare() {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
+    }
+    setShareLabel("Copied!");
+    window.setTimeout(() => setShareLabel(undefined), 2000);
+  }
+
+  const chapters = outline.data?.chapters ?? [];
+  const lastChapter = chapters[chapters.length - 1];
+  const firstChapter = chapters[0];
+
+  const lastChapterSections = useQuery({
+    queryKey: queryKeys.chapterSections(lastChapter?.id ?? ""),
+    queryFn: () => {
+      if (!lastChapter) throw new Error("No chapters yet.");
+      return api.getChapterSections(lastChapter.id);
+    },
+    enabled: !!lastChapter,
+  });
+  const lastSection = lastChapterSections.data?.items.at(-1);
+
+  const globalInsert = useMutation({
+    mutationFn: async () => {
+      if (!lastChapter) throw new Error("No chapters yet.");
+      if (!lastSection) throw new Error("No sections in last chapter.");
+      return api.draftSection(lastChapter.id, lastSection.id, {
+        instruction: TEMPLATE_INSTRUCTION,
+      });
+    },
+    onSuccess: async () => {
+      if (!lastChapter) return;
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.chapterSections(lastChapter.id),
+      });
+      setRemixMessage("Drafted.");
+    },
+    onError: (err: Error) => setRemixMessage(err.message),
+  });
+
+  const globalRemix = useMutation({
+    mutationFn: async () => {
+      const sel = window.getSelection()?.toString().trim() ?? "";
+      if (!sel) throw new Error("Select text first.");
+      if (!firstChapter) throw new Error("No chapters yet.");
+      return api.reviseChapterSelection(firstChapter.id, {
+        action: "rewrite",
+        text: sel,
+      });
+    },
+    onSuccess: () => setRemixMessage("Remix saved."),
+    onError: (err: Error) => setRemixMessage(err.message),
+  });
+
+  useEffect(() => {
+    if (!remixMessage) return;
+    const id = window.setTimeout(() => setRemixMessage(null), 3000);
+    return () => window.clearTimeout(id);
+  }, [remixMessage]);
 
   if (location.pathname !== `/studio/${projectId}`) {
     return <Outlet />;
   }
 
   const title = project.data?.title ?? "Untitled book";
-  const chapters = outline.data?.chapters ?? [];
   const subtitle =
     chapters.length === 0
       ? "No chapters yet"
       : `${chapters.length} chapter${chapters.length === 1 ? "" : "s"}`;
+  const insertDisabled = !lastChapter || !lastSection || globalInsert.isPending;
+  const remixDisabled = !firstChapter || globalRemix.isPending;
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
@@ -55,7 +138,16 @@ function StudioProject() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} subtitle={subtitle} />
-      <TopRightPill />
+      <TopRightPill
+        exportPending={exportMutation.isPending}
+        onExport={() => exportMutation.mutate()}
+        onReadAloud={() => readAloudMutation.mutate()}
+        onShare={handleShare}
+        readAloudPending={readAloudMutation.isPending}
+        shareLabel={shareLabel}
+      />
+      {/** biome-ignore lint/a11y/useMediaCaption: TTS playback has no caption track */}
+      <audio className="hidden" ref={audioRef} />
 
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${
@@ -78,17 +170,49 @@ function StudioProject() {
         {!outline.isLoading && chapters.length === 0 && <EmptyOutline projectId={projectId} />}
 
         {chapters.map((chapter) => (
-          <ChapterCanvas key={chapter.id} chapter={chapter} />
+          <ChapterCanvas key={chapter.id} chapter={chapter} projectId={projectId} />
         ))}
       </main>
 
-      <BottomToolbar />
-      <AiOrb />
+      <BottomToolbar
+        projectId={projectId}
+        onInsert={() => globalInsert.mutate()}
+        onRemix={() => globalRemix.mutate()}
+        insertDisabled={insertDisabled}
+        remixDisabled={remixDisabled}
+        remixMessage={remixMessage}
+      />
+      <AiOrb active={assistantOpen} onClick={() => setAssistantOpen((v) => !v)} />
+
+      {assistantOpen && (
+        <div
+          className="fixed right-4 bottom-20 z-40 flex w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur"
+          style={{ height: "min(640px, 70vh)" }}
+        >
+          <div className="flex items-center justify-between border-white/10 border-b px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4" />
+              Book Cook assistant
+            </div>
+            <button
+              aria-label="Close assistant"
+              className="rounded p-1 hover:bg-white/10"
+              onClick={() => setAssistantOpen(false)}
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <EditorialAssistantSidecar projectId={projectId} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ChapterCanvas({ chapter }: { chapter: Chapter }) {
+function ChapterCanvas({ chapter, projectId }: { chapter: Chapter; projectId: string }) {
   const queryClient = useQueryClient();
   const sections = useQuery({
     queryKey: queryKeys.chapterSections(chapter.id),
@@ -132,6 +256,7 @@ function ChapterCanvas({ chapter }: { chapter: Chapter }) {
             <SceneCard
               section={section}
               chapterId={chapter.id}
+              projectId={projectId}
               index={i + 1}
               isGenerating={pendingSectionId === section.id}
             />
@@ -199,11 +324,13 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 function SceneCard({
   section,
   chapterId,
+  projectId,
   index,
   isGenerating,
 }: {
   section: Section;
   chapterId: string;
+  projectId: string;
   index: number;
   isGenerating: boolean;
 }) {
@@ -272,7 +399,16 @@ function SceneCard({
   return (
     <article className="relative rounded-2xl bg-white/80 p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:bg-neutral-900/80 dark:ring-white/5">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-neutral-500 text-xs">Scene {index}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-neutral-500 text-xs">Scene {index}</span>
+          <Link
+            className="text-neutral-500 text-xs hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
+            params={{ projectId, chapterId }}
+            to="/studio/$projectId/chapters/$chapterId"
+          >
+            Open chapter →
+          </Link>
+        </div>
         <SaveIndicator saveState={saveState} status={section.status} />
       </div>
       <h2 className="mb-4 font-serif text-2xl tracking-tight">{heading}</h2>
@@ -401,13 +537,39 @@ function InsertButton({
   );
 }
 
-function BottomToolbar() {
+function BottomToolbar({
+  projectId,
+  onInsert,
+  onRemix,
+  insertDisabled,
+  remixDisabled,
+  remixMessage,
+}: {
+  projectId: string;
+  onInsert: () => void;
+  onRemix: () => void;
+  insertDisabled: boolean;
+  remixDisabled: boolean;
+  remixMessage: string | null;
+}) {
   return (
     <div className="-translate-x-1/2 fixed bottom-6 left-1/2 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur">
-      <PillButton icon={<Plus className="size-4" />}>Insert</PillButton>
-      <PillButton icon={<Wand2 className="size-4" />}>Remix</PillButton>
-      <PillButton icon={<Type className="size-4" />}>Voice</PillButton>
-      <PillButton icon={<LayoutTemplate className="size-4" />}>Background</PillButton>
+      <PillButton icon={<Plus className="size-4" />} onClick={onInsert} disabled={insertDisabled}>
+        Insert
+      </PillButton>
+      <PillButton icon={<Wand2 className="size-4" />} onClick={onRemix} disabled={remixDisabled}>
+        Remix
+      </PillButton>
+      <Link
+        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+        params={{ projectId }}
+        to="/studio/$projectId/voice"
+      >
+        <Type className="size-4" /> Voice
+      </Link>
+      {remixMessage ? (
+        <span className="px-3 py-1.5 text-[11px] text-emerald-300">{remixMessage}</span>
+      ) : null}
       <button
         aria-label="More"
         className="grid size-9 place-items-center rounded-full hover:bg-white/10"
@@ -419,10 +581,22 @@ function BottomToolbar() {
   );
 }
 
-function PillButton({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+function PillButton({
+  icon,
+  children,
+  onClick,
+  disabled,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={disabled}
+      onClick={onClick}
       type="button"
     >
       {icon}
@@ -431,14 +605,18 @@ function PillButton({ icon, children }: { icon?: React.ReactNode; children: Reac
   );
 }
 
-function AiOrb() {
+function AiOrb({ active, onClick }: { active: boolean; onClick: () => void }) {
   return (
     <button
-      aria-label="Open AI assistant"
-      className="fixed right-5 bottom-5 z-20 grid size-11 place-items-center rounded-2xl bg-neutral-950 text-white shadow-xl ring-1 ring-white/10 hover:scale-105"
+      aria-expanded={active}
+      aria-label={active ? "Close AI assistant" : "Open AI assistant"}
+      className={`fixed right-5 bottom-5 z-50 grid size-11 place-items-center rounded-2xl text-white shadow-xl ring-1 transition hover:scale-105 ${
+        active ? "bg-emerald-600 ring-emerald-300/40" : "bg-neutral-950 ring-white/10"
+      }`}
+      onClick={onClick}
       type="button"
     >
-      <Sparkles className="size-5" />
+      {active ? <X className="size-5" /> : <Sparkles className="size-5" />}
     </button>
   );
 }

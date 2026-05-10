@@ -3,7 +3,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronsUpDown, Home, PanelLeftClose, Plus, Sparkles, Type } from "lucide-react";
 import { api, queryKeys } from "../../lib/api";
 
-export type StudioSection = "canvas" | "outline" | "marketplace" | "voice";
+export type StudioSection = "canvas" | "outline" | "marketplace" | "voice" | "book";
 
 export function SideDrawer({
   open,
@@ -109,6 +109,9 @@ export function SideDrawer({
         >
           Voice
         </RecentLink>
+        <RecentLink to="/studio/$projectId/book" params={{ projectId }} active={active === "book"}>
+          Book
+        </RecentLink>
       </div>
       <div className="mt-3 px-3 text-[11px] text-neutral-500">
         project: {projectId.slice(0, 6)}…
@@ -123,6 +126,7 @@ function sectionFromPathname(pathname: string, projectId: string): StudioSection
   if (pathname === `${base}/marketplace` || pathname.startsWith(`${base}/marketplace/`))
     return "marketplace";
   if (pathname === `${base}/voice` || pathname.startsWith(`${base}/voice/`)) return "voice";
+  if (pathname === `${base}/book` || pathname.startsWith(`${base}/book/`)) return "book";
   return "canvas";
 }
 

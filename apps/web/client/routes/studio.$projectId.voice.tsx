@@ -28,7 +28,7 @@ function StudioVoice() {
         current="voice"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle="Voice" />
+      <BreadcrumbPill title={title} />
       <TopRightPill />
 
       <main

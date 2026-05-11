@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { Link, Outlet, createRootRoute, useLocation } from "@tanstack/react-router";
 import { BookOpen, LayoutDashboard, Settings, Shield } from "lucide-react";
 import { api, queryKeys } from "../lib/api";
 
@@ -13,6 +13,10 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
+  const location = useLocation();
+  // Canvas route: /studio/{projectId} — has its own full-screen layered UI
+  const isCanvas = /^\/studio\/(?!compose\b)[^/]+$/.test(location.pathname);
+
   const session = useQuery({
     queryKey: queryKeys.me(),
     queryFn: api.maybeMe,
@@ -54,6 +58,14 @@ function RootLayout() {
       <BookOpen className="h-5 w-5" />
     </Link>
   );
+
+  if (isCanvas) {
+    return (
+      <div className="fixed inset-0 overflow-hidden bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">

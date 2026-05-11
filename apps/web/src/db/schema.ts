@@ -178,6 +178,9 @@ export const sections = sqliteTable(
     kind: text("kind").notNull(),
     prompt: text("prompt").notNull().default(""),
     draft_md: text("draft_md").notNull().default(""),
+    beginning_md: text("beginning_md").notNull().default(""),
+    middle_md: text("middle_md").notNull().default(""),
+    end_md: text("end_md").notNull().default(""),
     status: text("status", {
       enum: ["pending", "generating", "drafted", "approved"],
     })

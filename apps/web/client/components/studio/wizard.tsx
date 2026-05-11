@@ -136,6 +136,30 @@ export function ChoiceCard({
   );
 }
 
+export function ToggleChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+        active
+          ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+          : "border-black/10 bg-white/60 text-neutral-700 hover:bg-white/90 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
 export function FieldChip({
   label,
   value,

@@ -1,19 +1,15 @@
-import { Download, Settings2, Share2, Sparkles } from "lucide-react";
+import { Download, Settings2, Share2 } from "lucide-react";
 
 export function TopRightPill({
   onShare,
   onExport,
-  onReadAloud,
   shareLabel,
   exportPending,
-  readAloudPending,
 }: {
   onShare?: () => void;
   onExport?: () => void;
-  onReadAloud?: () => void;
   shareLabel?: string;
   exportPending?: boolean;
-  readAloudPending?: boolean;
 } = {}) {
   return (
     <div className="fixed top-4 right-4 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 px-2 py-1.5 text-neutral-200 shadow-lg ring-1 ring-white/5 backdrop-blur">
@@ -29,13 +25,6 @@ export function TopRightPill({
         onClick={onExport}
       >
         {exportPending ? "Exporting…" : "Export"}
-      </PillButton>
-      <PillButton
-        disabled={readAloudPending}
-        icon={<Sparkles className="size-3.5" />}
-        onClick={onReadAloud}
-      >
-        {readAloudPending ? "Loading…" : "Read aloud"}
       </PillButton>
       <button
         aria-label="More"

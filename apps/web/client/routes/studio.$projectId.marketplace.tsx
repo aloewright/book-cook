@@ -54,7 +54,7 @@ function StudioMarketplace() {
         current="marketplace"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle={`Marketplace · ${tabLabel}`} />
+      <BreadcrumbPill title={title} />
       <TopRightPill />
 
       <main

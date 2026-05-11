@@ -1,23 +1,64 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Wand2 } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DynamicIslandTOC } from "../components/studio/dynamic-toc";
-import { ChoiceCard, FieldChip, Step } from "../components/studio/wizard";
+import { ChoiceCard, Step, ToggleChip } from "../components/studio/wizard";
 import { api } from "../lib/api";
 
 export const Route = createFileRoute("/studio/compose")({ component: Compose });
 
-type StepKey = "title" | "type" | "logline" | "audience" | "voice" | "review";
+type StepKey = "title" | "genre" | "type" | "logline" | "audience" | "voice" | "review";
 
 const STEPS: { id: StepKey; label: string }[] = [
   { id: "title", label: "Working title" },
+  { id: "genre", label: "Genre" },
   { id: "type", label: "Fiction or nonfiction" },
   { id: "logline", label: "Your story in one sentence" },
   { id: "audience", label: "Who is this for" },
   { id: "voice", label: "Voice & tone" },
   { id: "review", label: "Review & start" },
 ];
+
+const GENRE_OPTIONS = [
+  "Literary Fiction",
+  "Fantasy",
+  "Sci-Fi",
+  "Mystery & Thriller",
+  "Horror",
+  "Romance",
+  "Historical Fiction",
+  "Young Adult",
+  "Memoir",
+  "Self-Help",
+  "Business",
+  "True Crime",
+];
+
+const AUDIENCE_OPTIONS = [
+  "Adults",
+  "Young Adults (13–18)",
+  "Middle Grade (8–12)",
+  "Business readers",
+  "Literary readers",
+  "Genre fans",
+];
+
+const VOICE_OPTIONS = [
+  "Spare & minimalist",
+  "Lyrical",
+  "Dark & atmospheric",
+  "Witty & sharp",
+  "Conversational",
+  "Intimate",
+  "Formal",
+  "Satirical",
+  "Propulsive",
+];
+
+function toggle(arr: string[], val: string): string[] {
+  return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+}
 
 function Compose() {
   const nav = useNavigate();
@@ -26,12 +67,10 @@ function Compose() {
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"fiction" | "nonfiction">("fiction");
+  const [genre, setGenre] = useState<string[]>([]);
   const [logline, setLogline] = useState("");
-  const [protagonist, setProtagonist] = useState("");
-  const [conflict, setConflict] = useState("");
-  const [stakes, setStakes] = useState("");
-  const [audience, setAudience] = useState("");
-  const [voice, setVoice] = useState("");
+  const [audience, setAudience] = useState<string[]>([]);
+  const [voice, setVoice] = useState<string[]>([]);
   const [genError, setGenError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +80,7 @@ function Compose() {
   const composed = useMemo(() => logline.trim(), [logline]);
 
   const generate = useMutation({
-    mutationFn: () => api.generateLogline({ protagonist, conflict, stakes, type }),
+    mutationFn: () => api.generateLogline({ type }),
     onSuccess: ({ logline: generated }) => {
       setLogline(generated);
       setGenError(null);
@@ -51,8 +90,7 @@ function Compose() {
     },
   });
 
-  const hasSeed = protagonist.trim().length + conflict.trim().length + stakes.trim().length > 0;
-  const canGenerate = hasSeed && !generate.isPending;
+  const canGenerate = !generate.isPending;
 
   const create = useMutation({
     mutationFn: api.createProject,
@@ -109,8 +147,29 @@ function Compose() {
       </Step>
 
       <Step
-        anchorId="step-type"
+        anchorId="step-genre"
         index={2}
+        total={STEPS.length}
+        onNext={() => goNext("genre")}
+        canAdvance
+        title="What's the genre?"
+        subtitle="Pick as many as apply. You can change this later."
+      >
+        <div className="flex flex-wrap gap-2">
+          {GENRE_OPTIONS.map((g) => (
+            <ToggleChip
+              key={g}
+              label={g}
+              active={genre.includes(g)}
+              onClick={() => setGenre((prev) => toggle(prev, g))}
+            />
+          ))}
+        </div>
+      </Step>
+
+      <Step
+        anchorId="step-type"
+        index={3}
         total={STEPS.length}
         onNext={() => goNext("type")}
         canAdvance
@@ -135,32 +194,25 @@ function Compose() {
 
       <Step
         anchorId="step-logline"
-        index={3}
+        index={4}
         total={STEPS.length}
         onNext={() => goNext("logline")}
         canAdvance={composed.length > 8}
         title="Your story, in one sentence."
-        subtitle="Fill the structure to generate one — or just write your own below."
+        subtitle="Generate a logline — or write your own below."
       >
-        <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <FieldChip
-            label="Protagonist"
-            onChange={setProtagonist}
-            placeholder="A reluctant cartographer"
-            value={protagonist}
-          />
-          <FieldChip
-            label="Conflict"
-            onChange={setConflict}
-            placeholder="must map a shifting city"
-            value={conflict}
-          />
-          <FieldChip
-            label="Stakes"
-            onChange={setStakes}
-            placeholder="before home erases her"
-            value={stakes}
-          />
+        <div className="mb-5 flex items-center gap-3">
+          <div className="rounded-xl bg-neutral-100/60 px-3 py-2 text-neutral-600 text-sm ring-1 ring-black/5 dark:bg-white/5 dark:text-neutral-400 dark:ring-white/10">
+            Protagonist
+          </div>
+          <Plus className="size-3.5 shrink-0 text-neutral-400" />
+          <div className="rounded-xl bg-neutral-100/60 px-3 py-2 text-neutral-600 text-sm ring-1 ring-black/5 dark:bg-white/5 dark:text-neutral-400 dark:ring-white/10">
+            Conflict
+          </div>
+          <Plus className="size-3.5 shrink-0 text-neutral-400" />
+          <div className="rounded-xl bg-neutral-100/60 px-3 py-2 text-neutral-600 text-sm ring-1 ring-black/5 dark:bg-white/5 dark:text-neutral-400 dark:ring-white/10">
+            Stakes
+          </div>
         </div>
         <div className="mb-3 flex items-center gap-3">
           <button
@@ -172,9 +224,6 @@ function Compose() {
             <Wand2 className="size-3.5" />
             {generate.isPending ? "Generating…" : "Generate logline"}
           </button>
-          {!hasSeed && (
-            <span className="text-neutral-500 text-xs">Fill any field above first.</span>
-          )}
           {genError && <span className="text-red-500 text-xs">{genError}</span>}
         </div>
         <textarea
@@ -188,41 +237,60 @@ function Compose() {
 
       <Step
         anchorId="step-audience"
-        index={4}
+        index={5}
         total={STEPS.length}
         onNext={() => goNext("audience")}
         canAdvance
         title="Who is this for?"
-        subtitle="Optional. Skip if you don't know yet."
+        subtitle="Pick any that apply. Skip if you're not sure yet."
       >
-        <input
-          className="w-full bg-transparent font-serif text-2xl outline-none placeholder:text-neutral-400"
-          onChange={(e) => setAudience(e.target.value)}
-          placeholder="Readers who loved Piranesi and The City & The City."
-          value={audience}
-        />
+        <div className="flex flex-wrap gap-2">
+          {AUDIENCE_OPTIONS.map((a) => (
+            <ToggleChip
+              key={a}
+              label={a}
+              active={audience.includes(a)}
+              onClick={() => setAudience((prev) => toggle(prev, a))}
+            />
+          ))}
+        </div>
       </Step>
 
       <Step
         anchorId="step-voice"
-        index={5}
+        index={6}
         total={STEPS.length}
         onNext={() => goNext("voice")}
         canAdvance
         title="Voice & tone"
-        subtitle="A few words is plenty. We'll match it later from the voice library."
+        subtitle="Pick any that fit. Browse the voice library at Post Pilot."
       >
-        <input
-          className="w-full bg-transparent font-serif text-2xl outline-none placeholder:text-neutral-400"
-          onChange={(e) => setVoice(e.target.value)}
-          placeholder="Spare. Lyrical. Quiet menace."
-          value={voice}
-        />
+        <div className="flex flex-wrap gap-2">
+          {VOICE_OPTIONS.map((v) => (
+            <ToggleChip
+              key={v}
+              label={v}
+              active={voice.includes(v)}
+              onClick={() => setVoice((prev) => toggle(prev, v))}
+            />
+          ))}
+        </div>
+        <p className="mt-4 text-neutral-500 text-sm">
+          Looking for more?{" "}
+          <a
+            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
+            href="https://postpilot.cc"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Browse voices on Post Pilot
+          </a>
+        </p>
       </Step>
 
       <Step
         anchorId="step-review"
-        index={6}
+        index={7}
         total={STEPS.length}
         onNext={() => create.mutate({ title: title.trim(), type })}
         canAdvance={canSubmit}
@@ -232,10 +300,11 @@ function Compose() {
       >
         <div className="space-y-3 rounded-2xl bg-white/70 p-5 ring-1 ring-black/5 dark:bg-neutral-900/70 dark:ring-white/5">
           <ReviewRow label="Title" value={title || "—"} />
+          {genre.length > 0 && <ReviewRow label="Genre" value={genre.join(" · ")} />}
           <ReviewRow label="Type" value={type} />
           <ReviewRow label="Logline" value={composed || "—"} />
-          {audience && <ReviewRow label="Audience" value={audience} />}
-          {voice && <ReviewRow label="Voice" value={voice} />}
+          {audience.length > 0 && <ReviewRow label="Audience" value={audience.join(" · ")} />}
+          {voice.length > 0 && <ReviewRow label="Voice" value={voice.join(" · ")} />}
         </div>
       </Step>
     </div>

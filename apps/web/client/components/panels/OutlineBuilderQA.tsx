@@ -4,9 +4,52 @@ import { type ChapterPlanInput, type CharacterArcInput, type Project, api } from
 import { ChoiceCard, FieldChip, Step } from "../studio/wizard";
 import { OUTLINE_FRAMEWORKS } from "./_shared";
 
-type StepKey = "framework" | "premise" | "characters" | "scene-plan" | "chapter-plan" | "review";
+type StepKey = "framework" | "premise" | "characters" | "chapter-plan" | "review";
 
 type ChapterPlanRow = ChapterPlanInput & { _key: string };
+
+const FICTION_ARCHETYPES = {
+  protagonist: ["Reluctant hero", "Anti-hero", "Chosen one", "The exile", "Trickster", "Everyman"],
+  antagonist: [
+    "The shadow",
+    "False mentor",
+    "The rival",
+    "The system",
+    "The monster",
+    "The obsessive",
+  ],
+  supporting: [
+    "Loyal ally",
+    "The mentor",
+    "Love interest",
+    "The foil",
+    "The herald",
+    "Comic relief",
+  ],
+};
+
+function ArchetypeChips({
+  options,
+  onSelect,
+}: {
+  options: string[];
+  onSelect: (v: string) => void;
+}) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          className="rounded-full border border-black/10 bg-white/60 px-2.5 py-1 text-neutral-600 text-xs transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:border-white/10 dark:bg-white/5 dark:text-neutral-400 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
+          key={o}
+          onClick={() => onSelect(o)}
+          type="button"
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function OutlineBuilderQA({ project }: { project: Project }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -56,7 +99,7 @@ export default function OutlineBuilderQA({ project }: { project: Project }) {
     }
   }
 
-  const total = 6;
+  const total = 5;
   const canSubmit = questionnaire.trim().length > 8 && framework.length > 0;
 
   return (
@@ -99,6 +142,12 @@ export default function OutlineBuilderQA({ project }: { project: Project }) {
         <textarea
           className="w-full resize-none bg-transparent font-serif text-xl leading-relaxed outline-none placeholder:text-neutral-400"
           onChange={(e) => setQuestionnaire(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (questionnaire.trim().length > 8) goTo("characters");
+            }
+          }}
           placeholder="The protagonist discovers..."
           rows={8}
           value={questionnaire}
@@ -109,69 +158,73 @@ export default function OutlineBuilderQA({ project }: { project: Project }) {
         anchorId="step-characters"
         canAdvance
         index={3}
-        onNext={() => goTo("scene-plan")}
+        onNext={() => goTo("chapter-plan")}
         subtitle={
           project.type === "fiction"
-            ? "Sketch a few arcs. Skip any you don't have yet."
+            ? "Pick an archetype or write your own. Skip any you don't have yet."
             : "Audience first, then the perspectives you'll teach from."
         }
         title={project.type === "fiction" ? "Who's in the story?" : "Who are you writing for?"}
         total={total}
       >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <FieldChip
-            label={project.type === "fiction" ? "Protagonist" : "Primary audience"}
-            onChange={setProtagonist}
-            placeholder={
-              project.type === "fiction" ? "A reluctant cartographer…" : "Senior PMs at SaaS cos…"
-            }
-            value={protagonist}
-          />
-          <FieldChip
-            label={project.type === "fiction" ? "Antagonist" : "Secondary audience"}
-            onChange={setAntagonist}
-            placeholder=""
-            value={antagonist}
-          />
-          <FieldChip
-            label={project.type === "fiction" ? "Supporting" : "Voice or perspective"}
-            onChange={setSupporting}
-            placeholder=""
-            value={supporting}
-          />
-        </div>
-      </Step>
-
-      <Step
-        anchorId="step-scene-plan"
-        canAdvance
-        index={4}
-        onNext={() => goTo("chapter-plan")}
-        subtitle="Default cast for each scene and a mini-structure to anchor pacing."
-        title="Scene plan"
-        total={total}
-      >
-        <div className="space-y-3">
-          <FieldChip
-            label="Default cast"
-            onChange={setDefaultCast}
-            placeholder="Mira, Hesperus, the City"
-            value={defaultCast}
-          />
-          <textarea
-            className="w-full resize-none bg-transparent font-serif text-base leading-relaxed outline-none placeholder:text-neutral-400"
-            onChange={(e) => setMiniStructure(e.target.value)}
-            placeholder="Setup → escalating turn → payoff"
-            rows={3}
-            value={miniStructure}
-          />
-        </div>
+        {project.type === "fiction" ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <ArchetypeChips options={FICTION_ARCHETYPES.protagonist} onSelect={setProtagonist} />
+              <FieldChip
+                label="Protagonist"
+                onChange={setProtagonist}
+                placeholder="A reluctant cartographer…"
+                value={protagonist}
+              />
+            </div>
+            <div>
+              <ArchetypeChips options={FICTION_ARCHETYPES.antagonist} onSelect={setAntagonist} />
+              <FieldChip
+                label="Antagonist"
+                onChange={setAntagonist}
+                placeholder="The shifting city itself…"
+                value={antagonist}
+              />
+            </div>
+            <div>
+              <ArchetypeChips options={FICTION_ARCHETYPES.supporting} onSelect={setSupporting} />
+              <FieldChip
+                label="Supporting"
+                onChange={setSupporting}
+                placeholder="A cartographer's guild…"
+                value={supporting}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <FieldChip
+              label="Primary audience"
+              onChange={setProtagonist}
+              placeholder="Senior PMs at SaaS cos…"
+              value={protagonist}
+            />
+            <FieldChip
+              label="Secondary audience"
+              onChange={setAntagonist}
+              placeholder=""
+              value={antagonist}
+            />
+            <FieldChip
+              label="Voice or perspective"
+              onChange={setSupporting}
+              placeholder=""
+              value={supporting}
+            />
+          </div>
+        )}
       </Step>
 
       <Step
         anchorId="step-chapter-plan"
         canAdvance
-        index={5}
+        index={4}
         onNext={() => goTo("review")}
         subtitle="Optional. Drop in a chapter or two — the rest can be generated."
         title="Chapter plan"
@@ -184,7 +237,7 @@ export default function OutlineBuilderQA({ project }: { project: Project }) {
         anchorId="step-review"
         canAdvance={canSubmit}
         ctaLabel={generate.isPending ? "Generating…" : "Generate outline"}
-        index={6}
+        index={5}
         onNext={() => generate.mutate()}
         subtitle="You can edit any answer above by scrolling back up."
         title="Review & generate"
@@ -255,11 +308,12 @@ function ChapterPlanEditor({
         </div>
       ))}
       <button
-        className="rounded-full bg-neutral-950 px-4 py-2 text-neutral-200 text-sm"
+        className="group flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm text-white shadow transition hover:scale-105 hover:bg-emerald-500 active:scale-95"
         onClick={add}
         type="button"
       >
-        + Add chapter
+        <span className="text-base leading-none transition group-hover:rotate-90">+</span>
+        Add chapter
       </button>
     </div>
   );

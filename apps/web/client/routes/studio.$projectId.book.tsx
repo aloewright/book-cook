@@ -28,7 +28,7 @@ function StudioBook() {
         current="book"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle="Book" />
+      <BreadcrumbPill title={title} />
       <TopRightPill />
       <main
         className={`px-6 pt-28 pb-20 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}

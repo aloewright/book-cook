@@ -31,7 +31,7 @@ function StudioOutline() {
         current="outline"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle="Outline" />
+      <BreadcrumbPill title={title} />
       <TopRightPill />
 
       <main className={`pt-24 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}>

@@ -94,6 +94,9 @@ export type Section = {
   kind: string;
   prompt: string;
   draft_md: string;
+  beginning_md: string;
+  middle_md: string;
+  end_md: string;
   status: "pending" | "generating" | "drafted" | "approved";
   created_at: number;
   updated_at: number;
@@ -437,10 +440,32 @@ export const api = {
         body: JSON.stringify(input ?? {}),
       },
     ),
+  createSection: (chapterId: string, input?: { kind?: string; prompt?: string }) =>
+    fetchJson<{ section: Section }>(`/api/v1/chapters/${chapterId}/sections`, {
+      method: "POST",
+      body: JSON.stringify(input ?? {}),
+    }),
+  reorderSections: (chapterId: string, ordinals: { id: string; ordinal: number }[]) =>
+    fetchJson<{ ok: true }>(`/api/v1/chapters/${chapterId}/sections/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ ordinals }),
+    }),
+  moveSectionToChapter: (fromChapterId: string, sectionId: string, targetChapterId: string) =>
+    fetchJson<{ section: Section }>(
+      `/api/v1/chapters/${fromChapterId}/sections/${sectionId}/move`,
+      { method: "POST", body: JSON.stringify({ target_chapter_id: targetChapterId }) },
+    ),
   updateSection: (
     chapterId: string,
     sectionId: string,
-    input: { status?: Section["status"]; draft_md?: string },
+    input: {
+      status?: Section["status"];
+      draft_md?: string;
+      prompt?: string;
+      beginning_md?: string;
+      middle_md?: string;
+      end_md?: string;
+    },
     options?: { signal?: AbortSignal },
   ) =>
     fetchJson<{ ok: true }>(`/api/v1/chapters/${chapterId}/sections/${sectionId}`, {
@@ -585,7 +610,9 @@ export const api = {
         `${res.status}: ${(body as { error?: { message?: string } }).error?.message ?? res.statusText}`,
       );
     }
-    return res.json() as Promise<{ user: { id: string; email: string; plan?: string } | null }>;
+    return res.json() as Promise<{
+      user: { id: string; name?: string; email: string; plan?: string } | null;
+    }>;
   },
 };
 

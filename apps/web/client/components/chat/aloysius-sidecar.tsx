@@ -3,9 +3,6 @@ import { useAgent } from "agents/react";
 import { Send, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
-import { Button } from "../ui/button";
-import { Card } from "../ui/card";
-import { Textarea } from "../ui/textarea";
 
 export function EditorialAssistantSidecar({ projectId }: { projectId: string }) {
   const agent = useAgent({ agent: "aloysius", name: projectId });
@@ -17,6 +14,7 @@ export function EditorialAssistantSidecar({ projectId }: { projectId: string }) 
   const smoothScrollReady = useRef(false);
 
   const isStreaming = status === "streaming" || status === "submitted";
+
   const messageScrollKey = useMemo(
     () =>
       messages
@@ -67,28 +65,12 @@ export function EditorialAssistantSidecar({ projectId }: { projectId: string }) 
   }
 
   return (
-    <aside className="relative z-20 flex h-full w-full min-h-0 flex-col overflow-hidden border-l bg-muted/30">
-      <header className="flex items-center justify-between border-b bg-background px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            EA
-          </span>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold">Editorial Assistant</div>
-            <div className="text-xs text-muted-foreground">Book Cook · always-on</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`h-2 w-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`} />
-          <span className="text-xs text-muted-foreground">{connected ? "Live" : "Offline"}</span>
-        </div>
-      </header>
-
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3">
+    <div className="flex h-full flex-col">
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
-          <div className="px-2 py-8 text-center text-sm text-muted-foreground">
-            Ask the Editorial Assistant for help shaping your book.
-          </div>
+          <p className="py-10 text-center font-serif text-neutral-500 text-sm leading-relaxed">
+            Ask anything about your book — craft, structure, character, voice.
+          </p>
         )}
 
         {messages.map((m) => {
@@ -101,49 +83,41 @@ export function EditorialAssistantSidecar({ projectId }: { projectId: string }) 
             return (
               <div
                 key={m.id}
-                className="ml-auto max-w-[85%] rounded-2xl bg-primary px-3 py-2 text-sm text-primary-foreground whitespace-pre-wrap"
+                className="ml-auto max-w-[85%] rounded-2xl bg-white/10 px-3 py-2 text-neutral-200 text-sm whitespace-pre-wrap"
               >
                 {text}
               </div>
             );
           }
           return (
-            <Card
+            <div
               key={m.id}
-              className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none"
+              className="max-w-[92%] font-serif text-neutral-300 text-sm leading-relaxed"
             >
-              <div className="mb-1 text-xs text-muted-foreground">Editorial Assistant</div>
-              <div className="chat-markdown prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-headings:my-2">
-                <Streamdown>{text}</Streamdown>
-              </div>
-            </Card>
+              <Streamdown>{text}</Streamdown>
+            </div>
           );
         })}
 
         {status === "submitted" && (
-          <Card className="max-w-[92%] border-border bg-card px-3 py-2 text-card-foreground shadow-none">
-            <div className="mb-1 text-xs text-muted-foreground">Editorial Assistant</div>
-            <div className="flex items-center gap-1 py-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
-            </div>
-          </Card>
+          <div className="flex items-center gap-1 py-1">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-500 [animation-delay:-0.3s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-500 [animation-delay:-0.15s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-neutral-500" />
+          </div>
         )}
       </div>
 
-      <div className="shrink-0 border-t bg-background p-2">
+      <div className="shrink-0 border-t border-white/5 p-3">
         <div className="relative">
-          <Textarea
+          <textarea
             ref={taRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              isStreaming ? "Editorial Assistant is replying…" : "Ask Editorial Assistant…"
-            }
+            placeholder={isStreaming ? "Replying…" : "Ask anything…"}
             disabled={isStreaming}
             rows={1}
-            className="resize-none pr-12"
+            className="w-full resize-none rounded-xl bg-white/5 px-3 py-2 pr-10 text-neutral-200 text-sm outline-none placeholder:text-neutral-500 transition focus:bg-white/8"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -156,31 +130,38 @@ export function EditorialAssistantSidecar({ projectId }: { projectId: string }) 
               ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
             }}
           />
-          <div className="absolute bottom-2 right-2">
+          <div className="absolute right-2 bottom-2">
             {isStreaming ? (
-              <Button
-                size="icon"
-                variant="secondary"
-                onClick={stop}
+              <button
                 aria-label="Stop"
-                className="h-8 w-8"
+                className="grid size-6 place-items-center rounded-lg bg-white/10 hover:bg-white/20"
+                onClick={stop}
+                type="button"
               >
-                <Square className="h-3.5 w-3.5" />
-              </Button>
+                <Square className="size-3" />
+              </button>
             ) : (
-              <Button
-                size="icon"
-                onClick={submit}
-                disabled={!input.trim()}
+              <button
                 aria-label="Send"
-                className="h-8 w-8"
+                className="grid size-6 place-items-center rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40"
+                disabled={!input.trim()}
+                onClick={submit}
+                type="button"
               >
-                <Send className="h-3.5 w-3.5" />
-              </Button>
+                <Send className="size-3" />
+              </button>
             )}
           </div>
         </div>
+        <div className="mt-2 flex items-center gap-1.5">
+          <span
+            className={`size-1.5 rounded-full ${connected ? "bg-emerald-500" : "bg-neutral-600"}`}
+          />
+          <span className="text-[10px] text-neutral-500">
+            {connected ? "Connected" : "Connecting…"}
+          </span>
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutTemplate, Plus, Settings2, Sparkles, Type, Wand2, X } from "lucide-react";
+import { GripVertical, Plus, Sparkles, Type, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { EditorialAssistantSidecar } from "../components/chat/aloysius-sidecar";
+import { AssistantPanel } from "../components/studio/AssistantPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
@@ -39,21 +39,10 @@ function StudioProject() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
   const [shareLabel, setShareLabel] = useState<string | undefined>();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const exportMutation = useMutation({
     mutationFn: () => api.startBookExport(projectId, { formats: ["epub", "pdf"] }),
     onSuccess: () => navigate({ to: "/studio/$projectId/book", params: { projectId } }),
-  });
-  const readAloudMutation = useMutation({
-    mutationFn: () => api.readAloud(projectId),
-    onSuccess: (blob) => {
-      const url = URL.createObjectURL(blob);
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        void audioRef.current.play();
-      }
-    },
   });
 
   function handleShare() {
@@ -121,10 +110,6 @@ function StudioProject() {
   }
 
   const title = project.data?.title ?? "Untitled book";
-  const subtitle =
-    chapters.length === 0
-      ? "No chapters yet"
-      : `${chapters.length} chapter${chapters.length === 1 ? "" : "s"}`;
   const insertDisabled = !lastChapter || !lastSection || globalInsert.isPending;
   const remixDisabled = !firstChapter || globalRemix.isPending;
 
@@ -137,22 +122,18 @@ function StudioProject() {
         current="canvas"
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
-      <BreadcrumbPill title={title} subtitle={subtitle} />
+      <BreadcrumbPill title={title} />
       <TopRightPill
         exportPending={exportMutation.isPending}
         onExport={() => exportMutation.mutate()}
-        onReadAloud={() => readAloudMutation.mutate()}
         onShare={handleShare}
-        readAloudPending={readAloudMutation.isPending}
         shareLabel={shareLabel}
       />
-      {/** biome-ignore lint/a11y/useMediaCaption: TTS playback has no caption track */}
-      <audio className="hidden" ref={audioRef} />
 
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${
           drawerOpen ? "lg:pl-[19rem]" : ""
-        }`}
+        } ${assistantOpen ? "lg:pr-[19rem]" : ""}`}
       >
         {logline && (
           <div className="w-full max-w-3xl">
@@ -169,113 +150,232 @@ function StudioProject() {
 
         {!outline.isLoading && chapters.length === 0 && <EmptyOutline projectId={projectId} />}
 
+        {chapters.length > 0 && (
+          <div className="w-full max-w-3xl">
+            <span className="rounded-full bg-neutral-950/90 px-3 py-1 text-[11px] text-neutral-400 ring-1 ring-white/5 backdrop-blur">
+              {chapters.length} chapter{chapters.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
         {chapters.map((chapter) => (
           <ChapterCanvas key={chapter.id} chapter={chapter} projectId={projectId} />
         ))}
       </main>
 
       <BottomToolbar
-        projectId={projectId}
+        assistantOpen={assistantOpen}
+        insertDisabled={insertDisabled}
         onInsert={() => globalInsert.mutate()}
         onRemix={() => globalRemix.mutate()}
-        insertDisabled={insertDisabled}
+        onToggleAssistant={() => setAssistantOpen((v) => !v)}
+        projectId={projectId}
         remixDisabled={remixDisabled}
         remixMessage={remixMessage}
       />
-      <AiOrb active={assistantOpen} onClick={() => setAssistantOpen((v) => !v)} />
+      <AssistantPanel
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        projectId={projectId}
+      />
+    </div>
+  );
+}
 
-      {assistantOpen && (
-        <div
-          className="fixed right-4 bottom-20 z-40 flex w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/10 backdrop-blur"
-          style={{ height: "min(640px, 70vh)" }}
-        >
-          <div className="flex items-center justify-between border-white/10 border-b px-4 py-2.5 text-sm">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4" />
-              Book Cook assistant
-            </div>
-            <button
-              aria-label="Close assistant"
-              className="rounded p-1 hover:bg-white/10"
-              onClick={() => setAssistantOpen(false)}
-              type="button"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-          <div className="min-h-0 flex-1">
-            <EditorialAssistantSidecar projectId={projectId} />
-          </div>
+function ChapterCanvas({
+  chapter,
+  projectId,
+}: {
+  chapter: Chapter;
+  projectId: string;
+}) {
+  const queryClient = useQueryClient();
+  const sectionsQ = useQuery({
+    queryKey: queryKeys.chapterSections(chapter.id),
+    queryFn: () => api.getChapterSections(chapter.id),
+  });
+  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null);
+  const [chapterDropOver, setChapterDropOver] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: () => api.createSection(chapter.id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) }),
+  });
+
+  const items = sectionsQ.data?.items ?? [];
+
+  function handleDragOver(e: React.DragEvent, sectionId: string) {
+    e.preventDefault();
+    setDragOverSectionId(sectionId);
+    setChapterDropOver(false);
+  }
+
+  function handleChapterDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setChapterDropOver(true);
+    setDragOverSectionId(null);
+  }
+
+  async function handleDrop(e: React.DragEvent, targetSectionId: string | null) {
+    e.preventDefault();
+    setDragOverSectionId(null);
+    setChapterDropOver(false);
+    const raw = e.dataTransfer.getData("text/plain");
+    if (!raw) return;
+    const { sectionId, fromChapterId } = JSON.parse(raw) as {
+      sectionId: string;
+      fromChapterId: string;
+    };
+
+    if (fromChapterId !== chapter.id) {
+      await api.moveSectionToChapter(fromChapterId, sectionId, chapter.id);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.chapterSections(fromChapterId),
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
+      return;
+    }
+
+    // Same chapter — reorder
+    const current = [...items];
+    const fromIdx = current.findIndex((s) => s.id === sectionId);
+    const toIdx = targetSectionId
+      ? current.findIndex((s) => s.id === targetSectionId)
+      : current.length - 1;
+    if (fromIdx === -1 || fromIdx === toIdx) return;
+    const reordered = [...current];
+    const [moved] = reordered.splice(fromIdx, 1);
+    if (!moved) return;
+    reordered.splice(toIdx, 0, moved);
+    const ordinals = reordered.map((s, i) => ({ id: s.id, ordinal: i + 1 }));
+    await api.reorderSections(chapter.id, ordinals);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
+  }
+
+  return (
+    <div
+      className={`flex w-full max-w-3xl flex-col gap-2 rounded-2xl p-4 transition ${
+        chapterDropOver ? "ring-2 ring-emerald-500/40" : ""
+      }`}
+      onDragOver={handleChapterDragOver}
+      onDragLeave={() => setChapterDropOver(false)}
+      onDrop={(e) => handleDrop(e, null)}
+    >
+      <ChapterHeading chapter={chapter} />
+      {sectionsQ.isLoading ? (
+        <p className="py-2 font-serif text-neutral-500 text-sm">Loading…</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {items.map((section, i) => (
+            <SceneSummaryCard
+              key={section.id}
+              section={section}
+              chapterId={chapter.id}
+              projectId={projectId}
+              index={i + 1}
+              isDragOver={dragOverSectionId === section.id}
+              onDragOver={(e) => handleDragOver(e, section.id)}
+              onDrop={(e) => handleDrop(e, section.id)}
+            />
+          ))}
+          <button
+            className="mt-1 flex items-center gap-1.5 self-start rounded-full bg-neutral-950/80 px-3 py-1.5 text-[11px] text-neutral-400 ring-1 ring-white/5 backdrop-blur transition hover:text-neutral-200 disabled:opacity-50"
+            disabled={createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+            type="button"
+          >
+            <Plus className="size-3" />
+            Add scene
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function ChapterCanvas({ chapter, projectId }: { chapter: Chapter; projectId: string }) {
-  const queryClient = useQueryClient();
-  const sections = useQuery({
-    queryKey: queryKeys.chapterSections(chapter.id),
-    queryFn: () => api.getChapterSections(chapter.id),
-  });
+function SceneSummaryCard({
+  section,
+  chapterId,
+  projectId,
+  index,
+  isDragOver,
+  onDragOver,
+  onDrop,
+}: {
+  section: Section;
+  chapterId: string;
+  projectId: string;
+  index: number;
+  isDragOver: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [summary, setSummary] = useState(section.prompt);
+  const timerRef = useRef<number | undefined>(undefined);
 
-  const draftMutation = useMutation({
-    mutationFn: (input: { sectionId: string; instruction?: string }) =>
-      api.draftSection(chapter.id, input.sectionId, { instruction: input.instruction }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
-    },
-  });
+  useEffect(() => {
+    if (!editing) setSummary(section.prompt);
+  }, [section.prompt, editing]);
 
-  const blankMutation = useMutation({
-    mutationFn: (sectionId: string) =>
-      api.updateSection(chapter.id, sectionId, { draft_md: "", status: "drafted" }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.chapterSections(chapter.id) });
-    },
-  });
-
-  const items = sections.data?.items ?? [];
-  const pendingSectionId = draftMutation.isPending ? draftMutation.variables?.sectionId : undefined;
-  const insertBusy = draftMutation.isPending || blankMutation.isPending;
+  function scheduleSave(next: string) {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      api.updateSection(chapterId, section.id, { prompt: next });
+    }, 800);
+  }
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-6">
-      <ChapterHeading chapter={chapter} />
-      {sections.isLoading ? (
-        <p className="rounded-2xl bg-white/60 px-5 py-4 font-serif text-neutral-600 text-sm dark:bg-neutral-900/60 dark:text-neutral-400">
-          Loading scenes…
-        </p>
-      ) : items.length === 0 ? (
-        <p className="rounded-2xl bg-white/60 px-5 py-4 font-serif text-neutral-600 text-sm dark:bg-neutral-900/60 dark:text-neutral-400">
-          No sections in this chapter yet.
-        </p>
+    <div
+      className={`group flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2.5 ring-1 transition dark:bg-neutral-900/70 ${
+        isDragOver ? "ring-emerald-500/50" : "ring-black/5 dark:ring-white/5"
+      }`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(
+          "text/plain",
+          JSON.stringify({ sectionId: section.id, fromChapterId: chapterId }),
+        );
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={() => {}}
+    >
+      <GripVertical className="size-3.5 shrink-0 cursor-grab text-neutral-400 active:cursor-grabbing" />
+      <span className="w-14 shrink-0 text-[10px] text-neutral-400 uppercase tracking-wide">
+        Scene {index}
+      </span>
+      {editing ? (
+        <input
+          className="min-w-0 flex-1 bg-transparent font-serif text-sm outline-none placeholder:text-neutral-400"
+          ref={(el) => el?.focus()}
+          onBlur={() => setEditing(false)}
+          onChange={(e) => {
+            setSummary(e.target.value);
+            scheduleSave(e.target.value);
+          }}
+          onKeyDown={(e) => e.key === "Enter" && setEditing(false)}
+          placeholder="Scene summary…"
+          value={summary}
+        />
       ) : (
-        items.map((section, i) => (
-          <div className="group" key={section.id}>
-            <SceneCard
-              section={section}
-              chapterId={chapter.id}
-              projectId={projectId}
-              index={i + 1}
-              isGenerating={pendingSectionId === section.id}
-            />
-            <InsertBar
-              disabled={insertBusy}
-              onAction={(kind) => {
-                if (kind === "blank") {
-                  blankMutation.mutate(section.id);
-                  return;
-                }
-                draftMutation.mutate({
-                  sectionId: section.id,
-                  instruction: kind === "template" ? TEMPLATE_INSTRUCTION : undefined,
-                });
-              }}
-            />
-          </div>
-        ))
+        <button
+          className="min-w-0 flex-1 truncate text-left font-serif text-sm text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-neutral-100"
+          onClick={() => setEditing(true)}
+          type="button"
+        >
+          {summary || <span className="text-neutral-400 italic">No summary yet</span>}
+        </button>
       )}
+      <Link
+        className="shrink-0 rounded-md px-2 py-1 text-[10px] text-neutral-400 opacity-0 ring-1 ring-transparent transition hover:bg-white/10 hover:text-neutral-200 hover:ring-white/10 group-hover:opacity-100"
+        params={{ projectId, chapterId }}
+        to="/studio/$projectId/chapters/$chapterId"
+      >
+        Open →
+      </Link>
     </div>
   );
 }
@@ -319,264 +419,91 @@ function EmptyOutline({ projectId }: { projectId: string }) {
   );
 }
 
-type SaveState = "idle" | "saving" | "saved" | "error";
-
-function SceneCard({
-  section,
-  chapterId,
-  projectId,
-  index,
-  isGenerating,
-}: {
-  section: Section;
-  chapterId: string;
-  projectId: string;
-  index: number;
-  isGenerating: boolean;
-}) {
-  const [draft, setDraft] = useState(section.draft_md);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
-  const lastSavedRef = useRef(section.draft_md);
-  const draftRef = useRef(section.draft_md);
-  const timerRef = useRef<number | undefined>(undefined);
-  const inFlightRef = useRef<AbortController | null>(null);
-  const saveGenRef = useRef(0);
-  const sectionId = section.id;
-
-  // Re-sync from the server only when the user has no unsaved local edits and
-  // we're not mid-save — otherwise a background refetch would overwrite typing.
-  useEffect(() => {
-    if (draftRef.current !== lastSavedRef.current) return;
-    if (saveState === "saving") return;
-    if (section.draft_md === lastSavedRef.current) return;
-    draftRef.current = section.draft_md;
-    lastSavedRef.current = section.draft_md;
-    setDraft(section.draft_md);
-    setSaveState("idle");
-  }, [section.draft_md, saveState]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-      inFlightRef.current?.abort();
-    };
-  }, []);
-
-  function scheduleSave(next: string) {
-    draftRef.current = next;
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    if (next === lastSavedRef.current) {
-      setSaveState("idle");
-      return;
-    }
-    setSaveState("saving");
-    timerRef.current = window.setTimeout(async () => {
-      // Cancel any in-flight save so its response can't clobber a newer one.
-      inFlightRef.current?.abort();
-      const controller = new AbortController();
-      inFlightRef.current = controller;
-      const gen = ++saveGenRef.current;
-      try {
-        await api.updateSection(
-          chapterId,
-          sectionId,
-          { draft_md: next },
-          { signal: controller.signal },
-        );
-        if (gen !== saveGenRef.current) return;
-        lastSavedRef.current = next;
-        setSaveState("saved");
-      } catch {
-        if (controller.signal.aborted) return;
-        if (gen !== saveGenRef.current) return;
-        setSaveState("error");
-      }
-    }, 800);
-  }
-
-  const heading = sectionTitle(section);
-
-  return (
-    <article className="relative rounded-2xl bg-white/80 p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_8px_24px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 dark:bg-neutral-900/80 dark:ring-white/5">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-neutral-500 text-xs">Scene {index}</span>
-          <Link
-            className="text-neutral-500 text-xs hover:text-neutral-900 hover:underline dark:hover:text-neutral-100"
-            params={{ projectId, chapterId }}
-            to="/studio/$projectId/chapters/$chapterId"
-          >
-            Open chapter →
-          </Link>
-        </div>
-        <SaveIndicator saveState={saveState} status={section.status} />
-      </div>
-      <h2 className="mb-4 font-serif text-2xl tracking-tight">{heading}</h2>
-      {isGenerating ? (
-        <SceneSkeleton />
-      ) : (
-        <textarea
-          aria-label={`Scene ${index} body`}
-          className="w-full resize-y bg-transparent font-serif text-[17px] text-neutral-700 leading-relaxed outline-none placeholder:text-neutral-400 placeholder:italic focus:bg-neutral-50/60 focus:rounded-lg focus:px-2 focus:-mx-2 dark:text-neutral-300 dark:focus:bg-neutral-800/40"
-          onChange={(e) => {
-            setDraft(e.target.value);
-            scheduleSave(e.target.value);
-          }}
-          placeholder="Empty scene…"
-          rows={Math.min(20, Math.max(4, draft.split("\n").length + 1))}
-          value={draft}
-        />
-      )}
-    </article>
-  );
-}
-
-function SaveIndicator({ saveState, status }: { saveState: SaveState; status: Section["status"] }) {
-  if (saveState === "saving") {
-    return <span className="text-[11px] text-neutral-500">Saving…</span>;
-  }
-  if (saveState === "saved") {
-    return <span className="text-[11px] text-emerald-600 dark:text-emerald-400">Saved</span>;
-  }
-  if (saveState === "error") {
-    return <span className="text-[11px] text-red-600 dark:text-red-400">Save failed</span>;
-  }
-  return (
-    <span className="rounded-full bg-neutral-200/60 px-2 py-0.5 font-medium text-[11px] text-neutral-700 dark:bg-white/5 dark:text-neutral-300">
-      {status}
-    </span>
-  );
-}
-
-function SceneSkeleton() {
-  return (
-    <div className="animate-pulse space-y-2 py-1">
-      <div className="h-4 w-11/12 rounded bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-4 w-10/12 rounded bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-4 w-9/12 rounded bg-neutral-200 dark:bg-neutral-700" />
-      <div className="h-4 w-8/12 rounded bg-neutral-200 dark:bg-neutral-700" />
-    </div>
-  );
-}
-
-function sectionTitle(section: Section) {
-  if (section.prompt.trim()) {
-    const firstLine = section.prompt.split(/\n|\.|;/)[0]?.trim();
-    if (firstLine) return truncate(firstLine, 80);
-  }
-  return `${humanKind(section.kind)} ${section.ordinal}`;
-}
-
-function humanKind(kind: string) {
-  if (!kind) return "Scene";
-  const cleaned = kind.replace(/[-_]+/g, " ").trim();
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-function truncate(value: string, max: number) {
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
-}
-
-function InsertBar({
-  disabled,
-  onAction,
-}: {
-  disabled: boolean;
-  onAction: (kind: "blank" | "template" | "ai") => void;
-}) {
-  return (
-    <div className="my-3 flex justify-center opacity-0 transition group-hover:opacity-100 hover:opacity-100 has-[button:focus-visible]:opacity-100">
-      <div className="flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 text-sm shadow-lg ring-1 ring-white/5 backdrop-blur">
-        <InsertButton
-          disabled={disabled}
-          icon={<Plus className="size-3.5" />}
-          onClick={() => onAction("blank")}
-        >
-          Blank scene
-        </InsertButton>
-        <InsertButton
-          disabled={disabled}
-          icon={<LayoutTemplate className="size-3.5" />}
-          onClick={() => onAction("template")}
-        >
-          Start with template
-        </InsertButton>
-        <InsertButton
-          disabled={disabled}
-          icon={<Wand2 className="size-3.5" />}
-          onClick={() => onAction("ai")}
-        >
-          Generate with AI
-        </InsertButton>
-      </div>
-    </div>
-  );
-}
-
-function InsertButton({
-  icon,
-  onClick,
-  disabled,
-  children,
-}: {
-  icon: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
-
 function BottomToolbar({
   projectId,
   onInsert,
   onRemix,
+  onToggleAssistant,
   insertDisabled,
   remixDisabled,
   remixMessage,
+  assistantOpen,
 }: {
   projectId: string;
   onInsert: () => void;
   onRemix: () => void;
+  onToggleAssistant: () => void;
   insertDisabled: boolean;
   remixDisabled: boolean;
   remixMessage: string | null;
+  assistantOpen: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className="-translate-x-1/2 fixed bottom-6 left-1/2 z-20 flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur">
-      <PillButton icon={<Plus className="size-4" />} onClick={onInsert} disabled={insertDisabled}>
-        Insert
-      </PillButton>
-      <PillButton icon={<Wand2 className="size-4" />} onClick={onRemix} disabled={remixDisabled}>
-        Remix
-      </PillButton>
-      <Link
-        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
-        params={{ projectId }}
-        to="/studio/$projectId/voice"
+    <div
+      className="-translate-x-1/2 fixed bottom-6 left-1/2 z-20"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+    >
+      <div
+        className={`relative flex h-10 items-center overflow-hidden rounded-full bg-neutral-950/90 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-[max-width] duration-500 ${
+          expanded ? "max-w-[440px]" : "max-w-10"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" }}
       >
-        <Type className="size-4" /> Voice
-      </Link>
-      {remixMessage ? (
-        <span className="px-3 py-1.5 text-[11px] text-emerald-300">{remixMessage}</span>
-      ) : null}
-      <button
-        aria-label="More"
-        className="grid size-9 place-items-center rounded-full hover:bg-white/10"
-        type="button"
-      >
-        <Settings2 className="size-4" />
-      </button>
+        {/* Collapsed: centered icon */}
+        <div
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+            expanded ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          <Sparkles className="size-4" />
+        </div>
+
+        {/* Expanded: full toolbar */}
+        <div
+          className={`flex shrink-0 items-center gap-1 px-1 whitespace-nowrap transition-opacity duration-300 ${
+            expanded ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+          style={{ transitionDelay: expanded ? "150ms" : "0ms" }}
+        >
+          <PillButton
+            disabled={insertDisabled}
+            icon={<Plus className="size-4" />}
+            onClick={onInsert}
+          >
+            Insert
+          </PillButton>
+          <PillButton
+            disabled={remixDisabled}
+            icon={<Wand2 className="size-4" />}
+            onClick={onRemix}
+          >
+            Remix
+          </PillButton>
+          <Link
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
+            params={{ projectId }}
+            to="/studio/$projectId/voice"
+          >
+            <Type className="size-4" /> Voice
+          </Link>
+          {remixMessage ? (
+            <span className="px-3 py-1.5 text-[11px] text-emerald-300">{remixMessage}</span>
+          ) : null}
+          <button
+            aria-label={assistantOpen ? "Close assistant" : "Open assistant"}
+            className={`grid size-8 place-items-center rounded-full transition hover:bg-white/10 ${
+              assistantOpen ? "bg-emerald-600/20 text-emerald-400" : ""
+            }`}
+            onClick={onToggleAssistant}
+            type="button"
+          >
+            <Sparkles className="size-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -601,22 +528,6 @@ function PillButton({
     >
       {icon}
       {children}
-    </button>
-  );
-}
-
-function AiOrb({ active, onClick }: { active: boolean; onClick: () => void }) {
-  return (
-    <button
-      aria-expanded={active}
-      aria-label={active ? "Close AI assistant" : "Open AI assistant"}
-      className={`fixed right-5 bottom-5 z-50 grid size-11 place-items-center rounded-2xl text-white shadow-xl ring-1 transition hover:scale-105 ${
-        active ? "bg-emerald-600 ring-emerald-300/40" : "bg-neutral-950 ring-white/10"
-      }`}
-      onClick={onClick}
-      type="button"
-    >
-      {active ? <X className="size-5" /> : <Sparkles className="size-5" />}
     </button>
   );
 }

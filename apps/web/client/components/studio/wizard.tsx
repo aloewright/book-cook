@@ -171,11 +171,21 @@ export function FieldChip({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
+  const id = `field-${label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}`;
   return (
-    <label className="flex flex-col gap-1 rounded-2xl bg-neutral-100/60 px-3 py-2 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10">
+    <label
+      className="flex flex-col gap-1 rounded-2xl bg-neutral-100/60 px-3 py-2 ring-1 ring-black/5 dark:bg-white/5 dark:ring-white/10"
+      htmlFor={id}
+    >
       <span className="text-[11px] text-neutral-500 uppercase tracking-wide">{label}</span>
       <input
+        autoComplete="off"
         className="bg-transparent text-sm outline-none placeholder:text-neutral-400"
+        id={id}
+        name={id}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         value={value}

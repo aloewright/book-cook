@@ -5,7 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
 
 export function EditorialAssistantSidecar({ projectId }: { projectId: string }) {
-  const agent = useAgent({ agent: "aloysius", name: projectId });
+  // Memoize the options so the agent identity is stable across renders.
+  // Without this, every render hands useAgent a fresh object literal and the
+  // hook can decide to reconnect, which shows up as an apparent double load.
+  const agentOpts = useMemo(() => ({ agent: "aloysius", name: projectId }), [projectId]);
+  const agent = useAgent(agentOpts);
   const { messages, sendMessage, status, stop } = useAgentChat({ agent });
   const [input, setInput] = useState("");
   const [connected, setConnected] = useState(false);

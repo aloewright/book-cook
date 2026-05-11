@@ -291,8 +291,10 @@ function SceneSummaryCard({
       </span>
       {editing ? (
         <input
+          autoComplete="off"
           className="min-w-0 flex-1 bg-transparent font-serif text-sm outline-none placeholder:text-neutral-400"
-          ref={(el) => el?.focus()}
+          id={`scene-summary-${section.id}`}
+          name={`scene-summary-${section.id}`}
           onBlur={() => setEditing(false)}
           onChange={(e) => {
             setSummary(e.target.value);
@@ -300,6 +302,7 @@ function SceneSummaryCard({
           }}
           onKeyDown={(e) => e.key === "Enter" && setEditing(false)}
           placeholder="Scene summary…"
+          ref={(el) => el?.focus()}
           value={summary}
         />
       ) : (
@@ -378,7 +381,10 @@ function ChapterHeading({ chapter, projectId }: { chapter: Chapter; projectId: s
       <div className="mt-1 flex items-center gap-2">
         <input
           aria-label="Chapter title"
+          autoComplete="off"
           className="min-w-0 flex-1 bg-transparent font-serif text-2xl tracking-tight outline-none placeholder:text-neutral-400 focus:-mx-1 focus:rounded focus:bg-black/5 focus:px-1 dark:focus:bg-white/5"
+          id={`chapter-${chapter.ordinal}-title`}
+          name={`chapter-${chapter.ordinal}-title`}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="Untitled chapter"
           value={title}

@@ -138,7 +138,10 @@ function Compose() {
         subtitle="You can change it any time."
       >
         <input
+          autoComplete="off"
           className="w-full bg-transparent font-serif text-3xl outline-none placeholder:text-neutral-400"
+          id="compose-title"
+          name="compose-title"
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Untitled book"
           ref={(el) => el?.focus()}
@@ -228,6 +231,8 @@ function Compose() {
         </div>
         <textarea
           className="w-full resize-none bg-transparent font-serif text-2xl leading-relaxed outline-none placeholder:text-neutral-400"
+          id="compose-logline"
+          name="compose-logline"
           onChange={(e) => setLogline(e.target.value)}
           placeholder="A reluctant cartographer must map a city that rearranges itself each night, before home erases her too."
           rows={4}

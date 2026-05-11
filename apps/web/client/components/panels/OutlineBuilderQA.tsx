@@ -141,6 +141,8 @@ export default function OutlineBuilderQA({ project }: { project: Project }) {
       >
         <textarea
           className="w-full resize-none bg-transparent font-serif text-xl leading-relaxed outline-none placeholder:text-neutral-400"
+          id="outline-premise"
+          name="outline-premise"
           onChange={(e) => setQuestionnaire(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

@@ -6,6 +6,7 @@ import { RenderWorkerContainer } from "./containers/render-worker";
 import type { Env } from "./env";
 import { errorHandler } from "./middleware/error";
 import { accountRoute } from "./routes/account";
+import { adminRoute } from "./routes/admin";
 import { chaptersRoute } from "./routes/chapters";
 import { composeRoute } from "./routes/compose";
 import { healthRoute } from "./routes/health";
@@ -99,6 +100,7 @@ app.route("/api/v1/voices", voicesRoute);
 app.route("/api/v1/account", accountRoute);
 app.route("/api/v1/scout", scoutRoute);
 app.route("/api/v1/compose", composeRoute);
+app.route("/api/v1/admin", adminRoute);
 
 app.all("/agents/*", async (c) => {
   const res = await routeAgentRequest(c.req.raw, c.env);

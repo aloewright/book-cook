@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
-import { BookOpen, LayoutDashboard, Settings } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings, Shield } from "lucide-react";
 import { api, queryKeys } from "../lib/api";
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   { to: "/studio", label: "Studio", icon: LayoutDashboard },
   { to: "/account", label: "Settings", icon: Settings },
 ] as const;
@@ -19,6 +19,22 @@ function RootLayout() {
     retry: false,
     staleTime: 30_000,
   });
+  const admin = useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: api.adminMe,
+    retry: false,
+    staleTime: 30_000,
+    enabled: !!session.data?.user,
+  });
+
+  const navItems = admin.data?.is_admin
+    ? ([
+        { to: "/studio", label: "Studio", icon: LayoutDashboard },
+        { to: "/admin", label: "Admin", icon: Shield },
+        { to: "/account", label: "Settings", icon: Settings },
+      ] as const)
+    : BASE_NAV;
+
   const homeLink = session.data?.user ? (
     <Link
       to="/studio"
@@ -40,12 +56,12 @@ function RootLayout() {
   );
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
       <header className="shrink-0">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
           {homeLink}
           <nav className="flex gap-1">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}

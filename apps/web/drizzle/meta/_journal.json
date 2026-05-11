@@ -15,6 +15,13 @@
       "when": 1777572072220,
       "tag": "0001_chubby_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778461788756,
+      "tag": "0002_true_prima",
+      "breakpoints": true
     }
   ]
 }

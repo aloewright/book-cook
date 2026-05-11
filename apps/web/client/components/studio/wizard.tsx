@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export function Step({
   index,
@@ -25,10 +25,42 @@ export function Step({
   active?: boolean;
   ctaLabel?: string;
 }) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [inView, setInView] = useState(!!active);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const e = entries[0];
+        if (e) setInView(e.intersectionRatio >= 0.5);
+      },
+      { threshold: [0, 0.5, 1] },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || !canAdvance) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Enter" || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.tagName === "TEXTAREA" || t.isContentEditable) return;
+      e.preventDefault();
+      onNext();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [inView, canAdvance, onNext]);
+
   return (
     <section
       className="flex h-[calc(100vh-3.5rem)] snap-start flex-col items-center justify-center px-6"
       id={anchorId}
+      ref={sectionRef}
     >
       <div className="w-full max-w-2xl">
         <div className="mb-4 flex items-center gap-2 text-neutral-500 text-sm">

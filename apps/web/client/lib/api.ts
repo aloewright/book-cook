@@ -504,6 +504,63 @@ export const api = {
       body: JSON.stringify(input),
     }),
   me: () => fetchJson<{ user: { id: string; email: string; plan: string } }>("/api/v1/account/me"),
+  adminMe: () => fetchJson<{ is_admin: boolean }>("/api/v1/admin/me"),
+  adminStats: () =>
+    fetchJson<{
+      users: { total: number; new_7d: number };
+      projects: { active: number; deleted: number };
+      chapters: { total: number; drafted: number };
+      render_jobs: { completed: number; failed: number; running: number };
+      compute_spend_cents: number;
+      subscription_revenue_cents: number;
+      subscription_provider: string;
+    }>("/api/v1/admin/stats"),
+  adminUsers: (input: { q?: string; limit?: number; offset?: number }) => {
+    const sp = new URLSearchParams();
+    if (input.q) sp.set("q", input.q);
+    if (input.limit) sp.set("limit", String(input.limit));
+    if (input.offset) sp.set("offset", String(input.offset));
+    const qs = sp.toString();
+    return fetchJson<{
+      total: number;
+      items: {
+        id: string;
+        email: string;
+        name: string;
+        plan: "free" | "pro";
+        phase: string;
+        is_admin: boolean;
+        daily_budget_cents: number;
+        createdAt: number;
+        updatedAt: number;
+        project_count: number;
+      }[];
+    }>(`/api/v1/admin/users${qs ? `?${qs}` : ""}`);
+  },
+  adminActivity: () =>
+    fetchJson<{
+      recent_users: { id: string; email: string; createdAt: number }[];
+      recent_projects: {
+        id: string;
+        title: string;
+        type: "fiction" | "nonfiction";
+        created_at: number;
+        user_id: string;
+      }[];
+      recent_render_jobs: {
+        id: string;
+        kind: string;
+        status: string;
+        cost_cents: number;
+        started_at: number;
+        project_id: string;
+      }[];
+    }>("/api/v1/admin/activity"),
+  adminToggleAdmin: (userId: string, isAdmin: boolean) =>
+    fetchJson<{ ok: true }>(`/api/v1/admin/users/${userId}/admin`, {
+      method: "POST",
+      body: JSON.stringify({ is_admin: isAdmin }),
+    }),
   readAloud: async (id: string): Promise<Blob> => {
     const res = await fetch(`/api/v1/projects/${id}/tts`, {
       method: "POST",

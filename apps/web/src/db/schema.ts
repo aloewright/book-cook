@@ -28,6 +28,7 @@ export const users = sqliteTable("users", {
   elevenlabs_key_ciphertext: blob("elevenlabs_key_ciphertext"),
   elevenlabs_key_iv: blob("elevenlabs_key_iv"),
   stripe_customer_id: text("stripe_customer_id"),
+  is_admin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   createdAt: ts("createdAt").default(sql`(unixepoch())`),
   updatedAt: ts("updatedAt").default(sql`(unixepoch())`),
 });

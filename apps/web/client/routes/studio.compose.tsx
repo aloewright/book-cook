@@ -102,9 +102,6 @@ function Compose() {
         <input
           className="w-full bg-transparent font-serif text-3xl outline-none placeholder:text-neutral-400"
           onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && title.trim()) goNext("title");
-          }}
           placeholder="Untitled book"
           ref={(el) => el?.focus()}
           value={title}

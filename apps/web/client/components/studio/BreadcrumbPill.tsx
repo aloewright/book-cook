@@ -1,3 +1,4 @@
+import { RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const TIMER_SECONDS = 25 * 60;
@@ -24,14 +25,20 @@ export function BreadcrumbPill({ title }: { title: string }) {
     return () => clearInterval(id);
   }, []);
 
-  const timerColor =
-    remaining <= 60 ? "text-red-400" : remaining <= 5 * 60 ? "text-amber-400" : "text-neutral-400";
-
   return (
     <div className="-translate-x-1/2 fixed top-4 left-1/2 z-20 flex items-center gap-2 rounded-full bg-neutral-950/90 px-4 py-2 text-neutral-200 text-sm shadow-lg ring-1 ring-white/5 backdrop-blur">
       <span className="font-medium">{title}</span>
       <span className="text-neutral-600">·</span>
-      <span className={`font-mono tabular-nums ${timerColor}`}>{fmt(remaining)}</span>
+      <span className="font-mono text-red-400 tabular-nums">{fmt(remaining)}</span>
+      <button
+        aria-label="Restart timer"
+        className="grid size-5 place-items-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-neutral-100"
+        onClick={() => setRemaining(TIMER_SECONDS)}
+        title="Restart timer"
+        type="button"
+      >
+        <RotateCcw className="size-3" />
+      </button>
       <span className="text-neutral-600">·</span>
       <span className="text-neutral-400 tabular-nums">{time}</span>
     </div>

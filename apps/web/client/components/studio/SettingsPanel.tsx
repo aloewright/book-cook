@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Monitor, Moon, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "../../lib/auth-client";
@@ -27,6 +28,7 @@ export function SettingsPanel({
   const [mode, setMode] = useState<ThemePreference>("system");
   const [color, setColor] = useState<ColorTheme>("book-cook");
   const [signingOut, setSigningOut] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return;
@@ -48,7 +50,8 @@ export function SettingsPanel({
     setSigningOut(true);
     try {
       await authClient.signOut();
-      window.location.assign("/sign-in");
+      onClose();
+      navigate({ to: "/sign-in", replace: true });
     } finally {
       setSigningOut(false);
     }

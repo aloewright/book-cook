@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
 import { type Section, api, queryKeys } from "../lib/api";
+import { useDrawerLayout } from "../lib/drawer-layout";
 
 export const Route = createFileRoute("/studio/$projectId/chapters/$chapterId")({
   component: StudioChapter,
@@ -77,7 +78,7 @@ function useAutosave(
 function StudioChapter() {
   const { projectId, chapterId } = Route.useParams();
   const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawer = useDrawerLayout();
   const [unlocked, setUnlocked] = useState(false);
   const [flatOrder, setFlatOrder] = useState<FlatBlock[]>([]);
   const [flatDragIdx, setFlatDragIdx] = useState<number | null>(null);
@@ -151,16 +152,11 @@ function StudioChapter() {
 
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-[#1a1a1a] text-neutral-100">
-      <SideDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        projectId={projectId}
-        current="canvas"
-      />
+      <SideDrawer projectId={projectId} current="canvas" />
+      <TopLeftPill />
 
       {/* Top bar */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-[#1a1a1a]/80 px-5 py-3 backdrop-blur">
-        <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-[#1a1a1a]/80 py-3 pl-20 pr-5 backdrop-blur">
         <div className="pointer-events-auto flex min-w-0 flex-1 items-center gap-2">
           <Link
             className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
@@ -202,8 +198,10 @@ function StudioChapter() {
       {/* Main scrollable column */}
       <main
         ref={mainRef}
-        className="flex-1 overflow-y-auto px-8 pb-28 pt-20"
-        style={{ paddingLeft: drawerOpen ? "20rem" : undefined }}
+        className="flex-1 overflow-y-auto px-8 pb-28 pt-20 transition-[padding] duration-200"
+        style={{
+          paddingLeft: drawer.open ? (drawer.collapsed ? "5rem" : "20rem") : undefined,
+        }}
       >
         <div className="mx-auto max-w-2xl">
           {chapter.data && (

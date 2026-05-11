@@ -8,6 +8,8 @@ import { type AuthVariables, requireUser } from "../middleware/auth";
 import { draftSection, reviseInlineText } from "../skills/writer";
 
 const patchChapterSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  summary: z.string().max(2_000).optional(),
   draft_json: z.unknown().optional(),
   draft_md: z.string().max(2_000_000).optional(),
   status: z.enum(["pending", "drafting", "drafted", "approved"]).optional(),

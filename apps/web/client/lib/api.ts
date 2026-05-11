@@ -490,7 +490,13 @@ export const api = {
     }),
   updateChapter: (
     id: string,
-    input: { draft_json?: unknown; draft_md?: string; status?: Chapter["status"] },
+    input: {
+      title?: string;
+      summary?: string;
+      draft_json?: unknown;
+      draft_md?: string;
+      status?: Chapter["status"];
+    },
   ) =>
     fetchJson<{ ok: true }>(`/api/v1/chapters/${id}`, {
       method: "PATCH",

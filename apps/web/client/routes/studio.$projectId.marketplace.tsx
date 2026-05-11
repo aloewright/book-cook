@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import ConceptScoutPanel from "../components/panels/ConceptScoutPanel";
 import LaunchPanel from "../components/panels/LaunchPanel";
 import PublishPanel from "../components/panels/PublishPanel";
@@ -8,6 +7,7 @@ import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
 import { api, queryKeys } from "../lib/api";
+import { useDrawerLayout } from "../lib/drawer-layout";
 
 type MarketplaceTab = "scout" | "launch" | "publish";
 
@@ -40,23 +40,20 @@ function StudioMarketplace() {
     queryKey: queryKeys.project(projectId),
     queryFn: () => api.getProject(projectId),
   });
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const drawer = useDrawerLayout();
   const title = project.data?.title ?? "Untitled book";
   const tabLabel = TABS.find((t) => t.id === active)?.label ?? "Scout";
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
-      <SideDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        projectId={projectId}
-        current="marketplace"
-      />
-      <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
+      <SideDrawer projectId={projectId} current="marketplace" />
+      <TopLeftPill />
       <BreadcrumbPill title={title} />
 
       <main
-        className={`px-6 pt-28 pb-20 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}
+        className={`px-6 pt-28 pb-20 transition-[padding] ${
+          drawer.open ? (drawer.collapsed ? "lg:pl-[5rem]" : "lg:pl-[19rem]") : ""
+        }`}
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-neutral-950/90 p-1 text-neutral-200 text-sm shadow-lg ring-1 ring-white/5 backdrop-blur">

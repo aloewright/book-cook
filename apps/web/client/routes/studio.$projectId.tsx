@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { GripVertical, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
+import { GripVertical, Plus, Settings2, Sparkles, SquarePen, Type, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "../components/studio/AssistantPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
 import { type Chapter, type Section, api, queryKeys } from "../lib/api";
+import { useDrawerLayout } from "../lib/drawer-layout";
 
 type CanvasSearch = { logline?: string };
 
@@ -33,9 +34,9 @@ function StudioProject() {
     queryKey: queryKeys.projectOutline(projectId),
     queryFn: () => api.getProjectOutline(projectId),
   });
-  const [drawerOpen, setDrawerOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
+  const drawer = useDrawerLayout();
 
   const chapters = outline.data?.chapters ?? [];
   const lastChapter = chapters[chapters.length - 1];
@@ -99,18 +100,13 @@ function StudioProject() {
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
-      <SideDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        projectId={projectId}
-        current="canvas"
-      />
-      <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
+      <SideDrawer projectId={projectId} current="canvas" />
+      <TopLeftPill />
       <BreadcrumbPill title={title} />
 
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${
-          drawerOpen ? "lg:pl-[19rem]" : ""
+          drawer.open ? (drawer.collapsed ? "lg:pl-[5rem]" : "lg:pl-[19rem]") : ""
         } ${assistantOpen ? "lg:pr-[19rem]" : ""}`}
       >
         {logline && (
@@ -240,7 +236,7 @@ function ChapterCanvas({
       onDragLeave={() => setChapterDropOver(false)}
       onDrop={(e) => handleDrop(e, null)}
     >
-      <ChapterHeading chapter={chapter} />
+      <ChapterHeading chapter={chapter} projectId={projectId} />
       {sectionsQ.isLoading ? (
         <p className="py-2 font-serif text-neutral-500 text-sm">Loading…</p>
       ) : (
@@ -358,13 +354,77 @@ function SceneSummaryCard({
   );
 }
 
-function ChapterHeading({ chapter }: { chapter: Chapter }) {
+function ChapterHeading({ chapter, projectId }: { chapter: Chapter; projectId: string }) {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState(chapter.title);
+  const [saving, setSaving] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const lastSaved = useRef(chapter.title);
+  const timer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (title === lastSaved.current && chapter.title !== lastSaved.current) {
+      lastSaved.current = chapter.title;
+      setTitle(chapter.title);
+    }
+  }, [chapter.title, title]);
+
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  function handleChange(next: string) {
+    setTitle(next);
+    if (timer.current) window.clearTimeout(timer.current);
+    if (next.trim() === lastSaved.current) {
+      setSaving("idle");
+      return;
+    }
+    setSaving("saving");
+    timer.current = window.setTimeout(async () => {
+      try {
+        await api.updateChapter(chapter.id, { title: next.trim() });
+        lastSaved.current = next.trim();
+        setSaving("saved");
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectOutline(projectId) });
+      } catch {
+        setSaving("error");
+      }
+    }, 800);
+  }
+
   return (
     <div className="px-1">
-      <div className="text-[11px] text-neutral-500 uppercase tracking-wide">
-        Chapter {chapter.ordinal}
+      <div className="flex items-center gap-2">
+        <div className="text-[11px] text-neutral-500 uppercase tracking-wide">
+          Chapter {chapter.ordinal}
+        </div>
+        {saving === "saving" && <span className="text-[11px] text-neutral-500">Saving…</span>}
+        {saving === "saved" && (
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400">Saved</span>
+        )}
+        {saving === "error" && <span className="text-[11px] text-red-500">Save failed</span>}
       </div>
-      <h2 className="mt-1 font-serif text-2xl tracking-tight">{chapter.title}</h2>
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          aria-label="Chapter title"
+          className="min-w-0 flex-1 bg-transparent font-serif text-2xl tracking-tight outline-none placeholder:text-neutral-400 focus:bg-black/5 focus:px-1 focus:-mx-1 focus:rounded dark:focus:bg-white/5"
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Untitled chapter"
+          value={title}
+        />
+        <Link
+          aria-label="Open chapter editor"
+          className="grid size-8 shrink-0 place-items-center rounded-md text-neutral-500 hover:bg-black/5 hover:text-neutral-900 dark:hover:bg-white/10 dark:hover:text-neutral-100"
+          params={{ projectId, chapterId: chapter.id }}
+          title="Open chapter editor"
+          to="/studio/$projectId/chapters/$chapterId"
+        >
+          <SquarePen className="size-4" />
+        </Link>
+      </div>
       {chapter.summary && (
         <p className="mt-1 font-serif text-[14px] text-neutral-600 leading-relaxed dark:text-neutral-400">
           {chapter.summary}

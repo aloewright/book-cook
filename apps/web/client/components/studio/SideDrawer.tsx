@@ -2,15 +2,20 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BookMarked,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
   Download,
   Home,
+  ListTree,
+  Mic2,
   PanelLeftClose,
+  PenLine,
   Plus,
   Settings,
   Share2,
+  Store,
   Type,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -114,26 +119,31 @@ export function SideDrawer({
           <IconSectionLink
             to={`/studio/${projectId}`}
             label="Canvas"
+            icon={<PenLine className={iconCls} />}
             active={active === "canvas"}
           />
           <IconSectionLink
             to={`/studio/${projectId}/outline`}
             label="Outline"
+            icon={<ListTree className={iconCls} />}
             active={active === "outline"}
           />
           <IconSectionLink
             to={`/studio/${projectId}/marketplace`}
-            label="Market"
+            label="Marketplace"
+            icon={<Store className={iconCls} />}
             active={active === "marketplace"}
           />
           <IconSectionLink
             to={`/studio/${projectId}/voice`}
             label="Voice"
+            icon={<Mic2 className={iconCls} />}
             active={active === "voice"}
           />
           <IconSectionLink
             to={`/studio/${projectId}/book`}
             label="Book"
+            icon={<BookOpen className={iconCls} />}
             active={active === "book"}
           />
 
@@ -480,15 +490,17 @@ function IconNavLink({
 function IconSectionLink({
   to,
   label,
+  icon,
   active,
 }: {
   to: string;
   label: string;
+  icon: React.ReactNode;
   active: boolean;
 }) {
   return (
     <Link
-      className={`rounded-lg px-2 py-1 text-center text-[10px] transition ${
+      className={`grid size-8 place-items-center rounded-md transition ${
         active
           ? "bg-white/10 text-neutral-100"
           : "text-neutral-500 hover:bg-white/5 hover:text-neutral-300"
@@ -496,7 +508,7 @@ function IconSectionLink({
       title={label}
       to={to}
     >
-      {label.slice(0, 3)}
+      {icon}
     </Link>
   );
 }

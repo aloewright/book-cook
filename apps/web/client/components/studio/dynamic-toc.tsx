@@ -216,11 +216,12 @@ export function DynamicIslandTOC({ children, selector = "[data-toc]", scrollCont
             </div>
             <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
               <div className="flex flex-col gap-0.5">
-                {headings.map((h) => {
+                {headings.map((h, idx) => {
                   const isActive = activeId === h.id;
                   const isHovered = hoveredId === h.id;
                   const indent = Math.max(0, h.level - minLevel);
                   const paddingLeft = indent * 14 + 12;
+                  const isTopLevel = h.level === minLevel;
                   return (
                     <button
                       className={cn(
@@ -253,6 +254,16 @@ export function DynamicIslandTOC({ children, selector = "[data-toc]", scrollCont
                       style={{ paddingLeft: `${paddingLeft}px` }}
                       type="button"
                     >
+                      {isTopLevel && (
+                        <span
+                          className={cn(
+                            "mr-2 inline-flex w-5 shrink-0 justify-center font-mono text-[10px] tabular-nums",
+                            isActive ? "text-foreground/70" : "text-foreground/35",
+                          )}
+                        >
+                          {idx + 1}
+                        </span>
+                      )}
                       <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap transition-transform duration-300 group-hover:translate-x-1">
                         {h.text}
                       </span>

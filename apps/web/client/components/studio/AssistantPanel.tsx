@@ -7,7 +7,7 @@ export function AssistantPanel({ projectId }: { projectId: string }) {
 
   if (!chatOpen) {
     return (
-      <div className="-translate-y-1/2 fixed top-1/2 right-4 z-30">
+      <div className="fixed right-4 bottom-4 z-[60]">
         <button
           aria-label="Open chat"
           className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur hover:bg-neutral-900"
@@ -24,7 +24,7 @@ export function AssistantPanel({ projectId }: { projectId: string }) {
   return (
     <aside
       aria-label="Editorial assistant chat"
-      className="-translate-y-1/2 fixed top-1/2 right-4 z-30 flex max-h-[calc(100vh-2rem)] w-72 flex-col overflow-hidden rounded-3xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-all duration-300"
+      className="fixed right-4 bottom-4 z-[60] flex h-[min(560px,calc(100vh-2rem))] w-80 flex-col overflow-hidden rounded-3xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-all duration-300"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-2">

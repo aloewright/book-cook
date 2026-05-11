@@ -3,7 +3,6 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, GripVertical, Plus, RefreshCw, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import OutlineBuilderQA from "../components/panels/OutlineBuilderQA";
-import { AssistantPanel } from "../components/studio/AssistantPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
@@ -123,8 +122,6 @@ function StudioOutline() {
           </>
         )}
       </main>
-
-      <AssistantPanel projectId={projectId} />
     </div>
   );
 }

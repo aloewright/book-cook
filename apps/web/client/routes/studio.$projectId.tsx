@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { AssistantPanel } from "../components/studio/AssistantPanel";
 
 type CanvasSearch = { logline?: string };
 
@@ -16,5 +17,18 @@ export const Route = createFileRoute("/studio/$projectId")({
       });
     }
   },
-  component: () => <Outlet />,
+  component: StudioProjectShell,
 });
+
+function StudioProjectShell() {
+  const { projectId } = Route.useParams();
+  return (
+    <>
+      <Outlet />
+      {/* Mounted at the parent so the assistant's WebSocket survives child
+          route changes (outline → marketplace → voice → book) and doesn't
+          force a full page reload on reconnect. */}
+      <AssistantPanel projectId={projectId} />
+    </>
+  );
+}

@@ -152,7 +152,7 @@ function StudioChapter() {
 
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-[#1a1a1a] text-neutral-100">
-      <SideDrawer projectId={projectId} current="canvas" />
+      <SideDrawer projectId={projectId} current="outline" />
       <TopLeftPill />
 
       {/* Top bar */}
@@ -161,10 +161,10 @@ function StudioChapter() {
           <Link
             className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
             params={{ projectId }}
-            to="/studio/$projectId"
+            to="/studio/$projectId/outline"
           >
             <ChevronLeft className="size-3" />
-            Canvas
+            Outline
           </Link>
           <span className="text-neutral-600">/</span>
           <span className="truncate text-sm font-medium text-neutral-200">{title}</span>

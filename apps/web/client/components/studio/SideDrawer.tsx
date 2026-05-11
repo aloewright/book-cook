@@ -11,7 +11,6 @@ import {
   ListTree,
   Mic2,
   PanelLeftClose,
-  PenLine,
   Plus,
   Settings,
   Share2,
@@ -22,7 +21,7 @@ import { api, queryKeys } from "../../lib/api";
 import { useDrawerLayout } from "../../lib/drawer-layout";
 import { SettingsPanel } from "./SettingsPanel";
 
-export type StudioSection = "canvas" | "outline" | "marketplace" | "voice" | "book";
+export type StudioSection = "outline" | "marketplace" | "voice" | "book";
 
 export function SideDrawer({
   projectId,
@@ -108,12 +107,6 @@ export function SideDrawer({
 
           <div className="my-1 h-px w-6 bg-white/10" />
 
-          <IconSectionLink
-            to={`/studio/${projectId}`}
-            label="Canvas"
-            icon={<PenLine className={iconCls} />}
-            active={active === "canvas"}
-          />
           <IconSectionLink
             to={`/studio/${projectId}/outline`}
             label="Outline"
@@ -229,14 +222,6 @@ export function SideDrawer({
           This book
         </div>
         <div className="mt-1 flex flex-col gap-0.5">
-          <SectionLink
-            to="/studio/$projectId"
-            params={{ projectId }}
-            icon={<PenLine className={iconCls} />}
-            active={active === "canvas"}
-          >
-            Canvas
-          </SectionLink>
           <SectionLink
             to="/studio/$projectId/outline"
             params={{ projectId }}
@@ -410,7 +395,9 @@ function sectionFromPathname(pathname: string, projectId: string): StudioSection
     return "marketplace";
   if (pathname === `${base}/voice` || pathname.startsWith(`${base}/voice/`)) return "voice";
   if (pathname === `${base}/book` || pathname.startsWith(`${base}/book/`)) return "book";
-  return "canvas";
+  // Chapter editor (/studio/$id/chapters/$chId) and the bare /studio/$id (which
+  // redirects to /outline) both fall back to the outline section.
+  return "outline";
 }
 
 function DrawerLink({

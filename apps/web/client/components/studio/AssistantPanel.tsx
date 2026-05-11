@@ -1,31 +1,41 @@
-import { PanelRightClose, Sparkles } from "lucide-react";
+import { MessageCircle, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useDrawerLayout } from "../../lib/drawer-layout";
 import { EditorialAssistantSidecar } from "../chat/aloysius-sidecar";
 
-export function AssistantPanel({
-  open,
-  onClose,
-  projectId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  projectId: string;
-}) {
+export function AssistantPanel({ projectId }: { projectId: string }) {
+  const { chatOpen, setChatOpen } = useDrawerLayout();
+
+  if (!chatOpen) {
+    return (
+      <div className="-translate-y-1/2 fixed top-1/2 right-4 z-30">
+        <button
+          aria-label="Open chat"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur hover:bg-neutral-900"
+          onClick={() => setChatOpen(true)}
+          title="Open chat"
+          type="button"
+        >
+          <MessageCircle className="size-5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <aside
-      aria-hidden={!open}
-      className={`fixed top-4 right-4 bottom-4 z-30 flex w-72 flex-col rounded-3xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-transform ${
-        open ? "translate-x-0" : "translate-x-[110%]"
-      }`}
+      aria-label="Editorial assistant chat"
+      className="-translate-y-1/2 fixed top-1/2 right-4 z-30 flex max-h-[calc(100vh-2rem)] w-72 flex-col overflow-hidden rounded-3xl bg-neutral-950/95 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-all duration-300"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/5 px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4" />
-          <span className="font-medium text-sm">Editorial Assistant</span>
+          <MessageCircle className="size-4" />
+          <span className="font-medium text-sm">Chat</span>
         </div>
         <button
-          aria-label="Close assistant"
+          aria-label="Minimize chat"
           className="rounded-md p-1 hover:bg-white/10"
-          onClick={onClose}
+          onClick={() => setChatOpen(false)}
+          title="Minimize"
           type="button"
         >
           <PanelRightClose className="size-4" />

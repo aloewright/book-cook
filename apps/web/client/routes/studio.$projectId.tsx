@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { GripVertical, Plus, Settings2, Sparkles, SquarePen, Type, Wand2 } from "lucide-react";
+import { GripVertical, Plus, Sparkles, SquarePen, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "../components/studio/AssistantPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
@@ -18,9 +18,6 @@ export const Route = createFileRoute("/studio/$projectId")({
   }),
 });
 
-const TEMPLATE_INSTRUCTION =
-  "Use a classic three-beat scene structure: a clear setup, an escalating turn, and a payoff that lands the chapter's promise.";
-
 function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
@@ -34,69 +31,15 @@ function StudioProject() {
     queryKey: queryKeys.projectOutline(projectId),
     queryFn: () => api.getProjectOutline(projectId),
   });
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [remixMessage, setRemixMessage] = useState<string | null>(null);
   const drawer = useDrawerLayout();
 
   const chapters = outline.data?.chapters ?? [];
-  const lastChapter = chapters[chapters.length - 1];
-  const firstChapter = chapters[0];
-
-  const lastChapterSections = useQuery({
-    queryKey: queryKeys.chapterSections(lastChapter?.id ?? ""),
-    queryFn: () => {
-      if (!lastChapter) throw new Error("No chapters yet.");
-      return api.getChapterSections(lastChapter.id);
-    },
-    enabled: !!lastChapter,
-  });
-  const lastSection = lastChapterSections.data?.items.at(-1);
-
-  const globalInsert = useMutation({
-    mutationFn: async () => {
-      if (!lastChapter) throw new Error("No chapters yet.");
-      if (!lastSection) throw new Error("No sections in last chapter.");
-      return api.draftSection(lastChapter.id, lastSection.id, {
-        instruction: TEMPLATE_INSTRUCTION,
-      });
-    },
-    onSuccess: async () => {
-      if (!lastChapter) return;
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.chapterSections(lastChapter.id),
-      });
-      setRemixMessage("Drafted.");
-    },
-    onError: (err: Error) => setRemixMessage(err.message),
-  });
-
-  const globalRemix = useMutation({
-    mutationFn: async () => {
-      const sel = window.getSelection()?.toString().trim() ?? "";
-      if (!sel) throw new Error("Select text first.");
-      if (!firstChapter) throw new Error("No chapters yet.");
-      return api.reviseChapterSelection(firstChapter.id, {
-        action: "rewrite",
-        text: sel,
-      });
-    },
-    onSuccess: () => setRemixMessage("Remix saved."),
-    onError: (err: Error) => setRemixMessage(err.message),
-  });
-
-  useEffect(() => {
-    if (!remixMessage) return;
-    const id = window.setTimeout(() => setRemixMessage(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [remixMessage]);
 
   if (location.pathname !== `/studio/${projectId}`) {
     return <Outlet />;
   }
 
   const title = project.data?.title ?? "Untitled book";
-  const insertDisabled = !lastChapter || !lastSection || globalInsert.isPending;
-  const remixDisabled = !firstChapter || globalRemix.isPending;
 
   return (
     <div className="relative min-h-screen bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
@@ -107,7 +50,7 @@ function StudioProject() {
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${
           drawer.open ? (drawer.collapsed ? "lg:pl-[5rem]" : "lg:pl-[19rem]") : ""
-        } ${assistantOpen ? "lg:pr-[19rem]" : ""}`}
+        } ${drawer.chatOpen ? "lg:pr-[19rem]" : "lg:pr-[5rem]"}`}
       >
         {logline && (
           <div className="w-full max-w-3xl">
@@ -137,21 +80,7 @@ function StudioProject() {
         ))}
       </main>
 
-      <BottomToolbar
-        assistantOpen={assistantOpen}
-        insertDisabled={insertDisabled}
-        onInsert={() => globalInsert.mutate()}
-        onRemix={() => globalRemix.mutate()}
-        onToggleAssistant={() => setAssistantOpen((v) => !v)}
-        projectId={projectId}
-        remixDisabled={remixDisabled}
-        remixMessage={remixMessage}
-      />
-      <AssistantPanel
-        open={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        projectId={projectId}
-      />
+      <AssistantPanel projectId={projectId} />
     </div>
   );
 }
@@ -454,118 +383,5 @@ function EmptyOutline({ projectId }: { projectId: string }) {
         Generate outline
       </Link>
     </div>
-  );
-}
-
-function BottomToolbar({
-  projectId,
-  onInsert,
-  onRemix,
-  onToggleAssistant,
-  insertDisabled,
-  remixDisabled,
-  remixMessage,
-  assistantOpen,
-}: {
-  projectId: string;
-  onInsert: () => void;
-  onRemix: () => void;
-  onToggleAssistant: () => void;
-  insertDisabled: boolean;
-  remixDisabled: boolean;
-  remixMessage: string | null;
-  assistantOpen: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div
-      className="-translate-x-1/2 fixed bottom-6 left-1/2 z-20"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
-      <div
-        className={`relative flex h-10 items-center overflow-hidden rounded-full bg-neutral-950/90 text-neutral-200 shadow-2xl ring-1 ring-white/5 backdrop-blur transition-[max-width] duration-500 ${
-          expanded ? "max-w-[440px]" : "max-w-10"
-        }`}
-        style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-      >
-        {/* Collapsed: centered icon */}
-        <div
-          className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
-            expanded ? "opacity-0" : "opacity-100"
-          }`}
-        >
-          <Settings2 className="size-4" />
-        </div>
-
-        {/* Expanded: full toolbar */}
-        <div
-          className={`flex shrink-0 items-center gap-1 px-1 whitespace-nowrap transition-opacity duration-300 ${
-            expanded ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-          style={{ transitionDelay: expanded ? "150ms" : "0ms" }}
-        >
-          <PillButton
-            disabled={insertDisabled}
-            icon={<Plus className="size-4" />}
-            onClick={onInsert}
-          >
-            Insert
-          </PillButton>
-          <PillButton
-            disabled={remixDisabled}
-            icon={<Wand2 className="size-4" />}
-            onClick={onRemix}
-          >
-            Remix
-          </PillButton>
-          <Link
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10"
-            params={{ projectId }}
-            to="/studio/$projectId/voice"
-          >
-            <Type className="size-4" /> Voice
-          </Link>
-          {remixMessage ? (
-            <span className="px-3 py-1.5 text-[11px] text-emerald-300">{remixMessage}</span>
-          ) : null}
-          <button
-            aria-label={assistantOpen ? "Close assistant" : "Open assistant"}
-            className={`grid size-8 place-items-center rounded-full transition hover:bg-white/10 ${
-              assistantOpen ? "bg-emerald-600/20 text-emerald-400" : ""
-            }`}
-            onClick={onToggleAssistant}
-            type="button"
-          >
-            <Sparkles className="size-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PillButton({
-  icon,
-  children,
-  onClick,
-  disabled,
-}: {
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      {icon}
-      {children}
-    </button>
   );
 }

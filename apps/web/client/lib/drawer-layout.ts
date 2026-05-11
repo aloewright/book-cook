@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 const KEY = "book-cook-drawer-layout";
-type DrawerLayout = { open: boolean; collapsed: boolean };
-const DEFAULT: DrawerLayout = { open: true, collapsed: false };
+type DrawerLayout = { open: boolean; collapsed: boolean; chatOpen: boolean };
+const DEFAULT: DrawerLayout = { open: true, collapsed: false, chatOpen: false };
 
 let state: DrawerLayout = DEFAULT;
 const listeners = new Set<() => void>();
@@ -31,8 +31,10 @@ export function setDrawerLayout(patch: Partial<DrawerLayout>) {
 export function useDrawerLayout(): DrawerLayout & {
   setOpen: (open: boolean) => void;
   setCollapsed: (collapsed: boolean) => void;
+  setChatOpen: (chatOpen: boolean) => void;
   toggleOpen: () => void;
   toggleCollapsed: () => void;
+  toggleChatOpen: () => void;
 } {
   const [, force] = useState(0);
   useEffect(() => {
@@ -46,7 +48,9 @@ export function useDrawerLayout(): DrawerLayout & {
     ...state,
     setOpen: (open) => setDrawerLayout({ open }),
     setCollapsed: (collapsed) => setDrawerLayout({ collapsed }),
+    setChatOpen: (chatOpen) => setDrawerLayout({ chatOpen }),
     toggleOpen: () => setDrawerLayout({ open: !state.open }),
     toggleCollapsed: () => setDrawerLayout({ collapsed: !state.collapsed }),
+    toggleChatOpen: () => setDrawerLayout({ chatOpen: !state.chatOpen }),
   };
 }

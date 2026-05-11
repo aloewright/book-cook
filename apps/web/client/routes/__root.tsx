@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
-import { BookOpen, Compass, LayoutDashboard, Settings } from "lucide-react";
+import { BookOpen, LayoutDashboard, Settings } from "lucide-react";
 import { api, queryKeys } from "../lib/api";
 
 const NAV_ITEMS = [
   { to: "/studio", label: "Studio", icon: LayoutDashboard },
-  { to: "/scout", label: "Scout", icon: Compass },
   { to: "/account", label: "Settings", icon: Settings },
 ] as const;
 
@@ -42,7 +41,7 @@ function RootLayout() {
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-background text-foreground">
-      <header className="shrink-0 border-b bg-background">
+      <header className="shrink-0">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
           {homeLink}
           <nav className="flex gap-1">

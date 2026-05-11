@@ -5,7 +5,6 @@ import OutlineBuilderQA from "../components/panels/OutlineBuilderQA";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
-import { TopRightPill } from "../components/studio/TopRightPill";
 import { api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/studio/$projectId/outline")({
@@ -32,7 +31,6 @@ function StudioOutline() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} />
-      <TopRightPill />
 
       <main className={`pt-24 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}>
         {project.isLoading || !project.data ? (

@@ -61,7 +61,7 @@ function RootLayout() {
 
   if (isCanvas) {
     return (
-      <div className="fixed inset-0 overflow-hidden bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
+      <div className="fixed inset-0 overflow-y-auto bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
         <Outlet />
       </div>
     );

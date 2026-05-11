@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { GripVertical, Plus, Sparkles, Type, Wand2 } from "lucide-react";
+import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { GripVertical, Plus, Settings2, Sparkles, Type, Wand2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AssistantPanel } from "../components/studio/AssistantPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
-import { TopRightPill } from "../components/studio/TopRightPill";
 import { type Chapter, type Section, api, queryKeys } from "../lib/api";
 
 type CanvasSearch = { logline?: string };
@@ -25,7 +24,6 @@ function StudioProject() {
   const { projectId } = Route.useParams();
   const { logline } = Route.useSearch();
   const location = useLocation();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const project = useQuery({
     queryKey: queryKeys.project(projectId),
@@ -38,20 +36,6 @@ function StudioProject() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [remixMessage, setRemixMessage] = useState<string | null>(null);
-  const [shareLabel, setShareLabel] = useState<string | undefined>();
-
-  const exportMutation = useMutation({
-    mutationFn: () => api.startBookExport(projectId, { formats: ["epub", "pdf"] }),
-    onSuccess: () => navigate({ to: "/studio/$projectId/book", params: { projectId } }),
-  });
-
-  function handleShare() {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).catch(() => {});
-    }
-    setShareLabel("Copied!");
-    window.setTimeout(() => setShareLabel(undefined), 2000);
-  }
 
   const chapters = outline.data?.chapters ?? [];
   const lastChapter = chapters[chapters.length - 1];
@@ -123,12 +107,6 @@ function StudioProject() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} />
-      <TopRightPill
-        exportPending={exportMutation.isPending}
-        onExport={() => exportMutation.mutate()}
-        onShare={handleShare}
-        shareLabel={shareLabel}
-      />
 
       <main
         className={`flex flex-col items-center gap-6 px-6 pt-28 pb-40 transition-[padding] ${
@@ -458,7 +436,7 @@ function BottomToolbar({
             expanded ? "opacity-0" : "opacity-100"
           }`}
         >
-          <Sparkles className="size-4" />
+          <Settings2 className="size-4" />
         </div>
 
         {/* Expanded: full toolbar */}

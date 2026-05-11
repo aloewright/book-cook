@@ -7,7 +7,6 @@ import PublishPanel from "../components/panels/PublishPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
-import { TopRightPill } from "../components/studio/TopRightPill";
 import { api, queryKeys } from "../lib/api";
 
 type MarketplaceTab = "scout" | "launch" | "publish";
@@ -55,7 +54,6 @@ function StudioMarketplace() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} />
-      <TopRightPill />
 
       <main
         className={`px-6 pt-28 pb-20 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}

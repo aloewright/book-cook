@@ -5,7 +5,6 @@ import FullBookPanel from "../components/panels/FullBookPanel";
 import { BreadcrumbPill } from "../components/studio/BreadcrumbPill";
 import { SideDrawer } from "../components/studio/SideDrawer";
 import { TopLeftPill } from "../components/studio/TopLeftPill";
-import { TopRightPill } from "../components/studio/TopRightPill";
 import { api, queryKeys } from "../lib/api";
 
 export const Route = createFileRoute("/studio/$projectId/book")({ component: StudioBook });
@@ -29,7 +28,6 @@ function StudioBook() {
       />
       <TopLeftPill drawerOpen={drawerOpen} onToggleDrawer={() => setDrawerOpen((v) => !v)} />
       <BreadcrumbPill title={title} />
-      <TopRightPill />
       <main
         className={`px-6 pt-28 pb-20 transition-[padding] ${drawerOpen ? "lg:pl-[19rem]" : ""}`}
       >

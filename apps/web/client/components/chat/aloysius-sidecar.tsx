@@ -1,16 +1,75 @@
 import { useAgentChat } from "@cloudflare/ai-chat/react";
+import { useQuery } from "@tanstack/react-query";
 import { useAgent } from "agents/react";
+import type { UIMessage } from "ai";
 import { Send, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
+import { api, queryKeys } from "../../lib/api";
+
+type ChatHistoryItem = { role: "user" | "assistant"; text: string };
 
 export function EditorialAssistantSidecar({ projectId }: { projectId: string }) {
-  // Memoize the options so the agent identity is stable across renders.
-  // Without this, every render hands useAgent a fresh object literal and the
-  // hook can decide to reconnect, which shows up as an apparent double load.
+  // Pre-load the chat history through our own endpoint via TanStack Query so
+  // we (a) get caching/dedup and (b) can hand the messages to useAgentChat as
+  // its initial state. We also tell useAgentChat to skip the SDK's own
+  // /get-messages fetch (`getInitialMessages: null`) — otherwise we'd see two
+  // GETs to /agents/aloysius/{id}/get-messages on every mount, which is the
+  // "double load" symptom we hit before.
+  const history = useQuery({
+    queryKey: queryKeys.projectChat(projectId),
+    queryFn: () => api.getProjectChat(projectId),
+    // Keep history fresh across tab focus so a reply that arrived in another
+    // tab shows up when this one regains focus; the WebSocket also pushes
+    // updates while mounted, so this is mostly a safety net.
+    staleTime: 30_000,
+  });
+
+  if (history.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center px-4">
+        <p className="font-serif text-neutral-500 text-sm">Loading chat…</p>
+      </div>
+    );
+  }
+
+  return (
+    <ChatPanel initialItems={history.data?.items ?? []} key={projectId} projectId={projectId} />
+  );
+}
+
+function ChatPanel({
+  projectId,
+  initialItems,
+}: {
+  projectId: string;
+  initialItems: ChatHistoryItem[];
+}) {
+  // Stable identity for useAgent so the WebSocket isn't reconnected on every
+  // render of the parent.
   const agentOpts = useMemo(() => ({ agent: "aloysius", name: projectId }), [projectId]);
   const agent = useAgent(agentOpts);
-  const { messages, sendMessage, status, stop } = useAgentChat({ agent });
+
+  // Map our compact history shape into the UIMessage shape useAgentChat
+  // expects. Computed once on mount — useAgentChat takes `messages` as the
+  // initial state and manages its own list from then on.
+  const initialMessages = useMemo<UIMessage[]>(
+    () =>
+      initialItems.map((item, idx) => ({
+        id: `history-${idx}`,
+        role: item.role,
+        parts: [{ type: "text", text: item.text }],
+      })),
+    [initialItems],
+  );
+
+  const { messages, sendMessage, status, stop } = useAgentChat({
+    agent,
+    messages: initialMessages,
+    // Skip the SDK's HTTP hydrate — we already supplied messages above.
+    getInitialMessages: null,
+  });
+
   const [input, setInput] = useState("");
   const [connected, setConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);

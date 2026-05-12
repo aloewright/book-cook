@@ -627,6 +627,7 @@ export const queryKeys = {
   deletedProjects: () => ["projects", "deleted"] as const,
   project: (id: string) => ["projects", id] as const,
   projectOutline: (id: string) => ["projects", id, "outline"] as const,
+  projectChat: (id: string) => ["projects", id, "chat"] as const,
   fullBook: (id: string) => ["projects", id, "book"] as const,
   publisherPack: (id: string) => ["projects", id, "publisher-pack"] as const,
   renderJobs: (id: string) => ["projects", id, "render-jobs"] as const,

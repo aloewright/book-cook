@@ -1,27 +1,19 @@
-import { Outlet, createRootRoute, useLocation } from "@tanstack/react-router";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
   component: RootLayout,
 });
 
+// Single stable wrapper for every route. Previously we branched on a regex
+// ("is this the canvas?") which rendered two different DOM shapes — and the
+// bare /studio/{id} path matched the canvas branch, then immediately
+// redirected to /studio/{id}/outline which didn't, so the root tree
+// unmounted + remounted, causing a visible "double load" of the page +
+// re-establishing the chat WebSocket twice. One root wrapper avoids that.
 function RootLayout() {
-  const location = useLocation();
-  // Canvas route: /studio/{projectId} — has its own full-screen layered UI
-  const isCanvas = /^\/studio\/(?!compose\b)[^/]+$/.test(location.pathname);
-
-  if (isCanvas) {
-    return (
-      <div className="fixed inset-0 overflow-y-auto bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
-        <Outlet />
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
+    <div className="fixed inset-0 overflow-y-auto bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
+      <Outlet />
     </div>
   );
 }

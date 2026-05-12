@@ -1,19 +1,27 @@
-import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { Outlet, createRootRoute, useLocation } from "@tanstack/react-router";
+import { AssistantPanel } from "../components/studio/AssistantPanel";
 
 export const Route = createRootRoute({
   component: RootLayout,
 });
 
-// Single stable wrapper for every route. Previously we branched on a regex
-// ("is this the canvas?") which rendered two different DOM shapes — and the
-// bare /studio/{id} path matched the canvas branch, then immediately
-// redirected to /studio/{id}/outline which didn't, so the root tree
-// unmounted + remounted, causing a visible "double load" of the page +
-// re-establishing the chat WebSocket twice. One root wrapper avoids that.
 function RootLayout() {
+  const location = useLocation();
+  // Extract the project id from any /studio/{id}/... pathname. The chat
+  // panel mounts at the ROOT so it survives any nested route transition
+  // (including the bare /studio/{id} → /studio/{id}/outline beforeLoad
+  // redirect, which previously caused the studio.$projectId shell to
+  // remount and the WebSocket to reconnect twice on arrival).
+  const studioMatch = location.pathname.match(/^\/studio\/([^/]+)(?:\/|$)/);
+  const studioProjectId =
+    studioMatch && studioMatch[1] !== "compose" && studioMatch[1] !== "new"
+      ? studioMatch[1]
+      : null;
+
   return (
     <div className="fixed inset-0 overflow-y-auto bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
       <Outlet />
+      {studioProjectId && <AssistantPanel key={studioProjectId} projectId={studioProjectId} />}
     </div>
   );
 }

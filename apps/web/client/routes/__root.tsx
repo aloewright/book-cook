@@ -14,9 +14,7 @@ function RootLayout() {
   // remount and the WebSocket to reconnect twice on arrival).
   const studioMatch = location.pathname.match(/^\/studio\/([^/]+)(?:\/|$)/);
   const studioProjectId =
-    studioMatch && studioMatch[1] !== "compose" && studioMatch[1] !== "new"
-      ? studioMatch[1]
-      : null;
+    studioMatch && studioMatch[1] !== "compose" && studioMatch[1] !== "new" ? studioMatch[1] : null;
 
   return (
     <div className="fixed inset-0 overflow-y-auto bg-[#efece2] text-neutral-900 dark:bg-[#1a1a1a] dark:text-neutral-100">
